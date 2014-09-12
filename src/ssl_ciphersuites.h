@@ -32,12 +32,13 @@
 #include "md.h"
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-/*
- * Supported ciphersuites (Official IANA names)
- */
+  /*
+   * Supported ciphersuites (Official IANA names)
+   */
 #define TLS_RSA_WITH_NULL_MD5                    0x01   /**< Weak! */
 #define TLS_RSA_WITH_NULL_SHA                    0x02   /**< Weak! */
 
@@ -226,15 +227,16 @@ extern "C" {
 #define TLS_PSK_WITH_AES_256_CCM_8              0xC0A9  /**< TLS 1.2 */
 #define TLS_DHE_PSK_WITH_AES_128_CCM_8          0xC0AA  /**< TLS 1.2 */
 #define TLS_DHE_PSK_WITH_AES_256_CCM_8          0xC0AB  /**< TLS 1.2 */
-/* The last two are named with PSK_DHE in the RFC, which looks like a typo */
+  /* The last two are named with PSK_DHE in the RFC, which looks like a typo */
 
 #define TLS_ECDHE_ECDSA_WITH_AES_128_CCM        0xC0AC  /**< TLS 1.2 */
 #define TLS_ECDHE_ECDSA_WITH_AES_256_CCM        0xC0AD  /**< TLS 1.2 */
 #define TLS_ECDHE_ECDSA_WITH_AES_128_CCM_8      0xC0AE  /**< TLS 1.2 */
 #define TLS_ECDHE_ECDSA_WITH_AES_256_CCM_8      0xC0AF  /**< TLS 1.2 */
 
-/* Reminder: update _ssl_premaster_secret when adding a new key exchange */
-typedef enum {
+  /* Reminder: update _ssl_premaster_secret when adding a new key exchange */
+  typedef enum
+  {
     POLARSSL_KEY_EXCHANGE_NONE = 0,
     POLARSSL_KEY_EXCHANGE_RSA,
     POLARSSL_KEY_EXCHANGE_DHE_RSA,
@@ -246,21 +248,21 @@ typedef enum {
     POLARSSL_KEY_EXCHANGE_ECDHE_PSK,
     POLARSSL_KEY_EXCHANGE_ECDH_RSA,
     POLARSSL_KEY_EXCHANGE_ECDH_ECDSA,
-} key_exchange_type_t;
+  } key_exchange_type_t;
 
-typedef struct _ssl_ciphersuite_t ssl_ciphersuite_t;
+  typedef struct _ssl_ciphersuite_t ssl_ciphersuite_t;
 
 #define POLARSSL_CIPHERSUITE_WEAK       0x01    /**< Weak ciphersuite flag  */
 #define POLARSSL_CIPHERSUITE_SHORT_TAG  0x02    /**< Short authentication tag,
-                                                     eg for CCM_8 */
+                                                   eg for CCM_8 */
 
-/**
- * \brief   This structure is used for storing ciphersuite information
- */
-struct _ssl_ciphersuite_t
-{
+  /**
+   * \brief   This structure is used for storing ciphersuite information
+   */
+  struct _ssl_ciphersuite_t
+  {
     int id;
-    const char * name;
+    const char *name;
 
     cipher_type_t cipher;
     md_type_t mac;
@@ -272,22 +274,23 @@ struct _ssl_ciphersuite_t
     int max_minor_ver;
 
     unsigned char flags;
-};
+  };
 
-const int *ssl_list_ciphersuites( void );
+  const int *ssl_list_ciphersuites (void);
 
-const ssl_ciphersuite_t *ssl_ciphersuite_from_string( const char *ciphersuite_name );
-const ssl_ciphersuite_t *ssl_ciphersuite_from_id( int ciphersuite_id );
+  const ssl_ciphersuite_t *ssl_ciphersuite_from_string (const char
+                                                        *ciphersuite_name);
+  const ssl_ciphersuite_t *ssl_ciphersuite_from_id (int ciphersuite_id);
 
 #if defined(POLARSSL_PK_C)
-pk_type_t ssl_get_ciphersuite_sig_pk_alg( const ssl_ciphersuite_t *info );
+  pk_type_t ssl_get_ciphersuite_sig_pk_alg (const ssl_ciphersuite_t * info);
 #endif
 
-int ssl_ciphersuite_uses_ec( const ssl_ciphersuite_t *info );
-int ssl_ciphersuite_uses_psk( const ssl_ciphersuite_t *info );
+  int ssl_ciphersuite_uses_ec (const ssl_ciphersuite_t * info);
+  int ssl_ciphersuite_uses_psk (const ssl_ciphersuite_t * info);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* ssl_ciphersuites.h */
+#endif                          /* ssl_ciphersuites.h */

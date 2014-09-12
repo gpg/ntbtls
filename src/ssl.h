@@ -81,16 +81,16 @@
 #endif
 
 /* For convenience below and in programs */
-#if defined(POLARSSL_KEY_EXCHANGE_PSK_ENABLED) ||                           \
-    defined(POLARSSL_KEY_EXCHANGE_RSA_PSK_ENABLED) ||                       \
-    defined(POLARSSL_KEY_EXCHANGE_DHE_PSK_ENABLED) ||                       \
-    defined(POLARSSL_KEY_EXCHANGE_ECDHE_PSK_ENABLED)
+#if defined(POLARSSL_KEY_EXCHANGE_PSK_ENABLED) ||       \
+  defined(POLARSSL_KEY_EXCHANGE_RSA_PSK_ENABLED) ||     \
+  defined(POLARSSL_KEY_EXCHANGE_DHE_PSK_ENABLED) ||     \
+  defined(POLARSSL_KEY_EXCHANGE_ECDHE_PSK_ENABLED)
 #define POLARSSL_KEY_EXCHANGE__SOME__PSK_ENABLED
 #endif
 
-#if defined(POLARSSL_KEY_EXCHANGE_ECDHE_RSA_ENABLED) ||                     \
-    defined(POLARSSL_KEY_EXCHANGE_ECDHE_ECDSA_ENABLED) ||                   \
-    defined(POLARSSL_KEY_EXCHANGE_ECDHE_PSK_ENABLED)
+#if defined(POLARSSL_KEY_EXCHANGE_ECDHE_RSA_ENABLED) || \
+  defined(POLARSSL_KEY_EXCHANGE_ECDHE_ECDSA_ENABLED) || \
+  defined(POLARSSL_KEY_EXCHANGE_ECDHE_PSK_ENABLED)
 #define POLARSSL_KEY_EXCHANGE__SOME__ECDHE_ENABLED
 #endif
 
@@ -150,10 +150,10 @@
  * Various constants
  */
 #define SSL_MAJOR_VERSION_3             3
-#define SSL_MINOR_VERSION_0             0   /*!< SSL v3.0 */
-#define SSL_MINOR_VERSION_1             1   /*!< TLS v1.0 */
-#define SSL_MINOR_VERSION_2             2   /*!< TLS v1.1 */
-#define SSL_MINOR_VERSION_3             3   /*!< TLS v1.2 */
+#define SSL_MINOR_VERSION_0             0       /*!< SSL v3.0 */
+#define SSL_MINOR_VERSION_1             1       /*!< TLS v1.0 */
+#define SSL_MINOR_VERSION_2             2       /*!< TLS v1.1 */
+#define SSL_MINOR_VERSION_3             3       /*!< TLS v1.2 */
 
 /* Determine minimum supported version */
 #define SSL_MIN_MAJOR_VERSION           SSL_MAJOR_VERSION_3
@@ -195,12 +195,12 @@
 
 /* RFC 6066 section 4, see also mfl_code_to_length in ssl_tls.c
  * NONE must be zero so that memset()ing structure to zero works */
-#define SSL_MAX_FRAG_LEN_NONE           0   /*!< don't use this extension   */
-#define SSL_MAX_FRAG_LEN_512            1   /*!< MaxFragmentLength 2^9      */
-#define SSL_MAX_FRAG_LEN_1024           2   /*!< MaxFragmentLength 2^10     */
-#define SSL_MAX_FRAG_LEN_2048           3   /*!< MaxFragmentLength 2^11     */
-#define SSL_MAX_FRAG_LEN_4096           4   /*!< MaxFragmentLength 2^12     */
-#define SSL_MAX_FRAG_LEN_INVALID        5   /*!< first invalid value        */
+#define SSL_MAX_FRAG_LEN_NONE           0       /*!< don't use this extension   */
+#define SSL_MAX_FRAG_LEN_512            1       /*!< MaxFragmentLength 2^9      */
+#define SSL_MAX_FRAG_LEN_1024           2       /*!< MaxFragmentLength 2^10     */
+#define SSL_MAX_FRAG_LEN_2048           3       /*!< MaxFragmentLength 2^11     */
+#define SSL_MAX_FRAG_LEN_4096           4       /*!< MaxFragmentLength 2^12     */
+#define SSL_MAX_FRAG_LEN_INVALID        5       /*!< first invalid value        */
 
 #define SSL_IS_CLIENT                   0
 #define SSL_IS_SERVER                   1
@@ -212,9 +212,9 @@
 #define SSL_VERIFY_REQUIRED             2
 
 #define SSL_INITIAL_HANDSHAKE           0
-#define SSL_RENEGOTIATION               1   /* In progress */
-#define SSL_RENEGOTIATION_DONE          2   /* Done */
-#define SSL_RENEGOTIATION_PENDING       3   /* Requested (server only) */
+#define SSL_RENEGOTIATION               1       /* In progress */
+#define SSL_RENEGOTIATION_DONE          2       /* Done */
+#define SSL_RENEGOTIATION_PENDING       3       /* Requested (server only) */
 
 #define SSL_LEGACY_RENEGOTIATION        0
 #define SSL_SECURE_RENEGOTIATION        1
@@ -231,7 +231,7 @@
 
 #define SSL_TRUNC_HMAC_DISABLED         0
 #define SSL_TRUNC_HMAC_ENABLED          1
-#define SSL_TRUNCATED_HMAC_LEN          10  /* 80 bits, rfc 6066 section 7 */
+#define SSL_TRUNCATED_HMAC_LEN          10      /* 80 bits, rfc 6066 section 7 */
 
 #define SSL_SESSION_TICKETS_DISABLED     0
 #define SSL_SESSION_TICKETS_ENABLED      1
@@ -295,12 +295,12 @@
 #define SSL_PADDING_ADD              0
 #endif
 
-#define SSL_BUFFER_LEN  ( SSL_MAX_CONTENT_LEN               \
-                        + SSL_COMPRESSION_ADD               \
-                        + 29 /* counter + header + IV */    \
-                        + SSL_MAC_ADD                       \
-                        + SSL_PADDING_ADD                   \
-                        )
+#define SSL_BUFFER_LEN  ( SSL_MAX_CONTENT_LEN                   \
+                          + SSL_COMPRESSION_ADD                 \
+                          + 29 /* counter + header + IV */      \
+                          + SSL_MAC_ADD                         \
+                          + SSL_PADDING_ADD                     \
+                          )
 
 /*
  * Signaling ciphersuite values (SCSV)
@@ -368,7 +368,7 @@
 #define SSL_ALERT_MSG_UNSUPPORTED_EXT      110  /* 0x6E */
 #define SSL_ALERT_MSG_UNRECOGNIZED_NAME    112  /* 0x70 */
 #define SSL_ALERT_MSG_UNKNOWN_PSK_IDENTITY 115  /* 0x73 */
-#define SSL_ALERT_MSG_NO_APPLICATION_PROTOCOL 120 /* 0x78 */
+#define SSL_ALERT_MSG_NO_APPLICATION_PROTOCOL 120       /* 0x78 */
 
 #define SSL_HS_HELLO_REQUEST            0
 #define SSL_HS_CLIENT_HELLO             1
@@ -414,82 +414,86 @@
  * Size defines
  */
 #if !defined(POLARSSL_PSK_MAX_LEN)
-#define POLARSSL_PSK_MAX_LEN            32 /* 256 bits */
+#define POLARSSL_PSK_MAX_LEN            32      /* 256 bits */
 #endif
 
 /* Dummy type used only for its size */
 union _ssl_premaster_secret
 {
 #if defined(POLARSSL_KEY_EXCHANGE_RSA_ENABLED)
-    unsigned char _pms_rsa[48];                         /* RFC 5246 8.1.1 */
+  unsigned char _pms_rsa[48];   /* RFC 5246 8.1.1 */
 #endif
 #if defined(POLARSSL_KEY_EXCHANGE_DHE_RSA_ENABLED)
-    unsigned char _pms_dhm[POLARSSL_MPI_MAX_SIZE];      /* RFC 5246 8.1.2 */
+  unsigned char _pms_dhm[POLARSSL_MPI_MAX_SIZE];        /* RFC 5246 8.1.2 */
 #endif
-#if defined(POLARSSL_KEY_EXCHANGE_ECDHE_RSA_ENABLED)    || \
-    defined(POLARSSL_KEY_EXCHANGE_ECDHE_ECDSA_ENABLED)  || \
-    defined(POLARSSL_KEY_EXCHANGE_ECDH_RSA_ENABLED)     || \
-    defined(POLARSSL_KEY_EXCHANGE_ECDH_ECDSA_ENABLED)
-    unsigned char _pms_ecdh[POLARSSL_ECP_MAX_BYTES];    /* RFC 4492 5.10 */
+#if defined(POLARSSL_KEY_EXCHANGE_ECDHE_RSA_ENABLED)    ||      \
+  defined(POLARSSL_KEY_EXCHANGE_ECDHE_ECDSA_ENABLED)  ||        \
+  defined(POLARSSL_KEY_EXCHANGE_ECDH_RSA_ENABLED)     ||        \
+  defined(POLARSSL_KEY_EXCHANGE_ECDH_ECDSA_ENABLED)
+  unsigned char _pms_ecdh[POLARSSL_ECP_MAX_BYTES];      /* RFC 4492 5.10 */
 #endif
 #if defined(POLARSSL_KEY_EXCHANGE_PSK_ENABLED)
-    unsigned char _pms_psk[4 + 2 * POLARSSL_PSK_MAX_LEN];       /* RFC 4279 2 */
+  unsigned char _pms_psk[4 + 2 * POLARSSL_PSK_MAX_LEN]; /* RFC 4279 2 */
 #endif
 #if defined(POLARSSL_KEY_EXCHANGE_DHE_PSK_ENABLED)
-    unsigned char _pms_dhe_psk[4 + POLARSSL_MPI_MAX_SIZE
-                                 + POLARSSL_PSK_MAX_LEN];       /* RFC 4279 3 */
+  unsigned char _pms_dhe_psk[4 + POLARSSL_MPI_MAX_SIZE + POLARSSL_PSK_MAX_LEN]; /* RFC 4279 3 */
 #endif
 #if defined(POLARSSL_KEY_EXCHANGE_RSA_PSK_ENABLED)
-    unsigned char _pms_rsa_psk[52 + POLARSSL_PSK_MAX_LEN];      /* RFC 4279 4 */
+  unsigned char _pms_rsa_psk[52 + POLARSSL_PSK_MAX_LEN];        /* RFC 4279 4 */
 #endif
 #if defined(POLARSSL_KEY_EXCHANGE_DHE_PSK_ENABLED)
-    unsigned char _pms_ecdhe_psk[4 + POLARSSL_ECP_MAX_BYTES
-                                   + POLARSSL_PSK_MAX_LEN];     /* RFC 5489 2 */
+  unsigned char _pms_ecdhe_psk[4 + POLARSSL_ECP_MAX_BYTES + POLARSSL_PSK_MAX_LEN];      /* RFC 5489 2 */
 #endif
 };
 
 #define POLARSSL_PREMASTER_SIZE     sizeof( union _ssl_premaster_secret )
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
+#if 0                           /* Help auto-indent. */
+}
+#endif
 #endif
 
 /*
  * Generic function pointers for allowing external RSA private key
  * implementations.
  */
-typedef int (*rsa_decrypt_func)( void *ctx, int mode, size_t *olen,
-                        const unsigned char *input, unsigned char *output,
-                        size_t output_max_len );
-typedef int (*rsa_sign_func)( void *ctx,
-                     int (*f_rng)(void *, unsigned char *, size_t), void *p_rng,
-                     int mode, md_type_t md_alg, unsigned int hashlen,
-                     const unsigned char *hash, unsigned char *sig );
-typedef size_t (*rsa_key_len_func)( void *ctx );
+typedef int (*rsa_decrypt_func) (void *ctx, int mode, size_t * olen,
+                                 const unsigned char *input,
+                                 unsigned char *output,
+                                 size_t output_max_len);
+typedef int (*rsa_sign_func) (void *ctx,
+                              int (*f_rng) (void *, unsigned char *, size_t),
+                              void *p_rng, int mode, md_type_t md_alg,
+                              unsigned int hashlen, const unsigned char *hash,
+                              unsigned char *sig);
+typedef size_t (*rsa_key_len_func) (void *ctx);
 
 /*
  * SSL state machine
  */
 typedef enum
 {
-    SSL_HELLO_REQUEST,
-    SSL_CLIENT_HELLO,
-    SSL_SERVER_HELLO,
-    SSL_SERVER_CERTIFICATE,
-    SSL_SERVER_KEY_EXCHANGE,
-    SSL_CERTIFICATE_REQUEST,
-    SSL_SERVER_HELLO_DONE,
-    SSL_CLIENT_CERTIFICATE,
-    SSL_CLIENT_KEY_EXCHANGE,
-    SSL_CERTIFICATE_VERIFY,
-    SSL_CLIENT_CHANGE_CIPHER_SPEC,
-    SSL_CLIENT_FINISHED,
-    SSL_SERVER_CHANGE_CIPHER_SPEC,
-    SSL_SERVER_FINISHED,
-    SSL_FLUSH_BUFFERS,
-    SSL_HANDSHAKE_WRAPUP,
-    SSL_HANDSHAKE_OVER,
-    SSL_SERVER_NEW_SESSION_TICKET,
+  SSL_HELLO_REQUEST,
+  SSL_CLIENT_HELLO,
+  SSL_SERVER_HELLO,
+  SSL_SERVER_CERTIFICATE,
+  SSL_SERVER_KEY_EXCHANGE,
+  SSL_CERTIFICATE_REQUEST,
+  SSL_SERVER_HELLO_DONE,
+  SSL_CLIENT_CERTIFICATE,
+  SSL_CLIENT_KEY_EXCHANGE,
+  SSL_CERTIFICATE_VERIFY,
+  SSL_CLIENT_CHANGE_CIPHER_SPEC,
+  SSL_CLIENT_FINISHED,
+  SSL_SERVER_CHANGE_CIPHER_SPEC,
+  SSL_SERVER_FINISHED,
+  SSL_FLUSH_BUFFERS,
+  SSL_HANDSHAKE_WRAPUP,
+  SSL_HANDSHAKE_OVER,
+  SSL_SERVER_NEW_SESSION_TICKET,
 }
 ssl_states;
 
@@ -510,32 +514,32 @@ typedef struct _ssl_key_cert ssl_key_cert;
 struct _ssl_session
 {
 #if defined(POLARSSL_HAVE_TIME)
-    time_t start;               /*!< starting time      */
+  time_t start;                 /*!< starting time      */
 #endif
-    int ciphersuite;            /*!< chosen ciphersuite */
-    int compression;            /*!< chosen compression */
-    size_t length;              /*!< session id length  */
-    unsigned char id[32];       /*!< session identifier */
-    unsigned char master[48];   /*!< the master secret  */
+  int ciphersuite;              /*!< chosen ciphersuite */
+  int compression;              /*!< chosen compression */
+  size_t length;                /*!< session id length  */
+  unsigned char id[32];         /*!< session identifier */
+  unsigned char master[48];     /*!< the master secret  */
 
 #if defined(POLARSSL_X509_CRT_PARSE_C)
-    x509_crt *peer_cert;        /*!< peer X.509 cert chain */
-#endif /* POLARSSL_X509_CRT_PARSE_C */
-    int verify_result;          /*!<  verification result     */
+  x509_crt *peer_cert;          /*!< peer X.509 cert chain */
+#endif                          /* POLARSSL_X509_CRT_PARSE_C */
+  int verify_result;            /*!<  verification result     */
 
 #if defined(POLARSSL_SSL_SESSION_TICKETS)
-    unsigned char *ticket;      /*!< RFC 5077 session ticket */
-    size_t ticket_len;          /*!< session ticket length   */
-    uint32_t ticket_lifetime;   /*!< ticket lifetime hint    */
-#endif /* POLARSSL_SSL_SESSION_TICKETS */
+  unsigned char *ticket;        /*!< RFC 5077 session ticket */
+  size_t ticket_len;            /*!< session ticket length   */
+  uint32_t ticket_lifetime;     /*!< ticket lifetime hint    */
+#endif                          /* POLARSSL_SSL_SESSION_TICKETS */
 
 #if defined(POLARSSL_SSL_MAX_FRAGMENT_LENGTH)
-    unsigned char mfl_code;     /*!< MaxFragmentLength negotiated by peer */
-#endif /* POLARSSL_SSL_MAX_FRAGMENT_LENGTH */
+  unsigned char mfl_code;       /*!< MaxFragmentLength negotiated by peer */
+#endif                          /* POLARSSL_SSL_MAX_FRAGMENT_LENGTH */
 
 #if defined(POLARSSL_SSL_TRUNCATED_HMAC)
-    int trunc_hmac;             /*!< flag for truncated hmac activation   */
-#endif /* POLARSSL_SSL_TRUNCATED_HMAC */
+  int trunc_hmac;               /*!< flag for truncated hmac activation   */
+#endif                          /* POLARSSL_SSL_TRUNCATED_HMAC */
 };
 
 /*
@@ -544,38 +548,38 @@ struct _ssl_session
  */
 struct _ssl_transform
 {
-    /*
-     * Session specific crypto layer
-     */
-    const ssl_ciphersuite_t *ciphersuite_info;
-                                        /*!<  Chosen cipersuite_info  */
-    unsigned int keylen;                /*!<  symmetric key length    */
-    size_t minlen;                      /*!<  min. ciphertext length  */
-    size_t ivlen;                       /*!<  IV length               */
-    size_t fixed_ivlen;                 /*!<  Fixed part of IV (AEAD) */
-    size_t maclen;                      /*!<  MAC length              */
+  /*
+   * Session specific crypto layer
+   */
+  const ssl_ciphersuite_t *ciphersuite_info;
+  /*!<  Chosen cipersuite_info  */
+  unsigned int keylen;          /*!<  symmetric key length    */
+  size_t minlen;                /*!<  min. ciphertext length  */
+  size_t ivlen;                 /*!<  IV length               */
+  size_t fixed_ivlen;           /*!<  Fixed part of IV (AEAD) */
+  size_t maclen;                /*!<  MAC length              */
 
-    unsigned char iv_enc[16];           /*!<  IV (encryption)         */
-    unsigned char iv_dec[16];           /*!<  IV (decryption)         */
+  unsigned char iv_enc[16];     /*!<  IV (encryption)         */
+  unsigned char iv_dec[16];     /*!<  IV (decryption)         */
 
 #if defined(POLARSSL_SSL_PROTO_SSL3)
-    /* Needed only for SSL v3.0 secret */
-    unsigned char mac_enc[48];          /*!<  SSL v3.0 secret (enc)   */
-    unsigned char mac_dec[48];          /*!<  SSL v3.0 secret (dec)   */
-#endif /* POLARSSL_SSL_PROTO_SSL3 */
+  /* Needed only for SSL v3.0 secret */
+  unsigned char mac_enc[48];    /*!<  SSL v3.0 secret (enc)   */
+  unsigned char mac_dec[48];    /*!<  SSL v3.0 secret (dec)   */
+#endif                          /* POLARSSL_SSL_PROTO_SSL3 */
 
-    md_context_t md_ctx_enc;            /*!<  MAC (encryption)        */
-    md_context_t md_ctx_dec;            /*!<  MAC (decryption)        */
+  md_context_t md_ctx_enc;      /*!<  MAC (encryption)        */
+  md_context_t md_ctx_dec;      /*!<  MAC (decryption)        */
 
-    cipher_context_t cipher_ctx_enc;    /*!<  encryption context      */
-    cipher_context_t cipher_ctx_dec;    /*!<  decryption context      */
+  cipher_context_t cipher_ctx_enc;      /*!<  encryption context      */
+  cipher_context_t cipher_ctx_dec;      /*!<  decryption context      */
 
-    /*
-     * Session specific compression layer
-     */
+  /*
+   * Session specific compression layer
+   */
 #if defined(POLARSSL_ZLIB_SUPPORT)
-    z_stream ctx_deflate;               /*!<  compression context     */
-    z_stream ctx_inflate;               /*!<  decompression context   */
+  z_stream ctx_deflate;         /*!<  compression context     */
+  z_stream ctx_inflate;         /*!<  decompression context   */
 #endif
 };
 
@@ -584,72 +588,71 @@ struct _ssl_transform
  */
 struct _ssl_handshake_params
 {
-    /*
-     * Handshake specific crypto variables
-     */
-    int sig_alg;                        /*!<  Hash algorithm for signature   */
-    int cert_type;                      /*!<  Requested cert type            */
-    int verify_sig_alg;                 /*!<  Signature algorithm for verify */
+  /*
+   * Handshake specific crypto variables
+   */
+  int sig_alg;                  /*!<  Hash algorithm for signature   */
+  int cert_type;                /*!<  Requested cert type            */
+  int verify_sig_alg;           /*!<  Signature algorithm for verify */
 #if defined(POLARSSL_DHM_C)
-    dhm_context dhm_ctx;                /*!<  DHM key exchange        */
+  dhm_context dhm_ctx;          /*!<  DHM key exchange        */
 #endif
 #if defined(POLARSSL_ECDH_C)
-    ecdh_context ecdh_ctx;              /*!<  ECDH key exchange       */
+  ecdh_context ecdh_ctx;        /*!<  ECDH key exchange       */
 #endif
 #if defined(POLARSSL_ECDH_C) || defined(POLARSSL_ECDSA_C)
-    const ecp_curve_info **curves;      /*!<  Supported elliptic curves */
+  const ecp_curve_info **curves;        /*!<  Supported elliptic curves */
 #endif
 #if defined(POLARSSL_X509_CRT_PARSE_C)
-    /**
-     * Current key/cert or key/cert list.
-     * On client: pointer to ssl->key_cert, only the first entry used.
-     * On server: starts as a pointer to ssl->key_cert, then becomes
-     * a pointer to the chosen key from this list or the SNI list.
-     */
-    ssl_key_cert *key_cert;
+  /**
+   * Current key/cert or key/cert list.
+   * On client: pointer to ssl->key_cert, only the first entry used.
+   * On server: starts as a pointer to ssl->key_cert, then becomes
+   * a pointer to the chosen key from this list or the SNI list.
+   */
+  ssl_key_cert *key_cert;
 #if defined(POLARSSL_SSL_SERVER_NAME_INDICATION)
-    ssl_key_cert *sni_key_cert;         /*!<  key/cert list from SNI  */
+  ssl_key_cert *sni_key_cert;   /*!<  key/cert list from SNI  */
 #endif
-#endif /* POLARSSL_X509_CRT_PARSE_C */
+#endif                          /* POLARSSL_X509_CRT_PARSE_C */
 
-    /*
-     * Checksum contexts
-     */
+  /*
+   * Checksum contexts
+   */
 #if defined(POLARSSL_SSL_PROTO_SSL3) || defined(POLARSSL_SSL_PROTO_TLS1) || \
-    defined(POLARSSL_SSL_PROTO_TLS1_1)
-       md5_context fin_md5;
-      sha1_context fin_sha1;
+  defined(POLARSSL_SSL_PROTO_TLS1_1)
+  md5_context fin_md5;
+  sha1_context fin_sha1;
 #endif
 #if defined(POLARSSL_SSL_PROTO_TLS1_2)
 #if defined(POLARSSL_SHA256_C)
-    sha256_context fin_sha256;
+  sha256_context fin_sha256;
 #endif
 #if defined(POLARSSL_SHA512_C)
-    sha512_context fin_sha512;
+  sha512_context fin_sha512;
 #endif
-#endif /* POLARSSL_SSL_PROTO_TLS1_2 */
+#endif                          /* POLARSSL_SSL_PROTO_TLS1_2 */
 
-    void (*update_checksum)(ssl_context *, const unsigned char *, size_t);
-    void (*calc_verify)(ssl_context *, unsigned char *);
-    void (*calc_finished)(ssl_context *, unsigned char *, int);
-    int  (*tls_prf)(const unsigned char *, size_t, const char *,
-                    const unsigned char *, size_t,
-                    unsigned char *, size_t);
+  void (*update_checksum) (ssl_context *, const unsigned char *, size_t);
+  void (*calc_verify) (ssl_context *, unsigned char *);
+  void (*calc_finished) (ssl_context *, unsigned char *, int);
+  int (*tls_prf) (const unsigned char *, size_t, const char *,
+                  const unsigned char *, size_t, unsigned char *, size_t);
 
-    size_t pmslen;                      /*!<  premaster length        */
+  size_t pmslen;                /*!<  premaster length        */
 
-    unsigned char randbytes[64];        /*!<  random bytes            */
-    unsigned char premaster[POLARSSL_PREMASTER_SIZE];
-                                        /*!<  premaster secret        */
+  unsigned char randbytes[64];  /*!<  random bytes            */
+  unsigned char premaster[POLARSSL_PREMASTER_SIZE];
+  /*!<  premaster secret        */
 
-    int resume;                         /*!<  session resume indicator*/
-    int max_major_ver;                  /*!< max. major version client*/
-    int max_minor_ver;                  /*!< max. minor version client*/
-    int cli_exts;                       /*!< client extension presence*/
+  int resume;                   /*!<  session resume indicator */
+  int max_major_ver;            /*!< max. major version client */
+  int max_minor_ver;            /*!< max. minor version client */
+  int cli_exts;                 /*!< client extension presence */
 
 #if defined(POLARSSL_SSL_SESSION_TICKETS)
-    int new_session_ticket;             /*!< use NewSessionTicket?    */
-#endif /* POLARSSL_SSL_SESSION_TICKETS */
+  int new_session_ticket;       /*!< use NewSessionTicket?    */
+#endif                          /* POLARSSL_SSL_SESSION_TICKETS */
 };
 
 #if defined(POLARSSL_SSL_SESSION_TICKETS)
@@ -658,10 +661,10 @@ struct _ssl_handshake_params
  */
 struct _ssl_ticket_keys
 {
-    unsigned char key_name[16];     /*!< name to quickly discard bad tickets */
-    aes_context enc;                /*!< encryption context                  */
-    aes_context dec;                /*!< decryption context                  */
-    unsigned char mac_key[16];      /*!< authentication key                  */
+  unsigned char key_name[16];   /*!< name to quickly discard bad tickets */
+  aes_context enc;              /*!< encryption context                  */
+  aes_context dec;              /*!< decryption context                  */
+  unsigned char mac_key[16];    /*!< authentication key                  */
 };
 #endif /* POLARSSL_SSL_SESSION_TICKETS */
 
@@ -671,197 +674,197 @@ struct _ssl_ticket_keys
  */
 struct _ssl_key_cert
 {
-    x509_crt *cert;                 /*!< cert                       */
-    pk_context *key;                /*!< private key                */
-    int key_own_alloc;              /*!< did we allocate key?       */
-    ssl_key_cert *next;             /*!< next key/cert pair         */
+  x509_crt *cert;               /*!< cert                       */
+  pk_context *key;              /*!< private key                */
+  int key_own_alloc;            /*!< did we allocate key?       */
+  ssl_key_cert *next;           /*!< next key/cert pair         */
 };
 #endif /* POLARSSL_X509_CRT_PARSE_C */
 
 struct _ssl_context
 {
-    /*
-     * Miscellaneous
-     */
-    int state;                  /*!< SSL handshake: current state     */
-    int renegotiation;          /*!< Initial or renegotiation         */
-    int renego_records_seen;    /*!< Records since renego request     */
+  /*
+   * Miscellaneous
+   */
+  int state;                    /*!< SSL handshake: current state     */
+  int renegotiation;            /*!< Initial or renegotiation         */
+  int renego_records_seen;      /*!< Records since renego request     */
 
-    int major_ver;              /*!< equal to  SSL_MAJOR_VERSION_3    */
-    int minor_ver;              /*!< either 0 (SSL3) or 1 (TLS1.0)    */
+  int major_ver;                /*!< equal to  SSL_MAJOR_VERSION_3    */
+  int minor_ver;                /*!< either 0 (SSL3) or 1 (TLS1.0)    */
 
-    int max_major_ver;          /*!< max. major version used          */
-    int max_minor_ver;          /*!< max. minor version used          */
-    int min_major_ver;          /*!< min. major version used          */
-    int min_minor_ver;          /*!< min. minor version used          */
+  int max_major_ver;            /*!< max. major version used          */
+  int max_minor_ver;            /*!< max. minor version used          */
+  int min_major_ver;            /*!< min. major version used          */
+  int min_minor_ver;            /*!< min. minor version used          */
 
-    /*
-     * Callbacks (RNG, debug, I/O, verification)
-     */
-    int  (*f_rng)(void *, unsigned char *, size_t);
-    void (*f_dbg)(void *, int, const char *);
-    int (*f_recv)(void *, unsigned char *, size_t);
-    int (*f_send)(void *, const unsigned char *, size_t);
-    int (*f_get_cache)(void *, ssl_session *);
-    int (*f_set_cache)(void *, const ssl_session *);
+  /*
+   * Callbacks (RNG, debug, I/O, verification)
+   */
+  int (*f_rng) (void *, unsigned char *, size_t);
+  void (*f_dbg) (void *, int, const char *);
+  int (*f_recv) (void *, unsigned char *, size_t);
+  int (*f_send) (void *, const unsigned char *, size_t);
+  int (*f_get_cache) (void *, ssl_session *);
+  int (*f_set_cache) (void *, const ssl_session *);
 
-    void *p_rng;                /*!< context for the RNG function     */
-    void *p_dbg;                /*!< context for the debug function   */
-    void *p_recv;               /*!< context for reading operations   */
-    void *p_send;               /*!< context for writing operations   */
-    void *p_get_cache;          /*!< context for cache retrieval      */
-    void *p_set_cache;          /*!< context for cache store          */
-    void *p_hw_data;            /*!< context for HW acceleration      */
+  void *p_rng;                  /*!< context for the RNG function     */
+  void *p_dbg;                  /*!< context for the debug function   */
+  void *p_recv;                 /*!< context for reading operations   */
+  void *p_send;                 /*!< context for writing operations   */
+  void *p_get_cache;            /*!< context for cache retrieval      */
+  void *p_set_cache;            /*!< context for cache store          */
+  void *p_hw_data;              /*!< context for HW acceleration      */
 
 #if defined(POLARSSL_SSL_SERVER_NAME_INDICATION)
-    int (*f_sni)(void *, ssl_context *, const unsigned char *, size_t);
-    void *p_sni;                /*!< context for SNI extension        */
+  int (*f_sni) (void *, ssl_context *, const unsigned char *, size_t);
+  void *p_sni;                  /*!< context for SNI extension        */
 #endif
 
 #if defined(POLARSSL_X509_CRT_PARSE_C)
-    int (*f_vrfy)(void *, x509_crt *, int, int *);
-    void *p_vrfy;               /*!< context for verification         */
+  int (*f_vrfy) (void *, x509_crt *, int, int *);
+  void *p_vrfy;                 /*!< context for verification         */
 #endif
 
 #if defined(POLARSSL_KEY_EXCHANGE__SOME__PSK_ENABLED)
-    int (*f_psk)(void *, ssl_context *, const unsigned char *, size_t);
-    void *p_psk;               /*!< context for PSK retrieval         */
+  int (*f_psk) (void *, ssl_context *, const unsigned char *, size_t);
+  void *p_psk;                  /*!< context for PSK retrieval         */
 #endif
 
-    /*
-     * Session layer
-     */
-    ssl_session *session_in;            /*!<  current session data (in)   */
-    ssl_session *session_out;           /*!<  current session data (out)  */
-    ssl_session *session;               /*!<  negotiated session data     */
-    ssl_session *session_negotiate;     /*!<  session data in negotiation */
+  /*
+   * Session layer
+   */
+  ssl_session *session_in;      /*!<  current session data (in)   */
+  ssl_session *session_out;     /*!<  current session data (out)  */
+  ssl_session *session;         /*!<  negotiated session data     */
+  ssl_session *session_negotiate;       /*!<  session data in negotiation */
 
-    ssl_handshake_params *handshake;    /*!<  params required only during
-                                              the handshake process        */
+  ssl_handshake_params *handshake;      /*!<  params required only during
+                                           the handshake process        */
 
-    /*
-     * Record layer transformations
-     */
-    ssl_transform *transform_in;        /*!<  current transform params (in)   */
-    ssl_transform *transform_out;       /*!<  current transform params (in)   */
-    ssl_transform *transform;           /*!<  negotiated transform params     */
-    ssl_transform *transform_negotiate; /*!<  transform params in negotiation */
+  /*
+   * Record layer transformations
+   */
+  ssl_transform *transform_in;  /*!<  current transform params (in)   */
+  ssl_transform *transform_out; /*!<  current transform params (in)   */
+  ssl_transform *transform;     /*!<  negotiated transform params     */
+  ssl_transform *transform_negotiate;   /*!<  transform params in negotiation */
 
-    /*
-     * Record layer (incoming data)
-     */
-    unsigned char *in_ctr;      /*!< 64-bit incoming message counter  */
-    unsigned char *in_hdr;      /*!< 5-byte record header (in_ctr+8)  */
-    unsigned char *in_iv;       /*!< ivlen-byte IV (in_hdr+5)         */
-    unsigned char *in_msg;      /*!< message contents (in_iv+ivlen)   */
-    unsigned char *in_offt;     /*!< read offset in application data  */
+  /*
+   * Record layer (incoming data)
+   */
+  unsigned char *in_ctr;        /*!< 64-bit incoming message counter  */
+  unsigned char *in_hdr;        /*!< 5-byte record header (in_ctr+8)  */
+  unsigned char *in_iv;         /*!< ivlen-byte IV (in_hdr+5)         */
+  unsigned char *in_msg;        /*!< message contents (in_iv+ivlen)   */
+  unsigned char *in_offt;       /*!< read offset in application data  */
 
-    int in_msgtype;             /*!< record header: message type      */
-    size_t in_msglen;           /*!< record header: message length    */
-    size_t in_left;             /*!< amount of data read so far       */
+  int in_msgtype;               /*!< record header: message type      */
+  size_t in_msglen;             /*!< record header: message length    */
+  size_t in_left;               /*!< amount of data read so far       */
 
-    size_t in_hslen;            /*!< current handshake message length */
-    int nb_zero;                /*!< # of 0-length encrypted messages */
-    int record_read;            /*!< record is already present        */
+  size_t in_hslen;              /*!< current handshake message length */
+  int nb_zero;                  /*!< # of 0-length encrypted messages */
+  int record_read;              /*!< record is already present        */
 
-    /*
-     * Record layer (outgoing data)
-     */
-    unsigned char *out_ctr;     /*!< 64-bit outgoing message counter  */
-    unsigned char *out_hdr;     /*!< 5-byte record header (out_ctr+8) */
-    unsigned char *out_iv;      /*!< ivlen-byte IV (out_hdr+5)        */
-    unsigned char *out_msg;     /*!< message contents (out_iv+ivlen)  */
+  /*
+   * Record layer (outgoing data)
+   */
+  unsigned char *out_ctr;       /*!< 64-bit outgoing message counter  */
+  unsigned char *out_hdr;       /*!< 5-byte record header (out_ctr+8) */
+  unsigned char *out_iv;        /*!< ivlen-byte IV (out_hdr+5)        */
+  unsigned char *out_msg;       /*!< message contents (out_iv+ivlen)  */
 
-    int out_msgtype;            /*!< record header: message type      */
-    size_t out_msglen;          /*!< record header: message length    */
-    size_t out_left;            /*!< amount of data not yet written   */
+  int out_msgtype;              /*!< record header: message type      */
+  size_t out_msglen;            /*!< record header: message length    */
+  size_t out_left;              /*!< amount of data not yet written   */
 
 #if defined(POLARSSL_ZLIB_SUPPORT)
-    unsigned char *compress_buf;        /*!<  zlib data buffer        */
+  unsigned char *compress_buf;  /*!<  zlib data buffer        */
 #endif
 #if defined(POLARSSL_SSL_MAX_FRAGMENT_LENGTH)
-    unsigned char mfl_code;     /*!< MaxFragmentLength chosen by us   */
-#endif /* POLARSSL_SSL_MAX_FRAGMENT_LENGTH */
+  unsigned char mfl_code;       /*!< MaxFragmentLength chosen by us   */
+#endif                          /* POLARSSL_SSL_MAX_FRAGMENT_LENGTH */
 
-    /*
-     * PKI layer
-     */
+  /*
+   * PKI layer
+   */
 #if defined(POLARSSL_X509_CRT_PARSE_C)
-    ssl_key_cert *key_cert;             /*!<  own certificate(s)/key(s) */
+  ssl_key_cert *key_cert;       /*!<  own certificate(s)/key(s) */
 
-    x509_crt *ca_chain;                 /*!<  own trusted CA chain      */
-    x509_crl *ca_crl;                   /*!<  trusted CA CRLs           */
-    const char *peer_cn;                /*!<  expected peer CN          */
-#endif /* POLARSSL_X509_CRT_PARSE_C */
+  x509_crt *ca_chain;           /*!<  own trusted CA chain      */
+  x509_crl *ca_crl;             /*!<  trusted CA CRLs           */
+  const char *peer_cn;          /*!<  expected peer CN          */
+#endif                          /* POLARSSL_X509_CRT_PARSE_C */
 
-    /*
-     * Support for generating and checking session tickets
-     */
+  /*
+   * Support for generating and checking session tickets
+   */
 #if defined(POLARSSL_SSL_SESSION_TICKETS)
-    ssl_ticket_keys *ticket_keys;       /*!<  keys for ticket encryption */
-#endif /* POLARSSL_SSL_SESSION_TICKETS */
+  ssl_ticket_keys *ticket_keys; /*!<  keys for ticket encryption */
+#endif                          /* POLARSSL_SSL_SESSION_TICKETS */
 
-    /*
-     * User settings
-     */
-    int endpoint;                       /*!<  0: client, 1: server    */
-    int authmode;                       /*!<  verification mode       */
-    int client_auth;                    /*!<  flag for client auth.   */
-    int verify_result;                  /*!<  verification result     */
-    int disable_renegotiation;          /*!<  enable/disable renegotiation   */
-    int allow_legacy_renegotiation;     /*!<  allow legacy renegotiation     */
-    int renego_max_records;             /*!<  grace period for renegotiation */
-    const int *ciphersuite_list[4];     /*!<  allowed ciphersuites / version */
+  /*
+   * User settings
+   */
+  int endpoint;                 /*!<  0: client, 1: server    */
+  int authmode;                 /*!<  verification mode       */
+  int client_auth;              /*!<  flag for client auth.   */
+  int verify_result;            /*!<  verification result     */
+  int disable_renegotiation;    /*!<  enable/disable renegotiation   */
+  int allow_legacy_renegotiation;       /*!<  allow legacy renegotiation     */
+  int renego_max_records;       /*!<  grace period for renegotiation */
+  const int *ciphersuite_list[4];       /*!<  allowed ciphersuites / version */
 #if defined(POLARSSL_SSL_SET_CURVES)
-    const ecp_group_id *curve_list;     /*!<  allowed curves                 */
+  const ecp_group_id *curve_list;       /*!<  allowed curves                 */
 #endif
 #if defined(POLARSSL_SSL_TRUNCATED_HMAC)
-    int trunc_hmac;                     /*!<  negotiate truncated hmac?      */
+  int trunc_hmac;               /*!<  negotiate truncated hmac?      */
 #endif
 #if defined(POLARSSL_SSL_SESSION_TICKETS)
-    int session_tickets;                /*!<  use session tickets?    */
-    int ticket_lifetime;                /*!<  session ticket lifetime */
+  int session_tickets;          /*!<  use session tickets?    */
+  int ticket_lifetime;          /*!<  session ticket lifetime */
 #endif
 
 #if defined(POLARSSL_DHM_C)
-    mpi dhm_P;                          /*!<  prime modulus for DHM   */
-    mpi dhm_G;                          /*!<  generator for DHM       */
+  mpi dhm_P;                    /*!<  prime modulus for DHM   */
+  mpi dhm_G;                    /*!<  generator for DHM       */
 #endif
 
 #if defined(POLARSSL_KEY_EXCHANGE__SOME__PSK_ENABLED)
-    /*
-     * PSK values
-     */
-    unsigned char *psk;
-    size_t         psk_len;
-    unsigned char *psk_identity;
-    size_t         psk_identity_len;
+  /*
+   * PSK values
+   */
+  unsigned char *psk;
+  size_t psk_len;
+  unsigned char *psk_identity;
+  size_t psk_identity_len;
 #endif
 
 #if defined(POLARSSL_SSL_SERVER_NAME_INDICATION)
-    /*
-     * SNI extension
-     */
-    unsigned char *hostname;
-    size_t         hostname_len;
+  /*
+   * SNI extension
+   */
+  unsigned char *hostname;
+  size_t hostname_len;
 #endif
 
 #if defined(POLARSSL_SSL_ALPN)
-    /*
-     * ALPN extension
-     */
-    const char **alpn_list;     /*!<  ordered list of supported protocols   */
-    const char *alpn_chosen;    /*!<  negotiated protocol                   */
+  /*
+   * ALPN extension
+   */
+  const char **alpn_list;       /*!<  ordered list of supported protocols   */
+  const char *alpn_chosen;      /*!<  negotiated protocol                   */
 #endif
 
-    /*
-     * Secure renegotiation
-     */
-    int secure_renegotiation;           /*!<  does peer support legacy or
-                                              secure renegotiation           */
-    size_t verify_data_len;             /*!<  length of verify data stored   */
-    char own_verify_data[36];           /*!<  previous handshake verify data */
-    char peer_verify_data[36];          /*!<  previous handshake verify data */
+  /*
+   * Secure renegotiation
+   */
+  int secure_renegotiation;     /*!<  does peer support legacy or
+                                   secure renegotiation           */
+  size_t verify_data_len;       /*!<  length of verify data stored   */
+  char own_verify_data[36];     /*!<  previous handshake verify data */
+  char peer_verify_data[36];    /*!<  previous handshake verify data */
 };
 
 #if defined(POLARSSL_SSL_HW_RECORD_ACCEL)
@@ -869,18 +872,19 @@ struct _ssl_context
 #define SSL_CHANNEL_OUTBOUND    0
 #define SSL_CHANNEL_INBOUND     1
 
-extern int (*ssl_hw_record_init)(ssl_context *ssl,
-                const unsigned char *key_enc, const unsigned char *key_dec,
-                size_t keylen,
-                const unsigned char *iv_enc,  const unsigned char *iv_dec,
-                size_t ivlen,
-                const unsigned char *mac_enc, const unsigned char *mac_dec,
-                size_t maclen);
-extern int (*ssl_hw_record_activate)(ssl_context *ssl, int direction);
-extern int (*ssl_hw_record_reset)(ssl_context *ssl);
-extern int (*ssl_hw_record_write)(ssl_context *ssl);
-extern int (*ssl_hw_record_read)(ssl_context *ssl);
-extern int (*ssl_hw_record_finish)(ssl_context *ssl);
+extern int (*ssl_hw_record_init) (ssl_context * ssl,
+                                  const unsigned char *key_enc,
+                                  const unsigned char *key_dec, size_t keylen,
+                                  const unsigned char *iv_enc,
+                                  const unsigned char *iv_dec, size_t ivlen,
+                                  const unsigned char *mac_enc,
+                                  const unsigned char *mac_dec,
+                                  size_t maclen);
+extern int (*ssl_hw_record_activate) (ssl_context * ssl, int direction);
+extern int (*ssl_hw_record_reset) (ssl_context * ssl);
+extern int (*ssl_hw_record_write) (ssl_context * ssl);
+extern int (*ssl_hw_record_read) (ssl_context * ssl);
+extern int (*ssl_hw_record_finish) (ssl_context * ssl);
 #endif /* POLARSSL_SSL_HW_RECORD_ACCEL */
 
 /**
@@ -889,7 +893,7 @@ extern int (*ssl_hw_record_finish)(ssl_context *ssl);
  * \return              a statically allocated array of ciphersuites, the last
  *                      entry is 0.
  */
-const int *ssl_list_ciphersuites( void );
+const int *ssl_list_ciphersuites (void);
 
 /**
  * \brief               Return the name of the ciphersuite associated with the
@@ -899,7 +903,7 @@ const int *ssl_list_ciphersuites( void );
  *
  * \return              a string containing the ciphersuite name
  */
-const char *ssl_get_ciphersuite_name( const int ciphersuite_id );
+const char *ssl_get_ciphersuite_name (const int ciphersuite_id);
 
 /**
  * \brief               Return the ID of the ciphersuite associated with the
@@ -909,7 +913,7 @@ const char *ssl_get_ciphersuite_name( const int ciphersuite_id );
  *
  * \return              the ID with the ciphersuite or 0 if not found
  */
-int ssl_get_ciphersuite_id( const char *ciphersuite_name );
+int ssl_get_ciphersuite_id (const char *ciphersuite_name);
 
 /**
  * \brief          Initialize an SSL context
@@ -920,7 +924,7 @@ int ssl_get_ciphersuite_id( const char *ciphersuite_name );
  * \return         0 if successful, or POLARSSL_ERR_SSL_MALLOC_FAILED if
  *                 memory allocation failed
  */
-int ssl_init( ssl_context *ssl );
+int ssl_init (ssl_context * ssl);
 
 /**
  * \brief          Reset an already initialized SSL context for re-use
@@ -929,10 +933,10 @@ int ssl_init( ssl_context *ssl );
  *
  * \param ssl      SSL context
  * \return         0 if successful, or POLASSL_ERR_SSL_MALLOC_FAILED,
-                   POLARSSL_ERR_SSL_HW_ACCEL_FAILED or
+ POLARSSL_ERR_SSL_HW_ACCEL_FAILED or
  *                 POLARSSL_ERR_SSL_COMPRESSION_FAILED
  */
-int ssl_session_reset( ssl_context *ssl );
+int ssl_session_reset (ssl_context * ssl);
 
 /**
  * \brief          Set the current endpoint type
@@ -943,7 +947,7 @@ int ssl_session_reset( ssl_context *ssl );
  * \note           This function should be called right after ssl_init() since
  *                 some other ssl_set_foo() functions depend on it.
  */
-void ssl_set_endpoint( ssl_context *ssl, int endpoint );
+void ssl_set_endpoint (ssl_context * ssl, int endpoint);
 
 /**
  * \brief          Set the certificate verification mode
@@ -968,7 +972,7 @@ void ssl_set_endpoint( ssl_context *ssl, int endpoint );
  * the verification as soon as possible. For example, REQUIRED was protecting
  * against the "triple handshake" attack even before it was found.
  */
-void ssl_set_authmode( ssl_context *ssl, int authmode );
+void ssl_set_authmode (ssl_context * ssl, int authmode);
 
 #if defined(POLARSSL_X509_CRT_PARSE_C)
 /**
@@ -982,9 +986,9 @@ void ssl_set_authmode( ssl_context *ssl, int authmode );
  * \param f_vrfy   verification function
  * \param p_vrfy   verification parameter
  */
-void ssl_set_verify( ssl_context *ssl,
-                     int (*f_vrfy)(void *, x509_crt *, int, int *),
-                     void *p_vrfy );
+void ssl_set_verify (ssl_context * ssl,
+                     int (*f_vrfy) (void *, x509_crt *, int, int *),
+                     void *p_vrfy);
 #endif /* POLARSSL_X509_CRT_PARSE_C */
 
 /**
@@ -994,9 +998,9 @@ void ssl_set_verify( ssl_context *ssl,
  * \param f_rng    RNG function
  * \param p_rng    RNG parameter
  */
-void ssl_set_rng( ssl_context *ssl,
-                  int (*f_rng)(void *, unsigned char *, size_t),
-                  void *p_rng );
+void ssl_set_rng (ssl_context * ssl,
+                  int (*f_rng) (void *, unsigned char *, size_t),
+                  void *p_rng);
 
 /**
  * \brief          Set the debug callback
@@ -1005,9 +1009,8 @@ void ssl_set_rng( ssl_context *ssl,
  * \param f_dbg    debug function
  * \param p_dbg    debug parameter
  */
-void ssl_set_dbg( ssl_context *ssl,
-                  void (*f_dbg)(void *, int, const char *),
-                  void  *p_dbg );
+void ssl_set_dbg (ssl_context * ssl,
+                  void (*f_dbg) (void *, int, const char *), void *p_dbg);
 
 /**
  * \brief          Set the underlying BIO read and write callbacks
@@ -1018,9 +1021,10 @@ void ssl_set_dbg( ssl_context *ssl,
  * \param f_send   write callback
  * \param p_send   write parameter
  */
-void ssl_set_bio( ssl_context *ssl,
-        int (*f_recv)(void *, unsigned char *, size_t), void *p_recv,
-        int (*f_send)(void *, const unsigned char *, size_t), void *p_send );
+void ssl_set_bio (ssl_context * ssl,
+                  int (*f_recv) (void *, unsigned char *, size_t),
+                  void *p_recv, int (*f_send) (void *, const unsigned char *,
+                                               size_t), void *p_send);
 
 /**
  * \brief          Set the session cache callbacks (server-side only)
@@ -1059,9 +1063,13 @@ void ssl_set_bio( ssl_context *ssl,
  * \param f_set_cache    session set callback
  * \param p_set_cache    session set parameter
  */
-void ssl_set_session_cache( ssl_context *ssl,
-        int (*f_get_cache)(void *, ssl_session *), void *p_get_cache,
-        int (*f_set_cache)(void *, const ssl_session *), void *p_set_cache );
+void ssl_set_session_cache (ssl_context * ssl,
+                            int (*f_get_cache) (void *, ssl_session *),
+                            void *p_get_cache, int (*f_set_cache) (void *,
+                                                                   const
+                                                                   ssl_session
+                                                                   *),
+                            void *p_set_cache);
 
 /**
  * \brief          Request resumption of session (client-side only)
@@ -1077,7 +1085,7 @@ void ssl_set_session_cache( ssl_context *ssl,
  *
  * \sa             ssl_get_session()
  */
-int ssl_set_session( ssl_context *ssl, const ssl_session *session );
+int ssl_set_session (ssl_context * ssl, const ssl_session * session);
 
 /**
  * \brief               Set the list of allowed ciphersuites and the preference
@@ -1091,7 +1099,7 @@ int ssl_set_session( ssl_context *ssl, const ssl_session *session );
  * \param ssl           SSL context
  * \param ciphersuites  0-terminated list of allowed ciphersuites
  */
-void ssl_set_ciphersuites( ssl_context *ssl, const int *ciphersuites );
+void ssl_set_ciphersuites (ssl_context * ssl, const int *ciphersuites);
 
 /**
  * \brief               Set the list of allowed ciphersuites and the
@@ -1106,9 +1114,9 @@ void ssl_set_ciphersuites( ssl_context *ssl, const int *ciphersuites );
  *                      SSL_MINOR_VERSION_1 and SSL_MINOR_VERSION_2,
  *                      SSL_MINOR_VERSION_3 supported)
  */
-void ssl_set_ciphersuites_for_version( ssl_context *ssl,
+void ssl_set_ciphersuites_for_version (ssl_context * ssl,
                                        const int *ciphersuites,
-                                       int major, int minor );
+                                       int major, int minor);
 
 #if defined(POLARSSL_X509_CRT_PARSE_C)
 /**
@@ -1119,8 +1127,8 @@ void ssl_set_ciphersuites_for_version( ssl_context *ssl,
  * \param ca_crl   trusted CA CRLs
  * \param peer_cn  expected peer CommonName (or NULL)
  */
-void ssl_set_ca_chain( ssl_context *ssl, x509_crt *ca_chain,
-                       x509_crl *ca_crl, const char *peer_cn );
+void ssl_set_ca_chain (ssl_context * ssl, x509_crt * ca_chain,
+                       x509_crl * ca_crl, const char *peer_cn);
 
 /**
  * \brief          Set own certificate chain and private key
@@ -1140,8 +1148,8 @@ void ssl_set_ca_chain( ssl_context *ssl, x509_crt *ca_chain,
  *
  * \return         0 on success or POLARSSL_ERR_SSL_MALLOC_FAILED
  */
-int ssl_set_own_cert( ssl_context *ssl, x509_crt *own_cert,
-                       pk_context *pk_key );
+int ssl_set_own_cert (ssl_context * ssl, x509_crt * own_cert,
+                      pk_context * pk_key);
 
 #if defined(POLARSSL_RSA_C)
 /**
@@ -1160,8 +1168,8 @@ int ssl_set_own_cert( ssl_context *ssl, x509_crt *own_cert,
  *
  * \return          0 on success, or a specific error code.
  */
-int ssl_set_own_cert_rsa( ssl_context *ssl, x509_crt *own_cert,
-                          rsa_context *rsa_key );
+int ssl_set_own_cert_rsa (ssl_context * ssl, x509_crt * own_cert,
+                          rsa_context * rsa_key);
 #endif /* POLARSSL_RSA_C */
 
 /**
@@ -1189,11 +1197,11 @@ int ssl_set_own_cert_rsa( ssl_context *ssl, x509_crt *own_cert,
  *
  * \return          0 on success, or a specific error code.
  */
-int ssl_set_own_cert_alt( ssl_context *ssl, x509_crt *own_cert,
+int ssl_set_own_cert_alt (ssl_context * ssl, x509_crt * own_cert,
                           void *rsa_key,
                           rsa_decrypt_func rsa_decrypt,
                           rsa_sign_func rsa_sign,
-                          rsa_key_len_func rsa_key_len );
+                          rsa_key_len_func rsa_key_len);
 #endif /* POLARSSL_X509_CRT_PARSE_C */
 
 #if defined(POLARSSL_KEY_EXCHANGE__SOME__PSK_ENABLED)
@@ -1209,8 +1217,8 @@ int ssl_set_own_cert_alt( ssl_context *ssl, x509_crt *own_cert,
  *
  * \return         0 if successful or POLARSSL_ERR_SSL_MALLOC_FAILED
  */
-int ssl_set_psk( ssl_context *ssl, const unsigned char *psk, size_t psk_len,
-                 const unsigned char *psk_identity, size_t psk_identity_len );
+int ssl_set_psk (ssl_context * ssl, const unsigned char *psk, size_t psk_len,
+                 const unsigned char *psk_identity, size_t psk_identity_len);
 
 /**
  * \brief          Set the PSK callback (server-side only) (Optional).
@@ -1232,10 +1240,10 @@ int ssl_set_psk( ssl_context *ssl, const unsigned char *psk, size_t psk_len,
  * \param f_psk    PSK identity function
  * \param p_psk    PSK identity parameter
  */
-void ssl_set_psk_cb( ssl_context *ssl,
-                     int (*f_psk)(void *, ssl_context *, const unsigned char *,
-                                  size_t),
-                     void *p_psk );
+void ssl_set_psk_cb (ssl_context * ssl,
+                     int (*f_psk) (void *, ssl_context *,
+                                   const unsigned char *, size_t),
+                     void *p_psk);
 #endif /* POLARSSL_KEY_EXCHANGE__SOME__PSK_ENABLED */
 
 #if defined(POLARSSL_DHM_C)
@@ -1250,7 +1258,8 @@ void ssl_set_psk_cb( ssl_context *ssl,
  *
  * \return         0 if successful
  */
-int ssl_set_dh_param( ssl_context *ssl, const char *dhm_P, const char *dhm_G );
+int ssl_set_dh_param (ssl_context * ssl, const char *dhm_P,
+                      const char *dhm_G);
 
 /**
  * \brief          Set the Diffie-Hellman public P and G values,
@@ -1261,7 +1270,7 @@ int ssl_set_dh_param( ssl_context *ssl, const char *dhm_P, const char *dhm_G );
  *
  * \return         0 if successful
  */
-int ssl_set_dh_param_ctx( ssl_context *ssl, dhm_context *dhm_ctx );
+int ssl_set_dh_param_ctx (ssl_context * ssl, dhm_context * dhm_ctx);
 #endif /* POLARSSL_DHM_C */
 
 #if defined(POLARSSL_SSL_SET_CURVES)
@@ -1283,7 +1292,7 @@ int ssl_set_dh_param_ctx( ssl_context *ssl, dhm_context *dhm_ctx );
  * \param curves   Ordered list of allowed curves,
  *                 terminated by POLARSSL_ECP_DP_NONE.
  */
-void ssl_set_curves( ssl_context *ssl, const ecp_group_id *curves );
+void ssl_set_curves (ssl_context * ssl, const ecp_group_id * curves);
 #endif /* POLARSSL_SSL_SET_CURVES */
 
 #if defined(POLARSSL_SSL_SERVER_NAME_INDICATION)
@@ -1297,7 +1306,7 @@ void ssl_set_curves( ssl_context *ssl, const ecp_group_id *curves );
  *
  * \return         0 if successful or POLARSSL_ERR_SSL_MALLOC_FAILED
  */
-int ssl_set_hostname( ssl_context *ssl, const char *hostname );
+int ssl_set_hostname (ssl_context * ssl, const char *hostname);
 
 /**
  * \brief          Set server side ServerName TLS extension callback
@@ -1318,10 +1327,9 @@ int ssl_set_hostname( ssl_context *ssl, const char *hostname );
  * \param f_sni    verification function
  * \param p_sni    verification parameter
  */
-void ssl_set_sni( ssl_context *ssl,
-                  int (*f_sni)(void *, ssl_context *, const unsigned char *,
-                               size_t),
-                  void *p_sni );
+void ssl_set_sni (ssl_context * ssl,
+                  int (*f_sni) (void *, ssl_context *, const unsigned char *,
+                                size_t), void *p_sni);
 #endif /* POLARSSL_SSL_SERVER_NAME_INDICATION */
 
 #if defined(POLARSSL_SSL_ALPN)
@@ -1334,7 +1342,7 @@ void ssl_set_sni( ssl_context *ssl,
  *
  * \return         0 on success, or POLARSSL_ERR_SSL_BAD_INPUT_DATA.
  */
-int ssl_set_alpn_protocols( ssl_context *ssl, const char **protos );
+int ssl_set_alpn_protocols (ssl_context * ssl, const char **protos);
 
 /**
  * \brief          Get the name of the negotiated Application Layer Protocol.
@@ -1345,7 +1353,7 @@ int ssl_set_alpn_protocols( ssl_context *ssl, const char **protos );
  *
  * \return         Protcol name, or NULL if no protocol was negotiated.
  */
-const char *ssl_get_alpn_protocol( const ssl_context *ssl );
+const char *ssl_get_alpn_protocol (const ssl_context * ssl);
 #endif /* POLARSSL_SSL_ALPN */
 
 /**
@@ -1363,7 +1371,7 @@ const char *ssl_get_alpn_protocol( const ssl_context *ssl );
  *                 SSL_MINOR_VERSION_1 and SSL_MINOR_VERSION_2,
  *                 SSL_MINOR_VERSION_3 supported)
  */
-void ssl_set_max_version( ssl_context *ssl, int major, int minor );
+void ssl_set_max_version (ssl_context * ssl, int major, int minor);
 
 
 /**
@@ -1379,7 +1387,7 @@ void ssl_set_max_version( ssl_context *ssl, int major, int minor );
  *                 SSL_MINOR_VERSION_1 and SSL_MINOR_VERSION_2,
  *                 SSL_MINOR_VERSION_3 supported)
  */
-void ssl_set_min_version( ssl_context *ssl, int major, int minor );
+void ssl_set_min_version (ssl_context * ssl, int major, int minor);
 
 #if defined(POLARSSL_SSL_MAX_FRAGMENT_LENGTH)
 /**
@@ -1397,7 +1405,7 @@ void ssl_set_min_version( ssl_context *ssl, int major, int minor );
  *
  * \return         O if successful or POLARSSL_ERR_SSL_BAD_INPUT_DATA
  */
-int ssl_set_max_frag_len( ssl_context *ssl, unsigned char mfl_code );
+int ssl_set_max_frag_len (ssl_context * ssl, unsigned char mfl_code);
 #endif /* POLARSSL_SSL_MAX_FRAGMENT_LENGTH */
 
 #if defined(POLARSSL_SSL_TRUNCATED_HMAC)
@@ -1412,7 +1420,7 @@ int ssl_set_max_frag_len( ssl_context *ssl, unsigned char mfl_code );
  * \return         O if successful,
  *                 POLARSSL_ERR_SSL_BAD_INPUT_DATA if used server-side
  */
-int ssl_set_truncated_hmac( ssl_context *ssl, int truncate );
+int ssl_set_truncated_hmac (ssl_context * ssl, int truncate);
 #endif /* POLARSSL_SSL_TRUNCATED_HMAC */
 
 #if defined(POLARSSL_SSL_SESSION_TICKETS)
@@ -1432,7 +1440,7 @@ int ssl_set_truncated_hmac( ssl_context *ssl, int truncate );
  * \return         O if successful,
  *                 or a specific error code (server only).
  */
-int ssl_set_session_tickets( ssl_context *ssl, int use_tickets );
+int ssl_set_session_tickets (ssl_context * ssl, int use_tickets);
 
 /**
  * \brief          Set session ticket lifetime (server only)
@@ -1441,7 +1449,7 @@ int ssl_set_session_tickets( ssl_context *ssl, int use_tickets );
  * \param ssl      SSL context
  * \param lifetime session ticket lifetime
  */
-void ssl_set_session_ticket_lifetime( ssl_context *ssl, int lifetime );
+void ssl_set_session_ticket_lifetime (ssl_context * ssl, int lifetime);
 #endif /* POLARSSL_SSL_SESSION_TICKETS */
 
 /**
@@ -1457,7 +1465,7 @@ void ssl_set_session_ticket_lifetime( ssl_context *ssl, int lifetime );
  * \param renegotiation     Enable or disable (SSL_RENEGOTIATION_ENABLED or
  *                                             SSL_RENEGOTIATION_DISABLED)
  */
-void ssl_set_renegotiation( ssl_context *ssl, int renegotiation );
+void ssl_set_renegotiation (ssl_context * ssl, int renegotiation);
 
 /**
  * \brief          Prevent or allow legacy renegotiation.
@@ -1486,7 +1494,7 @@ void ssl_set_renegotiation( ssl_context *ssl, int renegotiation );
  *                                        SSL_ALLOW_LEGACY_RENEGOTIATION or
  *                                        SSL_LEGACY_BREAK_HANDSHAKE)
  */
-void ssl_legacy_renegotiation( ssl_context *ssl, int allow_legacy );
+void ssl_legacy_renegotiation (ssl_context * ssl, int allow_legacy);
 
 /**
  * \brief          Enforce server-requested renegotiation.
@@ -1513,7 +1521,7 @@ void ssl_legacy_renegotiation( ssl_context *ssl, int allow_legacy );
  *                 enforce renegotiation, or a non-negative value to enforce
  *                 it but allow for a grace period of max_records records.
  */
-void ssl_set_renegotiation_enforced( ssl_context *ssl, int max_records );
+void ssl_set_renegotiation_enforced (ssl_context * ssl, int max_records);
 
 /**
  * \brief          Return the number of data bytes available to read
@@ -1522,7 +1530,7 @@ void ssl_set_renegotiation_enforced( ssl_context *ssl, int max_records );
  *
  * \return         how many bytes are available in the read buffer
  */
-size_t ssl_get_bytes_avail( const ssl_context *ssl );
+size_t ssl_get_bytes_avail (const ssl_context * ssl);
 
 /**
  * \brief          Return the result of the certificate verification
@@ -1535,7 +1543,7 @@ size_t ssl_get_bytes_avail( const ssl_context *ssl );
  *                      BADCERT_CN_MISMATCH
  *                      BADCERT_NOT_TRUSTED
  */
-int ssl_get_verify_result( const ssl_context *ssl );
+int ssl_get_verify_result (const ssl_context * ssl);
 
 /**
  * \brief          Return the name of the current ciphersuite
@@ -1544,7 +1552,7 @@ int ssl_get_verify_result( const ssl_context *ssl );
  *
  * \return         a string containing the ciphersuite name
  */
-const char *ssl_get_ciphersuite( const ssl_context *ssl );
+const char *ssl_get_ciphersuite (const ssl_context * ssl);
 
 /**
  * \brief          Return the current SSL version (SSLv3/TLSv1/etc)
@@ -1553,7 +1561,7 @@ const char *ssl_get_ciphersuite( const ssl_context *ssl );
  *
  * \return         a string containing the SSL version
  */
-const char *ssl_get_version( const ssl_context *ssl );
+const char *ssl_get_version (const ssl_context * ssl);
 
 #if defined(POLARSSL_X509_CRT_PARSE_C)
 /**
@@ -1570,7 +1578,7 @@ const char *ssl_get_version( const ssl_context *ssl );
  *
  * \return         the current peer certificate
  */
-const x509_crt *ssl_get_peer_cert( const ssl_context *ssl );
+const x509_crt *ssl_get_peer_cert (const ssl_context * ssl);
 #endif /* POLARSSL_X509_CRT_PARSE_C */
 
 /**
@@ -1589,7 +1597,7 @@ const x509_crt *ssl_get_peer_cert( const ssl_context *ssl );
  *
  * \sa             ssl_set_session()
  */
-int ssl_get_session( const ssl_context *ssl, ssl_session *session );
+int ssl_get_session (const ssl_context * ssl, ssl_session * session);
 
 /**
  * \brief          Perform the SSL handshake
@@ -1599,7 +1607,7 @@ int ssl_get_session( const ssl_context *ssl, ssl_session *session );
  * \return         0 if successful, POLARSSL_ERR_NET_WANT_READ,
  *                 POLARSSL_ERR_NET_WANT_WRITE, or a specific SSL error code.
  */
-int ssl_handshake( ssl_context *ssl );
+int ssl_handshake (ssl_context * ssl);
 
 /**
  * \brief          Perform a single step of the SSL handshake
@@ -1613,7 +1621,7 @@ int ssl_handshake( ssl_context *ssl );
  * \return         0 if successful, POLARSSL_ERR_NET_WANT_READ,
  *                 POLARSSL_ERR_NET_WANT_WRITE, or a specific SSL error code.
  */
-int ssl_handshake_step( ssl_context *ssl );
+int ssl_handshake_step (ssl_context * ssl);
 
 /**
  * \brief          Initiate an SSL renegotiation on the running connection.
@@ -1625,7 +1633,7 @@ int ssl_handshake_step( ssl_context *ssl );
  *
  * \return         0 if successful, or any ssl_handshake() return value.
  */
-int ssl_renegotiate( ssl_context *ssl );
+int ssl_renegotiate (ssl_context * ssl);
 
 /**
  * \brief          Read at most 'len' application data bytes
@@ -1637,7 +1645,7 @@ int ssl_renegotiate( ssl_context *ssl );
  * \return         This function returns the number of bytes read, 0 for EOF,
  *                 or a negative error code.
  */
-int ssl_read( ssl_context *ssl, unsigned char *buf, size_t len );
+int ssl_read (ssl_context * ssl, unsigned char *buf, size_t len);
 
 /**
  * \brief          Write exactly 'len' application data bytes
@@ -1653,7 +1661,7 @@ int ssl_read( ssl_context *ssl, unsigned char *buf, size_t len );
  *                 it must be called later with the *same* arguments,
  *                 until it returns a positive value.
  */
-int ssl_write( ssl_context *ssl, const unsigned char *buf, size_t len );
+int ssl_write (ssl_context * ssl, const unsigned char *buf, size_t len);
 
 /**
  * \brief           Send an alert message
@@ -1665,29 +1673,28 @@ int ssl_write( ssl_context *ssl, const unsigned char *buf, size_t len );
  *
  * \return          0 if successful, or a specific SSL error code.
  */
-int ssl_send_alert_message( ssl_context *ssl,
-                            unsigned char level,
-                            unsigned char message );
+int ssl_send_alert_message (ssl_context * ssl,
+                            unsigned char level, unsigned char message);
 /**
  * \brief          Notify the peer that the connection is being closed
  *
  * \param ssl      SSL context
  */
-int ssl_close_notify( ssl_context *ssl );
+int ssl_close_notify (ssl_context * ssl);
 
 /**
  * \brief          Free referenced items in an SSL context and clear memory
  *
  * \param ssl      SSL context
  */
-void ssl_free( ssl_context *ssl );
+void ssl_free (ssl_context * ssl);
 
 /**
  * \brief          Initialize SSL session structure
  *
  * \param session  SSL session
  */
-void ssl_session_init( ssl_session *session );
+void ssl_session_init (ssl_session * session);
 
 /**
  * \brief          Free referenced items in an SSL session including the
@@ -1695,7 +1702,7 @@ void ssl_session_init( ssl_session *session );
  *
  * \param session  SSL session
  */
-void ssl_session_free( ssl_session *session );
+void ssl_session_free (ssl_session * session);
 
 /**
  * \brief           Free referenced items in an SSL transform context and clear
@@ -1703,7 +1710,7 @@ void ssl_session_free( ssl_session *session );
  *
  * \param transform SSL transform context
  */
-void ssl_transform_free( ssl_transform *transform );
+void ssl_transform_free (ssl_transform * transform);
 
 /**
  * \brief           Free referenced items in an SSL handshake context and clear
@@ -1711,67 +1718,69 @@ void ssl_transform_free( ssl_transform *transform );
  *
  * \param handshake SSL handshake context
  */
-void ssl_handshake_free( ssl_handshake_params *handshake );
+void ssl_handshake_free (ssl_handshake_params * handshake);
 
 /*
  * Internal functions (do not call directly)
  */
-int ssl_handshake_client_step( ssl_context *ssl );
-int ssl_handshake_server_step( ssl_context *ssl );
-void ssl_handshake_wrapup( ssl_context *ssl );
+int ssl_handshake_client_step (ssl_context * ssl);
+int ssl_handshake_server_step (ssl_context * ssl);
+void ssl_handshake_wrapup (ssl_context * ssl);
 
-int ssl_send_fatal_handshake_failure( ssl_context *ssl );
+int ssl_send_fatal_handshake_failure (ssl_context * ssl);
 
-int ssl_derive_keys( ssl_context *ssl );
+int ssl_derive_keys (ssl_context * ssl);
 
-int ssl_read_record( ssl_context *ssl );
+int ssl_read_record (ssl_context * ssl);
 /**
  * \return         0 if successful, POLARSSL_ERR_SSL_CONN_EOF on EOF or
  *                 another negative error code.
  */
-int ssl_fetch_input( ssl_context *ssl, size_t nb_want );
+int ssl_fetch_input (ssl_context * ssl, size_t nb_want);
 
-int ssl_write_record( ssl_context *ssl );
-int ssl_flush_output( ssl_context *ssl );
+int ssl_write_record (ssl_context * ssl);
+int ssl_flush_output (ssl_context * ssl);
 
-int ssl_parse_certificate( ssl_context *ssl );
-int ssl_write_certificate( ssl_context *ssl );
+int ssl_parse_certificate (ssl_context * ssl);
+int ssl_write_certificate (ssl_context * ssl);
 
-int ssl_parse_change_cipher_spec( ssl_context *ssl );
-int ssl_write_change_cipher_spec( ssl_context *ssl );
+int ssl_parse_change_cipher_spec (ssl_context * ssl);
+int ssl_write_change_cipher_spec (ssl_context * ssl);
 
-int ssl_parse_finished( ssl_context *ssl );
-int ssl_write_finished( ssl_context *ssl );
+int ssl_parse_finished (ssl_context * ssl);
+int ssl_write_finished (ssl_context * ssl);
 
-void ssl_optimize_checksum( ssl_context *ssl,
-                            const ssl_ciphersuite_t *ciphersuite_info );
+void ssl_optimize_checksum (ssl_context * ssl,
+                            const ssl_ciphersuite_t * ciphersuite_info);
 
 #if defined(POLARSSL_KEY_EXCHANGE__SOME__PSK_ENABLED)
-int ssl_psk_derive_premaster( ssl_context *ssl, key_exchange_type_t key_ex );
+int ssl_psk_derive_premaster (ssl_context * ssl, key_exchange_type_t key_ex);
 #endif
 
 #if defined(POLARSSL_PK_C)
-unsigned char ssl_sig_from_pk( pk_context *pk );
-pk_type_t ssl_pk_alg_from_sig( unsigned char sig );
+unsigned char ssl_sig_from_pk (pk_context * pk);
+pk_type_t ssl_pk_alg_from_sig (unsigned char sig);
 #endif
 
-md_type_t ssl_md_alg_from_hash( unsigned char hash );
+md_type_t ssl_md_alg_from_hash (unsigned char hash);
 
 #if defined(POLARSSL_SSL_SET_CURVES)
-int ssl_curve_is_acceptable( const ssl_context *ssl, ecp_group_id grp_id );
+int ssl_curve_is_acceptable (const ssl_context * ssl, ecp_group_id grp_id);
 #endif
 
 #if defined(POLARSSL_X509_CRT_PARSE_C)
-static inline pk_context *ssl_own_key( ssl_context *ssl )
+static inline pk_context *
+ssl_own_key (ssl_context * ssl)
 {
-    return( ssl->handshake->key_cert == NULL ? NULL
-            : ssl->handshake->key_cert->key );
+  return (ssl->handshake->key_cert == NULL ? NULL
+          : ssl->handshake->key_cert->key);
 }
 
-static inline x509_crt *ssl_own_cert( ssl_context *ssl )
+static inline x509_crt *
+ssl_own_cert (ssl_context * ssl)
 {
-    return( ssl->handshake->key_cert == NULL ? NULL
-            : ssl->handshake->key_cert->cert );
+  return (ssl->handshake->key_cert == NULL ? NULL
+          : ssl->handshake->key_cert->cert);
 }
 
 /*
@@ -1783,25 +1792,29 @@ static inline x509_crt *ssl_own_cert( ssl_context *ssl )
  *
  * Return 0 if everything is OK, -1 if not.
  */
-int ssl_check_cert_usage( const x509_crt *cert,
-                          const ssl_ciphersuite_t *ciphersuite,
-                          int cert_endpoint );
+int ssl_check_cert_usage (const x509_crt * cert,
+                          const ssl_ciphersuite_t * ciphersuite,
+                          int cert_endpoint);
 #endif /* POLARSSL_X509_CRT_PARSE_C */
 
 /* constant-time buffer comparison */
-static inline int safer_memcmp( const void *a, const void *b, size_t n )
+static inline int
+safer_memcmp (const void *a, const void *b, size_t n)
 {
-    size_t i;
-    const unsigned char *A = (const unsigned char *) a;
-    const unsigned char *B = (const unsigned char *) b;
-    unsigned char diff = 0;
+  size_t i;
+  const unsigned char *A = (const unsigned char *) a;
+  const unsigned char *B = (const unsigned char *) b;
+  unsigned char diff = 0;
 
-    for( i = 0; i < n; i++ )
-        diff |= A[i] ^ B[i];
+  for (i = 0; i < n; i++)
+    diff |= A[i] ^ B[i];
 
-    return( diff );
+  return (diff);
 }
 
+#if 0                           /* Help auto-indent. */
+{
+#endif
 #ifdef __cplusplus
 }
 #endif
