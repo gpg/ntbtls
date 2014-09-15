@@ -39,28 +39,16 @@ extern "C"
   /*
    * Supported ciphersuites (Official IANA names)
    */
-#define TLS_RSA_WITH_NULL_MD5                    0x01   /**< Weak! */
-#define TLS_RSA_WITH_NULL_SHA                    0x02   /**< Weak! */
-
-#define TLS_RSA_WITH_RC4_128_MD5                 0x04
-#define TLS_RSA_WITH_RC4_128_SHA                 0x05
-#define TLS_RSA_WITH_DES_CBC_SHA                 0x09   /**< Weak! Not in TLS 1.2 */
-
 #define TLS_RSA_WITH_3DES_EDE_CBC_SHA            0x0A
 
-#define TLS_DHE_RSA_WITH_DES_CBC_SHA             0x15   /**< Weak! Not in TLS 1.2 */
 #define TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA        0x16
 
-#define TLS_PSK_WITH_NULL_SHA                    0x2C   /**< Weak! */
-#define TLS_DHE_PSK_WITH_NULL_SHA                0x2D   /**< Weak! */
-#define TLS_RSA_PSK_WITH_NULL_SHA                0x2E   /**< Weak! */
 #define TLS_RSA_WITH_AES_128_CBC_SHA             0x2F
 
 #define TLS_DHE_RSA_WITH_AES_128_CBC_SHA         0x33
 #define TLS_RSA_WITH_AES_256_CBC_SHA             0x35
 #define TLS_DHE_RSA_WITH_AES_256_CBC_SHA         0x39
 
-#define TLS_RSA_WITH_NULL_SHA256                 0x3B   /**< Weak! */
 #define TLS_RSA_WITH_AES_128_CBC_SHA256          0x3C   /**< TLS 1.2 */
 #define TLS_RSA_WITH_AES_256_CBC_SHA256          0x3D   /**< TLS 1.2 */
 
@@ -102,18 +90,12 @@ extern "C"
 
 #define TLS_PSK_WITH_AES_128_CBC_SHA256          0xAE
 #define TLS_PSK_WITH_AES_256_CBC_SHA384          0xAF
-#define TLS_PSK_WITH_NULL_SHA256                 0xB0   /**< Weak! */
-#define TLS_PSK_WITH_NULL_SHA384                 0xB1   /**< Weak! */
 
 #define TLS_DHE_PSK_WITH_AES_128_CBC_SHA256      0xB2
 #define TLS_DHE_PSK_WITH_AES_256_CBC_SHA384      0xB3
-#define TLS_DHE_PSK_WITH_NULL_SHA256             0xB4   /**< Weak! */
-#define TLS_DHE_PSK_WITH_NULL_SHA384             0xB5   /**< Weak! */
 
 #define TLS_RSA_PSK_WITH_AES_128_CBC_SHA256      0xB6
 #define TLS_RSA_PSK_WITH_AES_256_CBC_SHA384      0xB7
-#define TLS_RSA_PSK_WITH_NULL_SHA256             0xB8   /**< Weak! */
-#define TLS_RSA_PSK_WITH_NULL_SHA384             0xB9   /**< Weak! */
 
 #define TLS_RSA_WITH_CAMELLIA_128_CBC_SHA256     0xBA   /**< TLS 1.2 */
 #define TLS_DHE_RSA_WITH_CAMELLIA_128_CBC_SHA256 0xBE   /**< TLS 1.2 */
@@ -121,25 +103,21 @@ extern "C"
 #define TLS_RSA_WITH_CAMELLIA_256_CBC_SHA256     0xC0   /**< TLS 1.2 */
 #define TLS_DHE_RSA_WITH_CAMELLIA_256_CBC_SHA256 0xC4   /**< TLS 1.2 */
 
-#define TLS_ECDH_ECDSA_WITH_NULL_SHA             0xC001 /**< Weak! */
 #define TLS_ECDH_ECDSA_WITH_RC4_128_SHA          0xC002 /**< Not in SSL3! */
 #define TLS_ECDH_ECDSA_WITH_3DES_EDE_CBC_SHA     0xC003 /**< Not in SSL3! */
 #define TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA      0xC004 /**< Not in SSL3! */
 #define TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA      0xC005 /**< Not in SSL3! */
 
-#define TLS_ECDHE_ECDSA_WITH_NULL_SHA            0xC006 /**< Weak! */
 #define TLS_ECDHE_ECDSA_WITH_RC4_128_SHA         0xC007 /**< Not in SSL3! */
 #define TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA    0xC008 /**< Not in SSL3! */
 #define TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA     0xC009 /**< Not in SSL3! */
 #define TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA     0xC00A /**< Not in SSL3! */
 
-#define TLS_ECDH_RSA_WITH_NULL_SHA               0xC00B /**< Weak! */
 #define TLS_ECDH_RSA_WITH_RC4_128_SHA            0xC00C /**< Not in SSL3! */
 #define TLS_ECDH_RSA_WITH_3DES_EDE_CBC_SHA       0xC00D /**< Not in SSL3! */
 #define TLS_ECDH_RSA_WITH_AES_128_CBC_SHA        0xC00E /**< Not in SSL3! */
 #define TLS_ECDH_RSA_WITH_AES_256_CBC_SHA        0xC00F /**< Not in SSL3! */
 
-#define TLS_ECDHE_RSA_WITH_NULL_SHA              0xC010 /**< Weak! */
 #define TLS_ECDHE_RSA_WITH_RC4_128_SHA           0xC011 /**< Not in SSL3! */
 #define TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA      0xC012 /**< Not in SSL3! */
 #define TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA       0xC013 /**< Not in SSL3! */
@@ -169,9 +147,6 @@ extern "C"
 #define TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA       0xC036 /**< Not in SSL3! */
 #define TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA256    0xC037 /**< Not in SSL3! */
 #define TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA384    0xC038 /**< Not in SSL3! */
-#define TLS_ECDHE_PSK_WITH_NULL_SHA              0xC039 /**< Weak! No SSL3! */
-#define TLS_ECDHE_PSK_WITH_NULL_SHA256           0xC03A /**< Weak! No SSL3! */
-#define TLS_ECDHE_PSK_WITH_NULL_SHA384           0xC03B /**< Weak! No SSL3! */
 
 #define TLS_ECDHE_ECDSA_WITH_CAMELLIA_128_CBC_SHA256 0xC072 /**< Not in SSL3! */
 #define TLS_ECDHE_ECDSA_WITH_CAMELLIA_256_CBC_SHA384 0xC073 /**< Not in SSL3! */
