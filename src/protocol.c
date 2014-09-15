@@ -1,48 +1,32 @@
-/*
- *  SSLv3/TLSv1 shared functions
+/* protocol.c - TLS 1.2 protocol implementation
+ * Copyright (C) 2006-2014, Brainspark B.V.
+ * Copyright (C) 2014 g10 code GmbH
  *
- *  Copyright (C) 2006-2014, Brainspark B.V.
+ * This file is part of NTBTLS
  *
- *  This file is part of PolarSSL (http://www.polarssl.org)
- *  Lead Maintainer: Paul Bakker <polarssl_maintainer at polarssl.org>
+ * NTBTLS is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
  *
- *  All rights reserved.
+ * NTBTLS is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ * This file was part of PolarSSL (http://www.polarssl.org).  Former
+ * Lead Maintainer: Paul Bakker <polarssl_maintainer at polarssl.org>.
+ * Please do not file bug reports to them but to the address given in
+ * the file AUTHORS in the top directory of NTBTLS.
  */
 
 #include <config.h>
-
-#include "polarssl/debug.h"
-#include "polarssl/ssl.h"
-
-#include "polarssl/oid.h"
-
-#include "polarssl/platform.h"
-
 #include <stdlib.h>
 
-
-/* Implementation that should never be optimized out by the compiler */
-static void
-polarssl_zeroize (void *v, size_t n)
-{
-  volatile unsigned char *p = v;
-  while (n--)
-    *p++ = 0;
-}
+#include "ntbtls-int.h"
 
 
 /*
@@ -139,8 +123,8 @@ tls_prf_sha256 (const unsigned char *secret, size_t slen,
         dstbuf[i + j] = h_i[j];
     }
 
-  polarssl_zeroize (tmp, sizeof (tmp));
-  polarssl_zeroize (h_i, sizeof (h_i));
+  wipememory (tmp, sizeof (tmp));
+  wipememory (h_i, sizeof (h_i));
 
   return (0);
 }
@@ -181,8 +165,8 @@ tls_prf_sha384 (const unsigned char *secret, size_t slen,
         dstbuf[i + j] = h_i[j];
     }
 
-  polarssl_zeroize (tmp, sizeof (tmp));
-  polarssl_zeroize (h_i, sizeof (h_i));
+  wipememory (tmp, sizeof (tmp));
+  wipememory (h_i, sizeof (h_i));
 
   return (0);
 }
@@ -273,7 +257,7 @@ ssl_derive_keys (ssl_context * ssl)
                           "master secret",
                           handshake->randbytes, 64, session->master, 48);
 
-      polarssl_zeroize (handshake->premaster, sizeof (handshake->premaster));
+      wipememory (handshake->premaster, sizeof (handshake->premaster));
     }
   else
     SSL_DEBUG_MSG (3, ("no premaster (session resumed)"));
@@ -284,7 +268,7 @@ ssl_derive_keys (ssl_context * ssl)
   memcpy (tmp, handshake->randbytes, 64);
   memcpy (handshake->randbytes, tmp + 32, 32);
   memcpy (handshake->randbytes + 32, tmp, 32);
-  polarssl_zeroize (tmp, sizeof (tmp));
+  wipememory (tmp, sizeof (tmp));
 
   /*
    *  TLSv1:
@@ -299,7 +283,7 @@ ssl_derive_keys (ssl_context * ssl)
   SSL_DEBUG_BUF (4, "random bytes", handshake->randbytes, 64);
   SSL_DEBUG_BUF (4, "key block", keyblk, 256);
 
-  polarssl_zeroize (handshake->randbytes, sizeof (handshake->randbytes));
+  wipememory (handshake->randbytes, sizeof (handshake->randbytes));
 
   /*
    * Determine the appropriate key, IV and MAC length.
@@ -469,7 +453,7 @@ ssl_derive_keys (ssl_context * ssl)
         }
     }
 
-  polarssl_zeroize (keyblk, sizeof (keyblk));
+  wipememory (keyblk, sizeof (keyblk));
 
   /* Initialize compression.  */
   if (session->compression == SSL_COMPRESS_DEFLATE)
@@ -2182,7 +2166,7 @@ ssl_calc_finished_tls_sha256 (ssl_context * ssl, unsigned char *buf, int from)
 
   sha256_free (&sha256);
 
-  polarssl_zeroize (padbuf, sizeof (padbuf));
+  wipememory (padbuf, sizeof (padbuf));
 
   SSL_DEBUG_MSG (2, ("<= calc  finished"));
 }
@@ -2225,7 +2209,7 @@ ssl_calc_finished_tls_sha384 (ssl_context * ssl, unsigned char *buf, int from)
 
   sha512_free (&sha512);
 
-  polarssl_zeroize (padbuf, sizeof (padbuf));
+  wipememory (padbuf, sizeof (padbuf));
 
   SSL_DEBUG_MSG (2, ("<= calc  finished"));
 }
@@ -2668,7 +2652,7 @@ ssl_ticket_keys_free (ssl_ticket_keys * tkeys)
   aes_free (&tkeys->enc);
   aes_free (&tkeys->dec);
 
-  polarssl_zeroize (tkeys, sizeof (ssl_ticket_keys));
+  wipememory (tkeys, sizeof (ssl_ticket_keys));
 }
 
 
@@ -3663,7 +3647,7 @@ ssl_transform_free (ssl_transform * transform)
   md_free (&transform->md_ctx_enc);
   md_free (&transform->md_ctx_dec);
 
-  polarssl_zeroize (transform, sizeof (ssl_transform));
+  wipememory (transform, sizeof (ssl_transform));
 }
 
 
@@ -3716,7 +3700,7 @@ ssl_handshake_free (ssl_handshake_params * handshake)
         }
     }
 
-  polarssl_zeroize (handshake, sizeof (ssl_handshake_params));
+  wipememory (handshake, sizeof (ssl_handshake_params));
 }
 
 void
@@ -3732,7 +3716,7 @@ ssl_session_free (ssl_session * session)
     }
 
   polarssl_free (session->ticket);
-  polarssl_zeroize (session, sizeof (ssl_session));
+  wipememory (session, sizeof (ssl_session));
 }
 
 
@@ -3749,19 +3733,19 @@ ssl_free (ssl_context * ssl)
 
   if (ssl->out_ctr != NULL)
     {
-      polarssl_zeroize (ssl->out_ctr, SSL_BUFFER_LEN);
+      wipememory (ssl->out_ctr, SSL_BUFFER_LEN);
       polarssl_free (ssl->out_ctr);
     }
 
   if (ssl->in_ctr != NULL)
     {
-      polarssl_zeroize (ssl->in_ctr, SSL_BUFFER_LEN);
+      wipememory (ssl->in_ctr, SSL_BUFFER_LEN);
       polarssl_free (ssl->in_ctr);
     }
 
   if (ssl->compress_buf != NULL)
     {
-      polarssl_zeroize (ssl->compress_buf, SSL_BUFFER_LEN);
+      wipememory (ssl->compress_buf, SSL_BUFFER_LEN);
       polarssl_free (ssl->compress_buf);
     }
 
@@ -3799,15 +3783,15 @@ ssl_free (ssl_context * ssl)
 
   if (ssl->hostname != NULL)
     {
-      polarssl_zeroize (ssl->hostname, ssl->hostname_len);
+      wipememory (ssl->hostname, ssl->hostname_len);
       polarssl_free (ssl->hostname);
       ssl->hostname_len = 0;
     }
 
   if (ssl->psk != NULL)
     {
-      polarssl_zeroize (ssl->psk, ssl->psk_len);
-      polarssl_zeroize (ssl->psk_identity, ssl->psk_identity_len);
+      wipememory (ssl->psk, ssl->psk_len);
+      wipememory (ssl->psk_identity, ssl->psk_identity_len);
       polarssl_free (ssl->psk);
       polarssl_free (ssl->psk_identity);
       ssl->psk_len = 0;
@@ -3819,7 +3803,7 @@ ssl_free (ssl_context * ssl)
   SSL_DEBUG_MSG (2, ("<= free"));
 
   /* Actually clear after last debug message */
-  polarssl_zeroize (ssl, sizeof (ssl_context));
+  wipememory (ssl, sizeof (ssl_context));
 }
 
 
