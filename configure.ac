@@ -268,7 +268,7 @@ AC_CHECK_FUNC(setsockopt, , AC_CHECK_LIB(socket, setsockopt,
 #
 AC_MSG_NOTICE([checking for header files])
 AC_HEADER_STDC
-AC_CHECK_HEADERS([string.h unistd.h])
+AC_CHECK_HEADERS([string.h unistd.h stdint.h])
 AC_HEADER_TIME
 
 
