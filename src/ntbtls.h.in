@@ -43,6 +43,31 @@ extern "C" {
 #define NTBTLS_VERSION_NUMBER @VERSION_NUMBER@
 
 
+/* Flags used by ntbtls_init.  */
+#define NTBTLS_INIT_SERVER  0
+#define NTBTLS_INIT_CLIENT  1
+
+
+/* The TLS context object.  */
+struct _ntbtls_context_s;
+typedef struct _ntbtls_context_s *ntbtls_t;
+
+
+
+/* Create a new TLS context.  */
+gpg_error_t ntbtls_init (ntbtls_t *r_tls, unsigned int flags);
+
+gpg_error_t ntbtls_set_transport (ntbtls_t tls,
+                                  gpgrt_stream_t inbound,
+                                  gpgrt_stream_t outbound);
+
+gpg_error_t ntbtls_get_stream (ntbtls_t tls,
+                               gpgrt_stream_t *r_readfp,
+                               gpgrt_stream_t *r_writefp);
+
+gpg_error_t ntbtls_handshake (ntbtls_t tls);
+
+
 
 #if 0 /* (Keep Emacsens' auto-indent happy.) */
 {

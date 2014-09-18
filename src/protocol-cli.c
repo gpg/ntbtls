@@ -30,7 +30,7 @@
 
 
 static void
-ssl_write_hostname_ext (ssl_context * ssl, unsigned char *buf, size_t * olen)
+write_hostname_ext (ntbtls_t ssl, unsigned char *buf, size_t * olen)
 {
   unsigned char *p = buf;
 
@@ -39,8 +39,8 @@ ssl_write_hostname_ext (ssl_context * ssl, unsigned char *buf, size_t * olen)
   if (ssl->hostname == NULL)
     return;
 
-  SSL_DEBUG_MSG (3, ("client hello, adding server name extension: %s",
-                     ssl->hostname));
+  debug_msg (3, "client hello, adding server name extension: %s",
+             ssl->hostname);
 
   /*
    * struct {
@@ -69,7 +69,7 @@ ssl_write_hostname_ext (ssl_context * ssl, unsigned char *buf, size_t * olen)
   *p++ = (unsigned char) (((ssl->hostname_len + 3) >> 8) & 0xFF);
   *p++ = (unsigned char) (((ssl->hostname_len + 3)) & 0xFF);
 
-  *p++ = (unsigned char) ((TLS_EXT_SERVERNAME_HOSTNAME) & 0xFF);
+  *p++ = (unsigned char) ((TLS_EXT_SERVERNAME) & 0xFF);
   *p++ = (unsigned char) ((ssl->hostname_len >> 8) & 0xFF);
   *p++ = (unsigned char) ((ssl->hostname_len) & 0xFF);
 
@@ -80,17 +80,17 @@ ssl_write_hostname_ext (ssl_context * ssl, unsigned char *buf, size_t * olen)
 
 
 static void
-ssl_write_renegotiation_ext (ssl_context * ssl,
+write_cli_renegotiation_ext (ntbtls_t ssl,
                              unsigned char *buf, size_t * olen)
 {
   unsigned char *p = buf;
 
   *olen = 0;
 
-  if (ssl->renegotiation != SSL_RENEGOTIATION)
+  if (ssl->renegotiation != TLS_RENEGOTIATION)
     return;
 
-  SSL_DEBUG_MSG (3, ("client hello, adding renegotiation extension"));
+  debug_msg (3, "client hello, adding renegotiation extension");
 
   /*
    * Secure renegotiation
@@ -109,47 +109,44 @@ ssl_write_renegotiation_ext (ssl_context * ssl,
 
 
 static void
-ssl_write_signature_algorithms_ext (ssl_context * ssl,
-                                    unsigned char *buf, size_t * olen)
+write_signature_algorithms_ext (ntbtls_t ssl,
+                                unsigned char *buf, size_t * olen)
 {
   unsigned char *p = buf;
   size_t sig_alg_len = 0;
-#if defined(POLARSSL_RSA_C) || defined(POLARSSL_ECDSA_C)
   unsigned char *sig_alg_list = buf + 6;
-#endif
 
   *olen = 0;
 
-  if (ssl->max_minor_ver != SSL_MINOR_VERSION_3)
+  if (ssl->max_minor_ver != TLS_MINOR_VERSION_3)
     return;
 
-  SSL_DEBUG_MSG (3, ("client hello, adding signature_algorithms extension"));
+  debug_msg (3, "client hello, adding signature_algorithms extension");
 
   /*
    * Prepare signature_algorithms extension (TLS 1.2)
    */
-  sig_alg_list[sig_alg_len++] = SSL_HASH_SHA512;
-  sig_alg_list[sig_alg_len++] = SSL_SIG_RSA;
-  sig_alg_list[sig_alg_len++] = SSL_HASH_SHA384;
-  sig_alg_list[sig_alg_len++] = SSL_SIG_RSA;
-  sig_alg_list[sig_alg_len++] = SSL_HASH_SHA256;
-  sig_alg_list[sig_alg_len++] = SSL_SIG_RSA;
-  sig_alg_list[sig_alg_len++] = SSL_HASH_SHA224;
-  sig_alg_list[sig_alg_len++] = SSL_SIG_RSA;
-  sig_alg_list[sig_alg_len++] = SSL_HASH_SHA1;
-  sig_alg_list[sig_alg_len++] = SSL_SIG_RSA;
-  sig_alg_list[sig_alg_len++] = SSL_HASH_SHA512;
-  sig_alg_list[sig_alg_len++] = SSL_SIG_ECDSA;
-  sig_alg_list[sig_alg_len++] = SSL_HASH_SHA384;
-  sig_alg_list[sig_alg_len++] = SSL_SIG_ECDSA;
-  sig_alg_list[sig_alg_len++] = SSL_HASH_SHA256;
-  sig_alg_list[sig_alg_len++] = SSL_SIG_ECDSA;
-  sig_alg_list[sig_alg_len++] = SSL_HASH_SHA224;
-  sig_alg_list[sig_alg_len++] = SSL_SIG_ECDSA;
-  sig_alg_list[sig_alg_len++] = SSL_HASH_SHA1;
-  sig_alg_list[sig_alg_len++] = SSL_SIG_ECDSA;
-  sig_alg_list[sig_alg_len++] = SSL_HASH_MD5;
-  sig_alg_list[sig_alg_len++] = SSL_SIG_ECDSA;
+  sig_alg_list[sig_alg_len++] = TLS_HASH_SHA512;
+  sig_alg_list[sig_alg_len++] = TLS_SIG_RSA;
+  sig_alg_list[sig_alg_len++] = TLS_HASH_SHA384;
+  sig_alg_list[sig_alg_len++] = TLS_SIG_RSA;
+  sig_alg_list[sig_alg_len++] = TLS_HASH_SHA256;
+  sig_alg_list[sig_alg_len++] = TLS_SIG_RSA;
+  sig_alg_list[sig_alg_len++] = TLS_HASH_SHA224;
+  sig_alg_list[sig_alg_len++] = TLS_SIG_RSA;
+  sig_alg_list[sig_alg_len++] = TLS_HASH_SHA1;
+  sig_alg_list[sig_alg_len++] = TLS_SIG_RSA;
+  sig_alg_list[sig_alg_len++] = TLS_HASH_SHA512;
+  sig_alg_list[sig_alg_len++] = TLS_SIG_ECDSA;
+  sig_alg_list[sig_alg_len++] = TLS_HASH_SHA384;
+  sig_alg_list[sig_alg_len++] = TLS_SIG_ECDSA;
+  sig_alg_list[sig_alg_len++] = TLS_HASH_SHA256;
+  sig_alg_list[sig_alg_len++] = TLS_SIG_ECDSA;
+  sig_alg_list[sig_alg_len++] = TLS_HASH_SHA224;
+  sig_alg_list[sig_alg_len++] = TLS_SIG_ECDSA;
+  sig_alg_list[sig_alg_len++] = TLS_HASH_SHA1;
+  sig_alg_list[sig_alg_len++] = TLS_SIG_ECDSA;
+
 
   /*
    * enum {
@@ -182,8 +179,8 @@ ssl_write_signature_algorithms_ext (ssl_context * ssl,
 
 
 static void
-ssl_write_supported_elliptic_curves_ext (ssl_context * ssl,
-                                         unsigned char *buf, size_t * olen)
+write_supported_elliptic_curves_ext (ntbtls_t ssl,
+                                     unsigned char *buf, size_t * olen)
 {
   unsigned char *p = buf;
   unsigned char *elliptic_curve_list = p + 6;
@@ -193,8 +190,7 @@ ssl_write_supported_elliptic_curves_ext (ssl_context * ssl,
 
   *olen = 0;
 
-  SSL_DEBUG_MSG (3,
-                 ("client hello, adding supported_elliptic_curves extension"));
+  debug_msg (3, "client hello, adding supported_elliptic_curves extension");
 
   for (grp_id = ssl->curve_list; *grp_id != POLARSSL_ECP_DP_NONE; grp_id++)
     {
@@ -218,8 +214,9 @@ ssl_write_supported_elliptic_curves_ext (ssl_context * ssl,
   *olen = 6 + elliptic_curve_len;
 }
 
+
 static void
-ssl_write_supported_point_formats_ext (ssl_context * ssl,
+write_cli_supported_point_formats_ext (ntbtls_t ssl,
                                        unsigned char *buf, size_t * olen)
 {
   unsigned char *p = buf;
@@ -227,8 +224,7 @@ ssl_write_supported_point_formats_ext (ssl_context * ssl,
 
   *olen = 0;
 
-  SSL_DEBUG_MSG (3,
-                 ("client hello, adding supported_point_formats extension"));
+  debug_msg (3, "client hello, adding supported_point_formats extension");
 
   *p++ = (unsigned char) ((TLS_EXT_SUPPORTED_POINT_FORMATS >> 8) & 0xFF);
   *p++ = (unsigned char) ((TLS_EXT_SUPPORTED_POINT_FORMATS) & 0xFF);
@@ -244,7 +240,7 @@ ssl_write_supported_point_formats_ext (ssl_context * ssl,
 
 
 static void
-ssl_write_max_fragment_length_ext (ssl_context * ssl,
+write_cli_max_fragment_length_ext (ntbtls_t ssl,
                                    unsigned char *buf, size_t * olen)
 {
   unsigned char *p = buf;
@@ -255,7 +251,7 @@ ssl_write_max_fragment_length_ext (ssl_context * ssl,
       return;
     }
 
-  SSL_DEBUG_MSG (3, ("client hello, adding max_fragment_length extension"));
+  debug_msg (3, "client hello, adding max_fragment_length extension");
 
   *p++ = (unsigned char) ((TLS_EXT_MAX_FRAGMENT_LENGTH >> 8) & 0xFF);
   *p++ = (unsigned char) ((TLS_EXT_MAX_FRAGMENT_LENGTH) & 0xFF);
@@ -270,7 +266,7 @@ ssl_write_max_fragment_length_ext (ssl_context * ssl,
 
 
 static void
-ssl_write_truncated_hmac_ext (ssl_context * ssl,
+write_cli_truncated_hmac_ext (ntbtls_t ssl,
                               unsigned char *buf, size_t * olen)
 {
   unsigned char *p = buf;
@@ -281,7 +277,7 @@ ssl_write_truncated_hmac_ext (ssl_context * ssl,
       return;
     }
 
-  SSL_DEBUG_MSG (3, ("client hello, adding truncated_hmac extension"));
+  debug_msg (3, "client hello, adding truncated_hmac extension");
 
   *p++ = (unsigned char) ((TLS_EXT_TRUNCATED_HMAC >> 8) & 0xFF);
   *p++ = (unsigned char) ((TLS_EXT_TRUNCATED_HMAC) & 0xFF);
@@ -294,7 +290,7 @@ ssl_write_truncated_hmac_ext (ssl_context * ssl,
 
 
 static void
-ssl_write_session_ticket_ext (ssl_context * ssl,
+write_cli_session_ticket_ext (ntbtls_t ssl,
                               unsigned char *buf, size_t * olen)
 {
   unsigned char *p = buf;
@@ -306,7 +302,7 @@ ssl_write_session_ticket_ext (ssl_context * ssl,
       return;
     }
 
-  SSL_DEBUG_MSG (3, ("client hello, adding session ticket extension"));
+  debug_msg (3, "client hello, adding session ticket extension");
 
   *p++ = (unsigned char) ((TLS_EXT_SESSION_TICKET >> 8) & 0xFF);
   *p++ = (unsigned char) ((TLS_EXT_SESSION_TICKET) & 0xFF);
@@ -322,7 +318,7 @@ ssl_write_session_ticket_ext (ssl_context * ssl,
       return;
     }
 
-  SSL_DEBUG_MSG (3, ("sending session ticket of length %d", tlen));
+  debug_msg (3, "sending session ticket of length %d", tlen);
 
   memcpy (p, ssl->session_negotiate->ticket, tlen);
 
@@ -331,7 +327,7 @@ ssl_write_session_ticket_ext (ssl_context * ssl,
 
 
 static void
-ssl_write_alpn_ext (ssl_context * ssl, unsigned char *buf, size_t * olen)
+write_cli_alpn_ext (ntbtls_t ssl, unsigned char *buf, size_t * olen)
 {
   unsigned char *p = buf;
   const char **cur;
@@ -342,7 +338,7 @@ ssl_write_alpn_ext (ssl_context * ssl, unsigned char *buf, size_t * olen)
       return;
     }
 
-  SSL_DEBUG_MSG (3, ("client hello, adding alpn extension"));
+  debug_msg (3, "client hello, adding alpn extension");
 
   *p++ = (unsigned char) ((TLS_EXT_ALPN >> 8) & 0xFF);
   *p++ = (unsigned char) ((TLS_EXT_ALPN) & 0xFF);
@@ -378,34 +374,29 @@ ssl_write_alpn_ext (ssl_context * ssl, unsigned char *buf, size_t * olen)
 
 
 static int
-ssl_write_client_hello (ssl_context * ssl)
+write_client_hello (ntbtls_t tls)
 {
   int ret;
-  size_t i, n, olen, ext_len = 0;
+  size_t i, n, olen;
+  size_t ext_len = 0;
   unsigned char *buf;
   unsigned char *p, *q;
   time_t t;
   const int *ciphersuites;
   const ssl_ciphersuite_t *ciphersuite_info;
 
-  SSL_DEBUG_MSG (2, ("=> write client hello"));
+  debug_msg (2, "=> write client hello");
 
-  if (ssl->f_rng == NULL)
+  if (tls->renegotiation == TLS_INITIAL_HANDSHAKE)
     {
-      SSL_DEBUG_MSG (1, ("no RNG provided"));
-      return (POLARSSL_ERR_SSL_NO_RNG);
+      tls->major_ver = tls->min_major_ver;
+      tls->minor_ver = tls->min_minor_ver;
     }
 
-  if (ssl->renegotiation == SSL_INITIAL_HANDSHAKE)
+  if (tls->max_major_ver == 0 && tls->max_minor_ver == 0)
     {
-      ssl->major_ver = ssl->min_major_ver;
-      ssl->minor_ver = ssl->min_minor_ver;
-    }
-
-  if (ssl->max_major_ver == 0 && ssl->max_minor_ver == 0)
-    {
-      ssl->max_major_ver = SSL_MAX_MAJOR_VERSION;
-      ssl->max_minor_ver = SSL_MAX_MINOR_VERSION;
+      tls->max_major_ver = TLS_MAX_MAJOR_VERSION;
+      tls->max_minor_ver = TLS_MAX_MINOR_VERSION;
     }
 
   /*
@@ -415,13 +406,13 @@ ssl_write_client_hello (ssl_context * ssl)
    *     6  .   9   current UNIX time
    *    10  .  37   random bytes
    */
-  buf = ssl->out_msg;
+  buf = tls->out_msg;
   p = buf + 4;
 
-  *p++ = (unsigned char) ssl->max_major_ver;
-  *p++ = (unsigned char) ssl->max_minor_ver;
+  *p++ = (unsigned char) tls->max_major_ver;
+  *p++ = (unsigned char) tls->max_minor_ver;
 
-  SSL_DEBUG_MSG (3, ("client hello, max version: [%d:%d]", buf[4], buf[5]));
+  debug_msg (3, "client hello, max version: [%d:%d]", buf[4], buf[5]);
 
   t = time (NULL);
   *p++ = (unsigned char) (t >> 24);
@@ -429,16 +420,16 @@ ssl_write_client_hello (ssl_context * ssl)
   *p++ = (unsigned char) (t >> 8);
   *p++ = (unsigned char) (t);
 
-  SSL_DEBUG_MSG (3, ("client hello, current time: %lu", t));
+  debug_msg (3, "client hello, current time: %lu", t);
 
-  if ((ret = ssl->f_rng (ssl->p_rng, p, 28)) != 0)
+  if ((ret = tls->f_rng (tls->p_rng, p, 28)) != 0)
     return (ret);
 
   p += 28;
 
-  memcpy (ssl->handshake->randbytes, buf + 6, 32);
+  memcpy (tls->handshake->randbytes, buf + 6, 32);
 
-  SSL_DEBUG_BUF (3, "client hello, random bytes", buf + 6, 32);
+  debug_buf (3, "client hello, random bytes", buf + 6, 32);
 
   /*
    *    38  .  38   session id length
@@ -450,10 +441,10 @@ ssl_write_client_hello (ssl_context * ssl)
    *   ..   . ..    extensions length
    *   ..   . ..    extensions
    */
-  n = ssl->session_negotiate->length;
+  n = tls->session_negotiate->length;
 
-  if (ssl->renegotiation != SSL_INITIAL_HANDSHAKE || n < 16 || n > 32 ||
-      ssl->handshake->resume == 0)
+  if (tls->renegotiation != SSL_INITIAL_HANDSHAKE || n < 16 || n > 32 ||
+      tls->handshake->resume == 0)
     {
       n = 0;
     }
@@ -462,37 +453,37 @@ ssl_write_client_hello (ssl_context * ssl)
    * RFC 5077 section 3.4: "When presenting a ticket, the client MAY
    * generate and include a Session ID in the TLS ClientHello."
    */
-  if (ssl->renegotiation == SSL_INITIAL_HANDSHAKE &&
-      ssl->session_negotiate->ticket != NULL &&
-      ssl->session_negotiate->ticket_len != 0)
+  if (tls->renegotiation == SSL_INITIAL_HANDSHAKE &&
+      tls->session_negotiate->ticket != NULL &&
+      tls->session_negotiate->ticket_len != 0)
     {
-      ret = ssl->f_rng (ssl->p_rng, ssl->session_negotiate->id, 32);
+      ret = tls->f_rng (tls->p_rng, tls->session_negotiate->id, 32);
 
       if (ret != 0)
         return (ret);
 
-      ssl->session_negotiate->length = n = 32;
+      tls->session_negotiate->length = n = 32;
     }
 
   *p++ = (unsigned char) n;
 
   for (i = 0; i < n; i++)
-    *p++ = ssl->session_negotiate->id[i];
+    *p++ = tls->session_negotiate->id[i];
 
-  SSL_DEBUG_MSG (3, ("client hello, session id len.: %d", n));
-  SSL_DEBUG_BUF (3, "client hello, session id", buf + 39, n);
+  debug_msg (3, "client hello, session id len.: %d", n);
+  debug_buf (3, "client hello, session id", buf + 39, n);
 
-  ciphersuites = ssl->ciphersuite_list[ssl->minor_ver];
+  ciphersuites = tls->ciphersuite_list[tls->minor_ver];
   n = 0;
   q = p;
 
-  // Skip writing ciphersuite length for now
+  /* Skip writing ciphersuite length for now.  */
   p += 2;
 
   /*
    * Add TLS_EMPTY_RENEGOTIATION_INFO_SCSV
    */
-  if (ssl->renegotiation == SSL_INITIAL_HANDSHAKE)
+  if (tls->renegotiation == SSL_INITIAL_HANDSHAKE)
     {
       *p++ = (unsigned char) (SSL_EMPTY_RENEGOTIATION_INFO >> 8);
       *p++ = (unsigned char) (SSL_EMPTY_RENEGOTIATION_INFO);
@@ -506,12 +497,12 @@ ssl_write_client_hello (ssl_context * ssl)
       if (ciphersuite_info == NULL)
         continue;
 
-      if (ciphersuite_info->min_minor_ver > ssl->max_minor_ver ||
-          ciphersuite_info->max_minor_ver < ssl->min_minor_ver)
+      if (ciphersuite_info->min_minor_ver > tls->max_minor_ver ||
+          ciphersuite_info->max_minor_ver < tls->min_minor_ver)
         continue;
 
-      SSL_DEBUG_MSG (3, ("client hello, add ciphersuite: %2d",
-                         ciphersuites[i]));
+      debug_msg (3, "client hello, add ciphersuite: %2d",
+                 ciphersuites[i]);
 
       n++;
       *p++ = (unsigned char) (ciphersuites[i] >> 8);
@@ -521,48 +512,45 @@ ssl_write_client_hello (ssl_context * ssl)
   *q++ = (unsigned char) (n >> 7);
   *q++ = (unsigned char) (n << 1);
 
-  SSL_DEBUG_MSG (3, ("client hello, got %d ciphersuites", n));
+  debug_msg (3, "client hello, got %d ciphersuites", n);
 
-
-  SSL_DEBUG_MSG (3, ("client hello, compress len.: %d", 2));
-  SSL_DEBUG_MSG (3, ("client hello, compress alg.: %d %d",
-                     SSL_COMPRESS_DEFLATE, SSL_COMPRESS_NULL));
+  debug_msg (3, "client hello, compress len.: %d", 2);
+  debug_msg (3, "client hello, compress alg.: %d %d",
+             SSL_COMPRESS_DEFLATE, SSL_COMPRESS_NULL);
 
   *p++ = 2;
   *p++ = SSL_COMPRESS_DEFLATE;
   *p++ = SSL_COMPRESS_NULL;
 
-  // First write extensions, then the total length
-  //
-  ssl_write_hostname_ext (ssl, p + 2 + ext_len, &olen);
+  /* First write extensions, then the total length.  */
+  write_hostname_ext (ssl, p + 2 + ext_len, &olen);
   ext_len += olen;
 
-  ssl_write_renegotiation_ext (ssl, p + 2 + ext_len, &olen);
+  write_cli_renegotiation_ext (ssl, p + 2 + ext_len, &olen);
   ext_len += olen;
 
-  ssl_write_signature_algorithms_ext (ssl, p + 2 + ext_len, &olen);
+  write_signature_algorithms_ext (ssl, p + 2 + ext_len, &olen);
   ext_len += olen;
 
   ssl_write_supported_elliptic_curves_ext (ssl, p + 2 + ext_len, &olen);
   ext_len += olen;
 
-  ssl_write_supported_point_formats_ext (ssl, p + 2 + ext_len, &olen);
+  write_cli_supported_point_formats_ext (ssl, p + 2 + ext_len, &olen);
   ext_len += olen;
 
-
-  ssl_write_max_fragment_length_ext (ssl, p + 2 + ext_len, &olen);
+  write_cli_max_fragment_length_ext (ssl, p + 2 + ext_len, &olen);
   ext_len += olen;
 
-  ssl_write_truncated_hmac_ext (ssl, p + 2 + ext_len, &olen);
+  write_cli_truncated_hmac_ext (ssl, p + 2 + ext_len, &olen);
   ext_len += olen;
 
-  ssl_write_session_ticket_ext (ssl, p + 2 + ext_len, &olen);
+  write_cli_session_ticket_ext (ssl, p + 2 + ext_len, &olen);
   ext_len += olen;
 
-  ssl_write_alpn_ext (ssl, p + 2 + ext_len, &olen);
+  write_cli_alpn_ext (ssl, p + 2 + ext_len, &olen);
   ext_len += olen;
 
-  SSL_DEBUG_MSG (3, ("client hello, total extension length: %d", ext_len));
+  debug_msg (3, "client hello, total extension length: %d", ext_len);
 
   if (ext_len > 0)
     {
@@ -571,25 +559,26 @@ ssl_write_client_hello (ssl_context * ssl)
       p += ext_len;
     }
 
-  ssl->out_msglen = p - buf;
-  ssl->out_msgtype = SSL_MSG_HANDSHAKE;
-  ssl->out_msg[0] = SSL_HS_CLIENT_HELLO;
+  tls->out_msglen = p - buf;
+  tls->out_msgtype = TLS_MSG_HANDSHAKE;
+  tls->out_msg[0] = TLS_HS_CLIENT_HELLO;
 
-  ssl->state++;
+  tls->state++;
 
-  if ((ret = ssl_write_record (ssl)) != 0)
+  err = _ntbtls_write_record (tls);
+  if (err)
     {
       SSL_DEBUG_RET (1, "ssl_write_record", ret);
       return (ret);
     }
 
-  SSL_DEBUG_MSG (2, ("<= write client hello"));
+  debug_msg (2, "<= write client hello");
 
   return (0);
 }
 
 static int
-ssl_parse_renegotiation_info (ssl_context * ssl,
+ssl_parse_renegotiation_info (ntbtls_t ssl,
                               const unsigned char *buf, size_t len)
 {
   int ret;
@@ -598,8 +587,7 @@ ssl_parse_renegotiation_info (ssl_context * ssl,
     {
       if (len != 1 || buf[0] != 0x0)
         {
-          SSL_DEBUG_MSG (1,
-                         ("non-zero length renegotiated connection field"));
+          debug_msg (1, "non-zero length renegotiated connection field");
 
           if ((ret = ssl_send_fatal_handshake_failure (ssl)) != 0)
             return (ret);
@@ -619,7 +607,7 @@ ssl_parse_renegotiation_info (ssl_context * ssl,
           safer_memcmp (buf + 1 + ssl->verify_data_len,
                         ssl->peer_verify_data, ssl->verify_data_len) != 0)
         {
-          SSL_DEBUG_MSG (1, ("non-matching renegotiated connection field"));
+          debug_msg (1, "non-matching renegotiated connection field");
 
           if ((ret = ssl_send_fatal_handshake_failure (ssl)) != 0)
             return (ret);
@@ -633,7 +621,7 @@ ssl_parse_renegotiation_info (ssl_context * ssl,
 
 
 static int
-ssl_parse_max_fragment_length_ext (ssl_context * ssl,
+ssl_parse_max_fragment_length_ext (ntbtls_t ssl,
                                    const unsigned char *buf, size_t len)
 {
   /*
@@ -652,7 +640,7 @@ ssl_parse_max_fragment_length_ext (ssl_context * ssl,
 
 
 static int
-ssl_parse_truncated_hmac_ext (ssl_context * ssl,
+ssl_parse_truncated_hmac_ext (ntbtls_t ssl,
                               const unsigned char *buf, size_t len)
 {
   if (ssl->trunc_hmac == SSL_TRUNC_HMAC_DISABLED || len != 0)
@@ -669,7 +657,7 @@ ssl_parse_truncated_hmac_ext (ssl_context * ssl,
 
 
 static int
-ssl_parse_session_ticket_ext (ssl_context * ssl,
+ssl_parse_session_ticket_ext (ntbtls_t ssl,
                               const unsigned char *buf, size_t len)
 {
   if (ssl->session_tickets == SSL_SESSION_TICKETS_DISABLED || len != 0)
@@ -686,7 +674,7 @@ ssl_parse_session_ticket_ext (ssl_context * ssl,
 
 
 static int
-ssl_parse_supported_point_formats_ext (ssl_context * ssl,
+ssl_parse_supported_point_formats_ext (ntbtls_t ssl,
                                        const unsigned char *buf, size_t len)
 {
   size_t list_size;
@@ -695,7 +683,7 @@ ssl_parse_supported_point_formats_ext (ssl_context * ssl,
   list_size = buf[0];
   if (list_size + 1 != len)
     {
-      SSL_DEBUG_MSG (1, ("bad server hello message"));
+      debug_msg (1, "bad server hello message");
       return (POLARSSL_ERR_SSL_BAD_HS_SERVER_HELLO);
     }
 
@@ -706,7 +694,7 @@ ssl_parse_supported_point_formats_ext (ssl_context * ssl,
           p[0] == POLARSSL_ECP_PF_COMPRESSED)
         {
           ssl->handshake->ecdh_ctx.point_format = p[0];
-          SSL_DEBUG_MSG (4, ("point format selected: %d", p[0]));
+          debug_msg (4, "point format selected: %d", p[0]);
           return (0);
         }
 
@@ -714,13 +702,13 @@ ssl_parse_supported_point_formats_ext (ssl_context * ssl,
       p++;
     }
 
-  SSL_DEBUG_MSG (1, ("no point format in common"));
+  debug_msg (1, "no point format in common");
   return (POLARSSL_ERR_SSL_BAD_HS_SERVER_HELLO);
 }
 
 
 static int
-ssl_parse_alpn_ext (ssl_context * ssl, const unsigned char *buf, size_t len)
+ssl_parse_alpn_ext (ntbtls_t ssl, const unsigned char *buf, size_t len)
 {
   size_t list_len, name_len;
   const char **p;
@@ -766,7 +754,7 @@ ssl_parse_alpn_ext (ssl_context * ssl, const unsigned char *buf, size_t len)
 
 
 static int
-ssl_parse_server_hello (ssl_context * ssl)
+parse_server_hello (ntbtls_t ssl)
 {
   int ret, i, comp;
   size_t n;
@@ -776,7 +764,7 @@ ssl_parse_server_hello (ssl_context * ssl)
   int handshake_failure = 0;
   uint32_t t;
 
-  SSL_DEBUG_MSG (2, ("=> parse server hello"));
+  debug_msg (2, "=> parse server hello");
 
   /*
    *     0  .   0   handshake type
@@ -793,25 +781,24 @@ ssl_parse_server_hello (ssl_context * ssl)
       return (ret);
     }
 
-  if (ssl->in_msgtype != SSL_MSG_HANDSHAKE)
+  if (ssl->in_msgtype != TLS_MSG_HANDSHAKE)
     {
-      SSL_DEBUG_MSG (1, ("bad server hello message"));
+      debug_msg (1, "bad server hello message");
       return (POLARSSL_ERR_SSL_UNEXPECTED_MESSAGE);
     }
 
-  SSL_DEBUG_MSG (3, ("server hello, chosen version: [%d:%d]",
-                     buf[4], buf[5]));
+  debug_msg (3, "server hello, chosen version: [%d:%d]",  buf[4], buf[5]);
 
   if (ssl->in_hslen < 42 ||
-      buf[0] != SSL_HS_SERVER_HELLO || buf[4] != SSL_MAJOR_VERSION_3)
+      buf[0] != TLS_HS_SERVER_HELLO || buf[4] != SSL_MAJOR_VERSION_3)
     {
-      SSL_DEBUG_MSG (1, ("bad server hello message"));
+      debug_msg (1, "bad server hello message");
       return (POLARSSL_ERR_SSL_BAD_HS_SERVER_HELLO);
     }
 
   if (buf[5] > ssl->max_minor_ver)
     {
-      SSL_DEBUG_MSG (1, ("bad server hello message"));
+      debug_msg (1, "bad server hello message");
       return (POLARSSL_ERR_SSL_BAD_HS_SERVER_HELLO);
     }
 
@@ -819,12 +806,12 @@ ssl_parse_server_hello (ssl_context * ssl)
 
   if (ssl->minor_ver < ssl->min_minor_ver)
     {
-      SSL_DEBUG_MSG (1, ("server only supports ssl smaller than minimum"
-                         " [%d:%d] < [%d:%d]", ssl->major_ver,
-                         ssl->minor_ver, buf[4], buf[5]));
+      debug_msg (1, "server only supports ssl smaller than minimum"
+                 " [%d:%d] < [%d:%d]", ssl->major_ver,
+                 ssl->minor_ver, buf[4], buf[5]);
 
-      ssl_send_alert_message (ssl, SSL_ALERT_LEVEL_FATAL,
-                              SSL_ALERT_MSG_PROTOCOL_VERSION);
+      ssl_send_alert_message (ssl, TLS_ALERT_LEVEL_FATAL,
+                              TLS_ALERT_MSG_PROTOCOL_VERSION);
 
       return (POLARSSL_ERR_SSL_BAD_HS_PROTOCOL_VERSION);
     }
@@ -832,17 +819,17 @@ ssl_parse_server_hello (ssl_context * ssl)
   t = ((uint32_t) buf[6] << 24)
     | ((uint32_t) buf[7] << 16)
     | ((uint32_t) buf[8] << 8) | ((uint32_t) buf[9]);
-  SSL_DEBUG_MSG (3, ("server hello, current time: %lu", t));
+  debug_msg (3, "server hello, current time: %lu", t);
 
   memcpy (ssl->handshake->randbytes + 32, buf + 6, 32);
 
   n = buf[38];
 
-  SSL_DEBUG_BUF (3, "server hello, random bytes", buf + 6, 32);
+  debug_buf (3, "server hello, random bytes", buf + 6, 32);
 
   if (n > 32)
     {
-      SSL_DEBUG_MSG (1, ("bad server hello message"));
+      debug_msg (1, "bad server hello message");
       return (POLARSSL_ERR_SSL_BAD_HS_SERVER_HELLO);
     }
 
@@ -860,7 +847,7 @@ ssl_parse_server_hello (ssl_context * ssl)
 
       if ((ext_len > 0 && ext_len < 4) || ssl->in_hslen != 44 + n + ext_len)
         {
-          SSL_DEBUG_MSG (1, ("bad server hello message"));
+          debug_msg (1, "bad server hello message");
           return (POLARSSL_ERR_SSL_BAD_HS_SERVER_HELLO);
         }
     }
@@ -875,14 +862,14 @@ ssl_parse_server_hello (ssl_context * ssl)
 
   if (ssl->transform_negotiate->ciphersuite_info == NULL)
     {
-      SSL_DEBUG_MSG (1, ("ciphersuite info for %04x not found", i));
+      debug_msg (1, "ciphersuite info for %04x not found", i);
       return (POLARSSL_ERR_SSL_BAD_INPUT_DATA);
     }
 
   ssl_optimize_checksum (ssl, ssl->transform_negotiate->ciphersuite_info);
 
-  SSL_DEBUG_MSG (3, ("server hello, session id len.: %d", n));
-  SSL_DEBUG_BUF (3, "server hello, session id", buf + 39, n);
+  debug_msg (3, "server hello, session id len.: %d", n);
+  debug_buf (3, "server hello, session id", buf + 39, n);
 
   /*
    * Check if the session can be resumed
@@ -906,25 +893,25 @@ ssl_parse_server_hello (ssl_context * ssl)
     {
       ssl->state = SSL_SERVER_CHANGE_CIPHER_SPEC;
 
-      if ((ret = ssl_derive_keys (ssl)) != 0)
+      if ((ret = _ntbtls_derive_keys (ssl)) != 0)
         {
           SSL_DEBUG_RET (1, "ssl_derive_keys", ret);
           return (ret);
         }
     }
 
-  SSL_DEBUG_MSG (3, ("%s session has been resumed",
-                     ssl->handshake->resume ? "a" : "no"));
+  debug_msg (3, "%s session has been resumed",
+             ssl->handshake->resume ? "a" : "no");
 
-  SSL_DEBUG_MSG (3, ("server hello, chosen ciphersuite: %d", i));
-  SSL_DEBUG_MSG (3, ("server hello, compress alg.: %d", buf[41 + n]));
+  debug_msg (3, "server hello, chosen ciphersuite: %d", i);
+  debug_msg (3, "server hello, compress alg.: %d", buf[41 + n]);
 
   i = 0;
   while (1)
     {
       if (ssl->ciphersuite_list[ssl->minor_ver][i] == 0)
         {
-          SSL_DEBUG_MSG (1, ("bad server hello message"));
+          debug_msg (1, "bad server hello message");
           return (POLARSSL_ERR_SSL_BAD_HS_SERVER_HELLO);
         }
 
@@ -935,18 +922,18 @@ ssl_parse_server_hello (ssl_context * ssl)
         }
     }
 
-  if (comp != SSL_COMPRESS_NULL
-      && comp != SSL_COMPRESS_DEFLATE
+  if (comp != TLS_COMPRESS_NULL
+      && comp != TLS_COMPRESS_DEFLATE
     )
     {
-      SSL_DEBUG_MSG (1, ("bad server hello message"));
+      debug_msg (1, "bad server hello message");
       return (POLARSSL_ERR_SSL_BAD_HS_SERVER_HELLO);
     }
   ssl->session_negotiate->compression = comp;
 
   ext = buf + 44 + n;
 
-  SSL_DEBUG_MSG (2, ("server hello, total extension length: %d", ext_len));
+  debug_msg (2, "server hello, total extension length: %d", ext_len);
 
   while (ext_len)
     {
@@ -955,14 +942,14 @@ ssl_parse_server_hello (ssl_context * ssl)
 
       if (ext_size + 4 > ext_len)
         {
-          SSL_DEBUG_MSG (1, ("bad server hello message"));
+          debug_msg (1, "bad server hello message");
           return (POLARSSL_ERR_SSL_BAD_HS_SERVER_HELLO);
         }
 
       switch (ext_id)
         {
         case TLS_EXT_RENEGOTIATION_INFO:
-          SSL_DEBUG_MSG (3, ("found renegotiation extension"));
+          debug_msg (3, "found renegotiation extension");
           renegotiation_info_seen = 1;
 
           if ((ret = ssl_parse_renegotiation_info (ssl, ext + 4,
@@ -972,7 +959,7 @@ ssl_parse_server_hello (ssl_context * ssl)
           break;
 
         case TLS_EXT_MAX_FRAGMENT_LENGTH:
-          SSL_DEBUG_MSG (3, ("found max_fragment_length extension"));
+          debug_msg (3, "found max_fragment_length extension");
 
           if ((ret = ssl_parse_max_fragment_length_ext (ssl,
                                                         ext + 4,
@@ -984,7 +971,7 @@ ssl_parse_server_hello (ssl_context * ssl)
           break;
 
         case TLS_EXT_TRUNCATED_HMAC:
-          SSL_DEBUG_MSG (3, ("found truncated_hmac extension"));
+          debug_msg (3, "found truncated_hmac extension");
 
           if ((ret = ssl_parse_truncated_hmac_ext (ssl,
                                                    ext + 4, ext_size)) != 0)
@@ -995,7 +982,7 @@ ssl_parse_server_hello (ssl_context * ssl)
           break;
 
         case TLS_EXT_SESSION_TICKET:
-          SSL_DEBUG_MSG (3, ("found session_ticket extension"));
+          debug_msg (3, "found session_ticket extension");
 
           if ((ret = ssl_parse_session_ticket_ext (ssl,
                                                    ext + 4, ext_size)) != 0)
@@ -1006,7 +993,7 @@ ssl_parse_server_hello (ssl_context * ssl)
           break;
 
         case TLS_EXT_SUPPORTED_POINT_FORMATS:
-          SSL_DEBUG_MSG (3, ("found supported_point_formats extension"));
+          debug_msg (3, "found supported_point_formats extension");
 
           if ((ret = ssl_parse_supported_point_formats_ext (ssl,
                                                             ext + 4,
@@ -1018,7 +1005,7 @@ ssl_parse_server_hello (ssl_context * ssl)
           break;
 
         case TLS_EXT_ALPN:
-          SSL_DEBUG_MSG (3, ("found alpn extension"));
+          debug_msg (3, "found alpn extension");
 
           if ((ret = ssl_parse_alpn_ext (ssl, ext + 4, ext_size)) != 0)
             return (ret);
@@ -1026,8 +1013,8 @@ ssl_parse_server_hello (ssl_context * ssl)
           break;
 
         default:
-          SSL_DEBUG_MSG (3, ("unknown extension found: %d (ignoring)",
-                             ext_id));
+          debug_msg (3, "unknown extension found: %d (ignoring)", ext_id);
+          break;
         }
 
       ext_len -= 4 + ext_size;
@@ -1035,7 +1022,7 @@ ssl_parse_server_hello (ssl_context * ssl)
 
       if (ext_len > 0 && ext_len < 4)
         {
-          SSL_DEBUG_MSG (1, ("bad server hello message"));
+          debug_msg (1, "bad server hello message");
           return (POLARSSL_ERR_SSL_BAD_HS_SERVER_HELLO);
         }
     }
@@ -1043,31 +1030,31 @@ ssl_parse_server_hello (ssl_context * ssl)
   /*
    * Renegotiation security checks
    */
-  if (ssl->secure_renegotiation == SSL_LEGACY_RENEGOTIATION &&
-      ssl->allow_legacy_renegotiation == SSL_LEGACY_BREAK_HANDSHAKE)
+  if (ssl->secure_renegotiation == TLS_LEGACY_RENEGOTIATION &&
+      ssl->allow_legacy_renegotiation == TLS_LEGACY_BREAK_HANDSHAKE)
     {
-      SSL_DEBUG_MSG (1, ("legacy renegotiation, breaking off handshake"));
+      debug_msg (1, "legacy renegotiation, breaking off handshake");
       handshake_failure = 1;
     }
-  else if (ssl->renegotiation == SSL_RENEGOTIATION &&
-           ssl->secure_renegotiation == SSL_SECURE_RENEGOTIATION &&
+  else if (ssl->renegotiation == TLS_RENEGOTIATION &&
+           ssl->secure_renegotiation == TLS_SECURE_RENEGOTIATION &&
            renegotiation_info_seen == 0)
     {
-      SSL_DEBUG_MSG (1, ("renegotiation_info extension missing (secure)"));
+      debug_msg (1, "renegotiation_info extension missing (secure)");
       handshake_failure = 1;
     }
-  else if (ssl->renegotiation == SSL_RENEGOTIATION &&
-           ssl->secure_renegotiation == SSL_LEGACY_RENEGOTIATION &&
-           ssl->allow_legacy_renegotiation == SSL_LEGACY_NO_RENEGOTIATION)
+  else if (ssl->renegotiation == TLS_RENEGOTIATION &&
+           ssl->secure_renegotiation == TLS_LEGACY_RENEGOTIATION &&
+           ssl->allow_legacy_renegotiation == TLS_LEGACY_NO_RENEGOTIATION)
     {
-      SSL_DEBUG_MSG (1, ("legacy renegotiation not allowed"));
+      debug_msg (1, "legacy renegotiation not allowed");
       handshake_failure = 1;
     }
-  else if (ssl->renegotiation == SSL_RENEGOTIATION &&
-           ssl->secure_renegotiation == SSL_LEGACY_RENEGOTIATION &&
+  else if (ssl->renegotiation == TLS_RENEGOTIATION &&
+           ssl->secure_renegotiation == TLS_LEGACY_RENEGOTIATION &&
            renegotiation_info_seen == 1)
     {
-      SSL_DEBUG_MSG (1, ("renegotiation_info extension present (legacy)"));
+      debug_msg (1, "renegotiation_info extension present (legacy)");
       handshake_failure = 1;
     }
 
@@ -1079,14 +1066,14 @@ ssl_parse_server_hello (ssl_context * ssl)
       return (POLARSSL_ERR_SSL_BAD_HS_SERVER_HELLO);
     }
 
-  SSL_DEBUG_MSG (2, ("<= parse server hello"));
+  debug_msg (2, "<= parse server hello");
 
   return (0);
 }
 
 
 static int
-ssl_parse_server_dh_params (ssl_context * ssl, unsigned char **p,
+ssl_parse_server_dh_params (ntbtls_t ssl, unsigned char **p,
                             unsigned char *end)
 {
   int ret = POLARSSL_ERR_SSL_FEATURE_UNAVAILABLE;
@@ -1108,7 +1095,7 @@ ssl_parse_server_dh_params (ssl_context * ssl, unsigned char **p,
 
   if (ssl->handshake->dhm_ctx.len < 64 || ssl->handshake->dhm_ctx.len > 512)
     {
-      SSL_DEBUG_MSG (1, ("bad server key exchange message (DHM length)"));
+      debug_msg (1, "bad server key exchange message (DHM length)");
       return (POLARSSL_ERR_SSL_BAD_HS_SERVER_KEY_EXCHANGE);
     }
 
@@ -1121,18 +1108,18 @@ ssl_parse_server_dh_params (ssl_context * ssl, unsigned char **p,
 
 
 static int
-ssl_check_server_ecdh_params (const ssl_context * ssl)
+ssl_check_server_ecdh_params (const ntbtls_t ssl)
 {
   const ecp_curve_info *curve_info;
 
   curve_info = ecp_curve_info_from_grp_id (ssl->handshake->ecdh_ctx.grp.id);
   if (curve_info == NULL)
     {
-      SSL_DEBUG_MSG (1, ("should never happen"));
+      debug_msg (1, "should never happen");
       return (POLARSSL_ERR_SSL_INTERNAL_ERROR);
     }
 
-  SSL_DEBUG_MSG (2, ("ECDH curve: %s", curve_info->name));
+  debug_msg (2, "ECDH curve: %s", curve_info->name);
 
   if (!ssl_curve_is_acceptable (ssl, ssl->handshake->ecdh_ctx.grp.id))
     return (-1);
@@ -1144,7 +1131,7 @@ ssl_check_server_ecdh_params (const ssl_context * ssl)
 
 
 static int
-ssl_parse_server_ecdh_params (ssl_context * ssl,
+ssl_parse_server_ecdh_params (ntbtls_t ssl,
                               unsigned char **p, unsigned char *end)
 {
   int ret = POLARSSL_ERR_SSL_FEATURE_UNAVAILABLE;
@@ -1166,7 +1153,7 @@ ssl_parse_server_ecdh_params (ssl_context * ssl,
 
   if (ssl_check_server_ecdh_params (ssl) != 0)
     {
-      SSL_DEBUG_MSG (1, ("bad server key exchange message (ECDHE curve)"));
+      debug_msg (1, "bad server key exchange message (ECDHE curve)");
       return (POLARSSL_ERR_SSL_BAD_HS_SERVER_KEY_EXCHANGE);
     }
 
@@ -1175,7 +1162,7 @@ ssl_parse_server_ecdh_params (ssl_context * ssl,
 
 
 static int
-ssl_parse_server_psk_hint (ssl_context * ssl,
+ssl_parse_server_psk_hint (ntbtls_t ssl,
                            unsigned char **p, unsigned char *end)
 {
   int ret = POLARSSL_ERR_SSL_FEATURE_UNAVAILABLE;
@@ -1192,8 +1179,8 @@ ssl_parse_server_psk_hint (ssl_context * ssl,
 
   if ((*p) + len > end)
     {
-      SSL_DEBUG_MSG (1,
-                     ("bad server key exchange message (psk_identity_hint length)"));
+      debug_msg (1, "bad server key exchange message"
+                 " (psk_identity_hint length)");
       return (POLARSSL_ERR_SSL_BAD_HS_SERVER_KEY_EXCHANGE);
     }
 
@@ -1210,7 +1197,7 @@ ssl_parse_server_psk_hint (ssl_context * ssl,
  * Generate a pre-master secret and encrypt it with the server's RSA key
  */
 static int
-ssl_write_encrypted_pms (ssl_context * ssl,
+ssl_write_encrypted_pms (ntbtls_t ssl,
                          size_t offset, size_t * olen, size_t pms_offset)
 {
   int ret;
@@ -1240,7 +1227,7 @@ ssl_write_encrypted_pms (ssl_context * ssl,
    */
   if (!pk_can_do (&ssl->session_negotiate->peer_cert->pk, POLARSSL_PK_RSA))
     {
-      SSL_DEBUG_MSG (1, ("certificate key type mismatch"));
+      debug_msg (1, "certificate key type mismatch");
       return (POLARSSL_ERR_SSL_PK_TYPE_MISMATCH);
     }
 
@@ -1267,7 +1254,7 @@ ssl_write_encrypted_pms (ssl_context * ssl,
 
 
 static int
-ssl_parse_signature_algorithm (ssl_context * ssl,
+ssl_parse_signature_algorithm (ntbtls_t ssl,
                                unsigned char **p,
                                unsigned char *end,
                                md_type_t * md_alg, pk_type_t * pk_alg)
@@ -1288,25 +1275,25 @@ ssl_parse_signature_algorithm (ssl_context * ssl,
   /*
    * Get hash algorithm
    */
-  if ((*md_alg = ssl_md_alg_from_hash ((*p)[0])) == POLARSSL_MD_NONE)
+  *md_alg = _ntbtls_md_alg_from_hash ((*p)[0]);
+  if (!*md_alg)
     {
-      SSL_DEBUG_MSG (2, ("Server used unsupported "
-                         "HashAlgorithm %d", *(p)[0]));
+      debug_msg (2, "Server used unsupported HashAlgorithm %d", *(p)[0]);
       return (POLARSSL_ERR_SSL_BAD_HS_SERVER_KEY_EXCHANGE);
     }
 
   /*
    * Get signature algorithm
    */
-  if ((*pk_alg = ssl_pk_alg_from_sig ((*p)[1])) == POLARSSL_PK_NONE)
+  *pk_alg = _ntbtls_pk_alg_from_sig ((*p)[1]);
+  if (!*pk_alg)
     {
-      SSL_DEBUG_MSG (2, ("server used unsupported "
-                         "SignatureAlgorithm %d", (*p)[1]));
+      debug_msg (2, "server used unsupported SignatureAlgorithm %d", (*p)[1]);
       return (POLARSSL_ERR_SSL_BAD_HS_SERVER_KEY_EXCHANGE);
     }
 
-  SSL_DEBUG_MSG (2, ("Server used SignatureAlgorithm %d", (*p)[1]));
-  SSL_DEBUG_MSG (2, ("Server used HashAlgorithm %d", (*p)[0]));
+  debug_msg (2, "Server used SignatureAlgorithm %d", (*p)[1]);
+  debug_msg (2, "Server used HashAlgorithm %d", (*p)[0]);
   *p += 2;
 
   return (0);
@@ -1314,14 +1301,14 @@ ssl_parse_signature_algorithm (ssl_context * ssl,
 
 
 static int
-ssl_get_ecdh_params_from_cert (ssl_context * ssl)
+ssl_get_ecdh_params_from_cert (ntbtls_t ssl)
 {
   int ret;
   const ecp_keypair *peer_key;
 
   if (!pk_can_do (&ssl->session_negotiate->peer_cert->pk, POLARSSL_PK_ECKEY))
     {
-      SSL_DEBUG_MSG (1, ("server key not ECDH capable"));
+      debug_msg (1, "server key not ECDH capable");
       return (POLARSSL_ERR_SSL_PK_TYPE_MISMATCH);
     }
 
@@ -1336,7 +1323,7 @@ ssl_get_ecdh_params_from_cert (ssl_context * ssl)
 
   if (ssl_check_server_ecdh_params (ssl) != 0)
     {
-      SSL_DEBUG_MSG (1, ("bad server certificate (ECDH curve)"));
+      debug_msg (1, "bad server certificate (ECDH curve)");
       return (POLARSSL_ERR_SSL_BAD_HS_CERTIFICATE);
     }
 
@@ -1345,7 +1332,7 @@ ssl_get_ecdh_params_from_cert (ssl_context * ssl)
 
 
 static int
-ssl_parse_server_key_exchange (ssl_context * ssl)
+parse_server_key_exchange (ntbtls_t ssl)
 {
   int ret;
   const ssl_ciphersuite_t *ciphersuite_info =
@@ -1358,11 +1345,11 @@ ssl_parse_server_key_exchange (ssl_context * ssl)
   pk_type_t pk_alg = POLARSSL_PK_NONE;
 
 
-  SSL_DEBUG_MSG (2, ("=> parse server key exchange"));
+  debug_msg (2, "=> parse server key exchange");
 
   if (ciphersuite_info->key_exchange == POLARSSL_KEY_EXCHANGE_RSA)
     {
-      SSL_DEBUG_MSG (2, ("<= skip parse server key exchange"));
+      debug_msg (2, "<= skip parse server key exchange");
       ssl->state++;
       return (0);
     }
@@ -1378,7 +1365,7 @@ ssl_parse_server_key_exchange (ssl_context * ssl)
           return (ret);
         }
 
-      SSL_DEBUG_MSG (2, ("<= skip parse server key exchange"));
+      debug_msg (2, "<= skip parse server key exchange");
       ssl->state++;
       return (0);
     }
@@ -1391,9 +1378,9 @@ ssl_parse_server_key_exchange (ssl_context * ssl)
       return (ret);
     }
 
-  if (ssl->in_msgtype != SSL_MSG_HANDSHAKE)
+  if (ssl->in_msgtype != TLS_MSG_HANDSHAKE)
     {
-      SSL_DEBUG_MSG (1, ("bad server key exchange message"));
+      debug_msg (1, "bad server key exchange message");
       return (POLARSSL_ERR_SSL_UNEXPECTED_MESSAGE);
     }
 
@@ -1401,7 +1388,7 @@ ssl_parse_server_key_exchange (ssl_context * ssl)
    * ServerKeyExchange may be skipped with PSK and RSA-PSK when the server
    * doesn't use a psk_identity_hint
    */
-  if (ssl->in_msg[0] != SSL_HS_SERVER_KEY_EXCHANGE)
+  if (ssl->in_msg[0] != TLS_HS_SERVER_KEY_EXCHANGE)
     {
       if (ciphersuite_info->key_exchange == POLARSSL_KEY_EXCHANGE_PSK ||
           ciphersuite_info->key_exchange == POLARSSL_KEY_EXCHANGE_RSA_PSK)
@@ -1410,13 +1397,13 @@ ssl_parse_server_key_exchange (ssl_context * ssl)
           goto exit;
         }
 
-      SSL_DEBUG_MSG (1, ("bad server key exchange message"));
+      debug_msg (1, "bad server key exchange message");
       return (POLARSSL_ERR_SSL_UNEXPECTED_MESSAGE);
     }
 
   p = ssl->in_msg + 4;
   end = ssl->in_msg + ssl->in_hslen;
-  SSL_DEBUG_BUF (3, "server key exchange", p, ssl->in_hslen - 4);
+  debug_buf (3, "server key exchange", p, ssl->in_hslen - 4);
 
   if (ciphersuite_info->key_exchange == POLARSSL_KEY_EXCHANGE_PSK ||
       ciphersuite_info->key_exchange == POLARSSL_KEY_EXCHANGE_RSA_PSK ||
@@ -1425,7 +1412,7 @@ ssl_parse_server_key_exchange (ssl_context * ssl)
     {
       if (ssl_parse_server_psk_hint (ssl, &p, end) != 0)
         {
-          SSL_DEBUG_MSG (1, ("bad server key exchange message"));
+          debug_msg (1, "bad server key exchange message");
           return (POLARSSL_ERR_SSL_BAD_HS_SERVER_KEY_EXCHANGE);
         }
     }                           /* FALLTROUGH */
@@ -1439,7 +1426,7 @@ ssl_parse_server_key_exchange (ssl_context * ssl)
     {
       if (ssl_parse_server_dh_params (ssl, &p, end) != 0)
         {
-          SSL_DEBUG_MSG (1, ("bad server key exchange message"));
+          debug_msg (1, "bad server key exchange message");
           return (POLARSSL_ERR_SSL_BAD_HS_SERVER_KEY_EXCHANGE);
         }
     }
@@ -1449,13 +1436,13 @@ ssl_parse_server_key_exchange (ssl_context * ssl)
     {
       if (ssl_parse_server_ecdh_params (ssl, &p, end) != 0)
         {
-          SSL_DEBUG_MSG (1, ("bad server key exchange message"));
+          debug_msg (1, "bad server key exchange message");
           return (POLARSSL_ERR_SSL_BAD_HS_SERVER_KEY_EXCHANGE);
         }
     }
   else
     {
-      SSL_DEBUG_MSG (1, ("should never happen"));
+      debug_bug ();
       return (POLARSSL_ERR_SSL_INTERNAL_ERROR);
     }
 
@@ -1474,19 +1461,19 @@ ssl_parse_server_key_exchange (ssl_context * ssl)
           if (ssl_parse_signature_algorithm (ssl, &p, end,
                                              &md_alg, &pk_alg) != 0)
             {
-              SSL_DEBUG_MSG (1, ("bad server key exchange message"));
+              debug_msg (1, "bad server key exchange message");
               return (POLARSSL_ERR_SSL_BAD_HS_SERVER_KEY_EXCHANGE);
             }
 
           if (pk_alg != ssl_get_ciphersuite_sig_pk_alg (ciphersuite_info))
             {
-              SSL_DEBUG_MSG (1, ("bad server key exchange message"));
+              debug_msg (1, "bad server key exchange message");
               return (POLARSSL_ERR_SSL_BAD_HS_SERVER_KEY_EXCHANGE);
             }
         }
       else
         {
-          SSL_DEBUG_MSG (1, ("should never happen"));
+          debug_bug ();
           return (POLARSSL_ERR_SSL_INTERNAL_ERROR);
         }
 
@@ -1498,11 +1485,11 @@ ssl_parse_server_key_exchange (ssl_context * ssl)
 
       if (end != p + sig_len)
         {
-          SSL_DEBUG_MSG (1, ("bad server key exchange message"));
+          debug_msg (1, "bad server key exchange message");
           return (POLARSSL_ERR_SSL_BAD_HS_SERVER_KEY_EXCHANGE);
         }
 
-      SSL_DEBUG_BUF (3, "signature", p, sig_len);
+      debug_buf (3, "signature", p, sig_len);
 
       /*
        * Compute the hash that has been signed
@@ -1537,11 +1524,11 @@ ssl_parse_server_key_exchange (ssl_context * ssl)
         }
       else
         {
-          SSL_DEBUG_MSG (1, ("should never happen"));
+          debug_bug ();
           return (POLARSSL_ERR_SSL_INTERNAL_ERROR);
         }
 
-      SSL_DEBUG_BUF (3, "parameters hash", hash, hashlen != 0 ? hashlen :
+      debug_buf (3, "parameters hash", hash, hashlen != 0 ? hashlen :
                      (unsigned int) (md_info_from_type (md_alg))->size);
 
       /*
@@ -1549,7 +1536,7 @@ ssl_parse_server_key_exchange (ssl_context * ssl)
        */
       if (!pk_can_do (&ssl->session_negotiate->peer_cert->pk, pk_alg))
         {
-          SSL_DEBUG_MSG (1, ("bad server key exchange message"));
+          debug_msg (1, "bad server key exchange message");
           return (POLARSSL_ERR_SSL_PK_TYPE_MISMATCH);
         }
 
@@ -1564,13 +1551,13 @@ ssl_parse_server_key_exchange (ssl_context * ssl)
 exit:
   ssl->state++;
 
-  SSL_DEBUG_MSG (2, ("<= parse server key exchange"));
+  debug_msg (2, "<= parse server key exchange");
 
   return (0);
 }
 
 static int
-ssl_parse_certificate_request (ssl_context * ssl)
+parse_certificate_request (ntbtls_t ssl)
 {
   int ret;
   unsigned char *buf, *p;
@@ -1579,14 +1566,14 @@ ssl_parse_certificate_request (ssl_context * ssl)
   const ssl_ciphersuite_t *ciphersuite_info =
     ssl->transform_negotiate->ciphersuite_info;
 
-  SSL_DEBUG_MSG (2, ("=> parse certificate request"));
+  debug_msg (2, "=> parse certificate request");
 
   if (ciphersuite_info->key_exchange == POLARSSL_KEY_EXCHANGE_PSK ||
       ciphersuite_info->key_exchange == POLARSSL_KEY_EXCHANGE_RSA_PSK ||
       ciphersuite_info->key_exchange == POLARSSL_KEY_EXCHANGE_DHE_PSK ||
       ciphersuite_info->key_exchange == POLARSSL_KEY_EXCHANGE_ECDHE_PSK)
     {
-      SSL_DEBUG_MSG (2, ("<= skip parse certificate request"));
+      debug_msg (2, "<= skip parse certificate request");
       ssl->state++;
       return (0);
     }
@@ -1611,9 +1598,9 @@ ssl_parse_certificate_request (ssl_context * ssl)
           return (ret);
         }
 
-      if (ssl->in_msgtype != SSL_MSG_HANDSHAKE)
+      if (ssl->in_msgtype != TLS_MSG_HANDSHAKE)
         {
-          SSL_DEBUG_MSG (1, ("bad certificate request message"));
+          debug_msg (1, "bad certificate request message");
           return (POLARSSL_ERR_SSL_UNEXPECTED_MESSAGE);
         }
 
@@ -1623,11 +1610,11 @@ ssl_parse_certificate_request (ssl_context * ssl)
   ssl->client_auth = 0;
   ssl->state++;
 
-  if (ssl->in_msg[0] == SSL_HS_CERTIFICATE_REQUEST)
+  if (ssl->in_msg[0] == TLS_HS_CERTIFICATE_REQUEST)
     ssl->client_auth++;
 
-  SSL_DEBUG_MSG (3, ("got %s certificate request",
-                     ssl->client_auth ? "a" : "no"));
+  debug_msg (3, "got %s certificate request",
+             ssl->client_auth ? "a" : "no");
 
   if (ssl->client_auth == 0)
     goto exit;
@@ -1646,7 +1633,7 @@ ssl_parse_certificate_request (ssl_context * ssl)
 
   if (ssl->in_hslen < 6 + n)
     {
-      SSL_DEBUG_MSG (1, ("bad certificate request message"));
+      debug_msg (1, "bad certificate request message");
       return (POLARSSL_ERR_SSL_BAD_HS_CERTIFICATE_REQUEST);
     }
 
@@ -1686,7 +1673,7 @@ ssl_parse_certificate_request (ssl_context * ssl)
 
       if (ssl->in_hslen < 6 + n)
         {
-          SSL_DEBUG_MSG (1, ("bad certificate request message"));
+          debug_msg (1, "bad certificate request message");
           return (POLARSSL_ERR_SSL_BAD_HS_CERTIFICATE_REQUEST);
         }
     }
@@ -1698,23 +1685,23 @@ ssl_parse_certificate_request (ssl_context * ssl)
   n += dn_len;
   if (ssl->in_hslen != 7 + m + n)
     {
-      SSL_DEBUG_MSG (1, ("bad certificate request message"));
+      debug_msg (1, "bad certificate request message");
       return (POLARSSL_ERR_SSL_BAD_HS_CERTIFICATE_REQUEST);
     }
 
  exit:
-  SSL_DEBUG_MSG (2, ("<= parse certificate request"));
+  debug_msg (2, "<= parse certificate request");
 
   return (0);
 }
 
 
 static int
-ssl_parse_server_hello_done (ssl_context * ssl)
+parse_server_hello_done (ntbtls_t ssl)
 {
   int ret;
 
-  SSL_DEBUG_MSG (2, ("=> parse server hello done"));
+  debug_msg (2, "=> parse server hello done");
 
   if (ssl->record_read == 0)
     {
@@ -1724,36 +1711,36 @@ ssl_parse_server_hello_done (ssl_context * ssl)
           return (ret);
         }
 
-      if (ssl->in_msgtype != SSL_MSG_HANDSHAKE)
+      if (ssl->in_msgtype != TLS_MSG_HANDSHAKE)
         {
-          SSL_DEBUG_MSG (1, ("bad server hello done message"));
+          debug_msg (1, "bad server hello done message");
           return (POLARSSL_ERR_SSL_UNEXPECTED_MESSAGE);
         }
     }
   ssl->record_read = 0;
 
-  if (ssl->in_hslen != 4 || ssl->in_msg[0] != SSL_HS_SERVER_HELLO_DONE)
+  if (ssl->in_hslen != 4 || ssl->in_msg[0] != TLS_HS_SERVER_HELLO_DONE)
     {
-      SSL_DEBUG_MSG (1, ("bad server hello done message"));
+      debug_msg (1, "bad server hello done message");
       return (POLARSSL_ERR_SSL_BAD_HS_SERVER_HELLO_DONE);
     }
 
   ssl->state++;
 
-  SSL_DEBUG_MSG (2, ("<= parse server hello done"));
+  debug_msg (2, "<= parse server hello done");
 
   return (0);
 }
 
 static int
-ssl_write_client_key_exchange (ssl_context * ssl)
+write_client_key_exchange (ntbtls_t ssl)
 {
   int ret;
   size_t i, n;
   const ssl_ciphersuite_t *ciphersuite_info =
     ssl->transform_negotiate->ciphersuite_info;
 
-  SSL_DEBUG_MSG (2, ("=> write client key exchange"));
+  debug_msg (2, "=> write client key exchange");
 
   if (ciphersuite_info->key_exchange == POLARSSL_KEY_EXCHANGE_DHE_RSA)
     {
@@ -1889,7 +1876,7 @@ ssl_write_client_key_exchange (ssl_context * ssl)
         }
       else
         {
-          SSL_DEBUG_MSG (1, ("should never happen"));
+          debug_msg (1, "should never happen");
           return (POLARSSL_ERR_SSL_INTERNAL_ERROR);
         }
 
@@ -1910,19 +1897,19 @@ ssl_write_client_key_exchange (ssl_context * ssl)
   else
     {
       ((void) ciphersuite_info);
-      SSL_DEBUG_MSG (1, ("should never happen"));
+      debug_msg (1, "should never happen");
       return (POLARSSL_ERR_SSL_INTERNAL_ERROR);
     }
 
-  if ((ret = ssl_derive_keys (ssl)) != 0)
+  if ((ret = _ntbtls_derive_keys (ssl)) != 0)
     {
       SSL_DEBUG_RET (1, "ssl_derive_keys", ret);
       return (ret);
     }
 
   ssl->out_msglen = i + n;
-  ssl->out_msgtype = SSL_MSG_HANDSHAKE;
-  ssl->out_msg[0] = SSL_HS_CLIENT_KEY_EXCHANGE;
+  ssl->out_msgtype = TLS_MSG_HANDSHAKE;
+  ssl->out_msg[0] = TLS_HS_CLIENT_KEY_EXCHANGE;
 
   ssl->state++;
 
@@ -1932,14 +1919,14 @@ ssl_write_client_key_exchange (ssl_context * ssl)
       return (ret);
     }
 
-  SSL_DEBUG_MSG (2, ("<= write client key exchange"));
+  debug_msg (2, "<= write client key exchange");
 
   return (0);
 }
 
 
 static int
-ssl_write_certificate_verify (ssl_context * ssl)
+write_certificate_verify (ntbtls_t ssl)
 {
   int ret = POLARSSL_ERR_SSL_FEATURE_UNAVAILABLE;
   const ssl_ciphersuite_t *ciphersuite_info =
@@ -1950,28 +1937,28 @@ ssl_write_certificate_verify (ssl_context * ssl)
   md_type_t md_alg = POLARSSL_MD_NONE;
   unsigned int hashlen;
 
-  SSL_DEBUG_MSG (2, ("=> write certificate verify"));
+  debug_msg (2, "=> write certificate verify");
 
   if (ciphersuite_info->key_exchange == POLARSSL_KEY_EXCHANGE_PSK ||
       ciphersuite_info->key_exchange == POLARSSL_KEY_EXCHANGE_RSA_PSK ||
       ciphersuite_info->key_exchange == POLARSSL_KEY_EXCHANGE_ECDHE_PSK ||
       ciphersuite_info->key_exchange == POLARSSL_KEY_EXCHANGE_DHE_PSK)
     {
-      SSL_DEBUG_MSG (2, ("<= skip write certificate verify"));
+      debug_msg (2, "<= skip write certificate verify");
       ssl->state++;
       return (0);
     }
 
   if (ssl->client_auth == 0 || ssl_own_cert (ssl) == NULL)
     {
-      SSL_DEBUG_MSG (2, ("<= skip write certificate verify"));
+      debug_msg (2, "<= skip write certificate verify");
       ssl->state++;
       return (0);
     }
 
   if (ssl_own_key (ssl) == NULL)
     {
-      SSL_DEBUG_MSG (1, ("got no private key"));
+      debug_msg (1, "got no private key");
       return (POLARSSL_ERR_SSL_PRIVATE_KEY_REQUIRED);
     }
 
@@ -2008,7 +1995,7 @@ ssl_write_certificate_verify (ssl_context * ssl)
           md_alg = POLARSSL_MD_SHA256;
           ssl->out_msg[4] = SSL_HASH_SHA256;
         }
-      ssl->out_msg[5] = ssl_sig_from_pk (ssl_own_key (ssl));
+      ssl->out_msg[5] = 0; //FIXME: ssl_sig_from_pk (ssl_own_key (ssl));
 
       /* Info from md_alg will be used instead */
       hashlen = 0;
@@ -2016,7 +2003,7 @@ ssl_write_certificate_verify (ssl_context * ssl)
     }
   else
     {
-      SSL_DEBUG_MSG (1, ("should never happen"));
+      debug_msg (1, "should never happen");
       return (POLARSSL_ERR_SSL_INTERNAL_ERROR);
     }
 
@@ -2032,8 +2019,8 @@ ssl_write_certificate_verify (ssl_context * ssl)
   ssl->out_msg[5 + offset] = (unsigned char) (n);
 
   ssl->out_msglen = 6 + n + offset;
-  ssl->out_msgtype = SSL_MSG_HANDSHAKE;
-  ssl->out_msg[0] = SSL_HS_CERTIFICATE_VERIFY;
+  ssl->out_msgtype = TLS_MSG_HANDSHAKE;
+  ssl->out_msg[0] = TLS_HS_CERTIFICATE_VERIFY;
 
   ssl->state++;
 
@@ -2043,21 +2030,21 @@ ssl_write_certificate_verify (ssl_context * ssl)
       return (ret);
     }
 
-  SSL_DEBUG_MSG (2, ("<= write certificate verify"));
+  debug_msg (2, "<= write certificate verify");
 
   return (ret);
 }
 
 
 static int
-ssl_parse_new_session_ticket (ssl_context * ssl)
+parse_new_session_ticket (ntbtls_t ssl)
 {
   int ret;
   uint32_t lifetime;
   size_t ticket_len;
   unsigned char *ticket;
 
-  SSL_DEBUG_MSG (2, ("=> parse new session ticket"));
+  debug_msg (2, "=> parse new session ticket");
 
   if ((ret = ssl_read_record (ssl)) != 0)
     {
@@ -2065,9 +2052,9 @@ ssl_parse_new_session_ticket (ssl_context * ssl)
       return (ret);
     }
 
-  if (ssl->in_msgtype != SSL_MSG_HANDSHAKE)
+  if (ssl->in_msgtype != TLS_MSG_HANDSHAKE)
     {
-      SSL_DEBUG_MSG (1, ("bad new session ticket message"));
+      debug_msg (1, "bad new session ticket message");
       return (POLARSSL_ERR_SSL_UNEXPECTED_MESSAGE);
     }
 
@@ -2083,9 +2070,9 @@ ssl_parse_new_session_ticket (ssl_context * ssl)
    * 8  .  9   ticket_len (n)
    * 10 .  9+n ticket content
    */
-  if (ssl->in_msg[0] != SSL_HS_NEW_SESSION_TICKET || ssl->in_hslen < 10)
+  if (ssl->in_msg[0] != TLS_HS_NEW_SESSION_TICKET || ssl->in_hslen < 10)
     {
-      SSL_DEBUG_MSG (1, ("bad new session ticket message"));
+      debug_msg (1, "bad new session ticket message");
       return (POLARSSL_ERR_SSL_BAD_HS_NEW_SESSION_TICKET);
     }
 
@@ -2096,11 +2083,11 @@ ssl_parse_new_session_ticket (ssl_context * ssl)
 
   if (ticket_len + 10 != ssl->in_hslen)
     {
-      SSL_DEBUG_MSG (1, ("bad new session ticket message"));
+      debug_msg (1, "bad new session ticket message");
       return (POLARSSL_ERR_SSL_BAD_HS_NEW_SESSION_TICKET);
     }
 
-  SSL_DEBUG_MSG (3, ("ticket length: %d", ticket_len));
+  debug_msg (3, "ticket length: %d", ticket_len);
 
   /* We're not waiting for a NewSessionTicket message any more */
   ssl->handshake->new_session_ticket = 0;
@@ -2118,10 +2105,12 @@ ssl_parse_new_session_ticket (ssl_context * ssl)
   ssl->session_negotiate->ticket = NULL;
   ssl->session_negotiate->ticket_len = 0;
 
-  if ((ticket = polarssl_malloc (ticket_len)) == NULL)
+  ticket = malloc (ticket_len);
+  if (!ticket)
     {
-      SSL_DEBUG_MSG (1, ("ticket malloc failed"));
-      return (POLARSSL_ERR_SSL_MALLOC_FAILED);
+      err = gpg_error_from_syserror ();
+      debug_msg (1, "ticket malloc failed");
+      return err;
     }
 
   memcpy (ticket, ssl->in_msg + 10, ticket_len);
@@ -2135,10 +2124,10 @@ ssl_parse_new_session_ticket (ssl_context * ssl)
    * "If the client receives a session ticket from the server, then it
    * discards any Session ID that was sent in the ServerHello."
    */
-  SSL_DEBUG_MSG (3, ("ticket in use, discarding session id"));
+  debug_msg (3, "ticket in use, discarding session id");
   ssl->session_negotiate->length = 0;
 
-  SSL_DEBUG_MSG (2, ("<= parse new session ticket"));
+  debug_msg (2, "<= parse new session ticket");
 
   return (0);
 }
@@ -2147,30 +2136,31 @@ ssl_parse_new_session_ticket (ssl_context * ssl)
 /*
  * SSL handshake -- client side -- single step
  */
-int
-ssl_handshake_client_step (ssl_context * ssl)
+gpg_error_t
+_ntbtls_handshake_client_step (ntbtls_t tls)
 {
-  int ret = 0;
+  gpg_error_t err;
 
-  if (ssl->state == SSL_HANDSHAKE_OVER)
-    return (POLARSSL_ERR_SSL_BAD_INPUT_DATA);
+  if (tls->state == TLS_HANDSHAKE_OVER)
+    return gpg_error (GPG_ERR_INV_STATE)
 
-  SSL_DEBUG_MSG (2, ("client state: %d", ssl->state));
+  debug_msg (2, "client state: %d", tls->state);
 
-  if ((ret = ssl_flush_output (ssl)) != 0)
-    return (ret);
+  err = _ntbtls_flush_output (tls);
+  if (err)
+    return err;
 
-  switch (ssl->state)
+  switch (tls->state)
     {
-    case SSL_HELLO_REQUEST:
-      ssl->state = SSL_CLIENT_HELLO;
+    case TLS_HELLO_REQUEST:
+      tls->state = TLS_CLIENT_HELLO;
       break;
 
       /*
        *  ==>   ClientHello
        */
-    case SSL_CLIENT_HELLO:
-      ret = ssl_write_client_hello (ssl);
+    case TLS_CLIENT_HELLO:
+      err = write_client_hello (tls);
       break;
 
       /*
@@ -2180,24 +2170,24 @@ ssl_handshake_client_step (ssl_context * ssl)
        *      ( CertificateRequest )
        *        ServerHelloDone
        */
-    case SSL_SERVER_HELLO:
-      ret = ssl_parse_server_hello (ssl);
+    case TLS_SERVER_HELLO:
+      err = parse_server_hello (tls);
       break;
 
-    case SSL_SERVER_CERTIFICATE:
-      ret = ssl_parse_certificate (ssl);
+    case TLS_SERVER_CERTIFICATE:
+      err = _ntbtls_parse_certificate (tls);
       break;
 
-    case SSL_SERVER_KEY_EXCHANGE:
-      ret = ssl_parse_server_key_exchange (ssl);
+    case TLS_SERVER_KEY_EXCHANGE:
+      err = parse_server_key_exchange (tls);
       break;
 
-    case SSL_CERTIFICATE_REQUEST:
-      ret = ssl_parse_certificate_request (ssl);
+    case TLS_CERTIFICATE_REQUEST:
+      err = parse_certificate_request (tls);
       break;
 
-    case SSL_SERVER_HELLO_DONE:
-      ret = ssl_parse_server_hello_done (ssl);
+    case TLS_SERVER_HELLO_DONE:
+      err = parse_server_hello_done (tls);
       break;
 
       /*
@@ -2207,24 +2197,24 @@ ssl_handshake_client_step (ssl_context * ssl)
        *        ChangeCipherSpec
        *        Finished
        */
-    case SSL_CLIENT_CERTIFICATE:
-      ret = ssl_write_certificate (ssl);
+    case TLS_CLIENT_CERTIFICATE:
+      err = _ntbtls_write_certificate (tls);
       break;
 
-    case SSL_CLIENT_KEY_EXCHANGE:
-      ret = ssl_write_client_key_exchange (ssl);
+    case TLS_CLIENT_KEY_EXCHANGE:
+      err = write_client_key_exchange (tls);
       break;
 
-    case SSL_CERTIFICATE_VERIFY:
-      ret = ssl_write_certificate_verify (ssl);
+    case TLS_CERTIFICATE_VERIFY:
+      err = write_certificate_verify (tls);
       break;
 
-    case SSL_CLIENT_CHANGE_CIPHER_SPEC:
-      ret = ssl_write_change_cipher_spec (ssl);
+    case TLS_CLIENT_CHANGE_CIPHER_SPEC:
+      err = _ntbtls_write_change_cipher_spec (tls);
       break;
 
-    case SSL_CLIENT_FINISHED:
-      ret = ssl_write_finished (ssl);
+    case TLS_CLIENT_FINISHED:
+      err = _ntbtls_write_finished (tls);
       break;
 
       /*
@@ -2232,30 +2222,31 @@ ssl_handshake_client_step (ssl_context * ssl)
        *        ChangeCipherSpec
        *        Finished
        */
-    case SSL_SERVER_CHANGE_CIPHER_SPEC:
-      if (ssl->handshake->new_session_ticket != 0)
-        ret = ssl_parse_new_session_ticket (ssl);
+    case TLS_SERVER_CHANGE_CIPHER_SPEC:
+      if (tls->handshake->new_session_ticket)
+        err = parse_new_session_ticket (tls);
       else
-        ret = ssl_parse_change_cipher_spec (ssl);
+        err = _ntbtls_parse_change_cipher_spec (tls);
       break;
 
-    case SSL_SERVER_FINISHED:
-      ret = ssl_parse_finished (ssl);
+    case TLS_SERVER_FINISHED:
+      err = _ntbtls_parse_finished (tls);
       break;
 
-    case SSL_FLUSH_BUFFERS:
-      SSL_DEBUG_MSG (2, ("handshake: done"));
-      ssl->state = SSL_HANDSHAKE_WRAPUP;
+    case TLS_FLUSH_BUFFERS:
+      TLS_DEBUG_MSG (2, "handshake: done");
+      tls->state = TLS_HANDSHAKE_WRAPUP;
       break;
 
-    case SSL_HANDSHAKE_WRAPUP:
-      ssl_handshake_wrapup (ssl);
+    case TLS_HANDSHAKE_WRAPUP:
+      _ntbtls_handshake_wrapup (tls);
       break;
 
     default:
-      SSL_DEBUG_MSG (1, ("invalid state %d", ssl->state));
-      return (POLARSSL_ERR_SSL_BAD_INPUT_DATA);
+      TLS_DEBUG_MSG (1, "invalid state %d", tls->state);
+      err = gpg_error (GPG_ERR_INV_STATE);
+      break;
     }
 
-  return (ret);
+  return err;
 }

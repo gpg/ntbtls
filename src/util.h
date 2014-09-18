@@ -20,11 +20,6 @@
 #ifndef NTBTLS_UTIL_H
 #define NTBTLS_UTIL_H
 
-#ifdef _NTBTLS_H
-#error ntbtls.h already included
-#endif
-
-#include "ntbtls.h"
 #include "wipemem.h"
 
 /* Some handy macros */
@@ -34,6 +29,25 @@
 #define STR2(v) STR(v)
 #define DIM(v) (sizeof(v)/sizeof((v)[0]))
 #define DIMof(type,member)   DIM(((type *)0)->member)
+
+
+/*-- debug.c --*/
+
+/* FIXME: Add a public version of _GPGRT_GCC_A_PRINTF to libgpg-error.
+   Use variadic macros is possibel to check the level before calling
+   the function.  */
+void _ntbtls_debug_msg (int level, const char *format,
+                        ...) _GPGRT_GCC_A_PRINTF(2,0);
+#define debug_msg _ntbtls_debug_msg
+void _ntbtls_debug_buf (int level, const char *text,
+                        const void *buf, size_t len);
+#define debug_buf(a,b,c,d) _ntbtls_debug_buf ((a),(b),(c),(d))
+
+void _ntbtls_debug_bug (const char *file, int line);
+#define debug_bug() do { _ntbtls_debug_bug (__FILE__, __LINE); } while (0)
+
+
+
 
 
 

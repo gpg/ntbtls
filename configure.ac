@@ -48,6 +48,15 @@ m4_define([mym4_revision_dec], m4_argn(8, mym4_verslist))
 m4_esyscmd([echo ]mym4_version[>VERSION])
 AC_INIT([mym4_package],[mym4_version], [http://bugs.gnupg.org])
 
+# LT Version numbers, remember to change them just *before* a release.
+#   (Interfaces removed:    CURRENT++, AGE=0, REVISION=0)
+#   (Interfaces added:      CURRENT++, AGE++, REVISION=0)
+#   (No interfaces changed:                   REVISION++)
+LIBNTBTLS_LT_CURRENT=0
+LIBNTBTLS_LT_AGE=0
+LIBNTBTLS_LT_REVISION=0
+
+
 NEED_GPG_ERROR_VERSION=1.15
 
 NEED_LIBGCRYPT_API=1
@@ -57,7 +66,6 @@ NEED_KSBA_API=1
 NEED_KSBA_VERSION=1.2.0
 
 PACKAGE=$PACKAGE_NAME
-PACKAGE_GT=${PACKAGE_NAME}2
 VERSION=$PACKAGE_VERSION
 
 AC_CONFIG_AUX_DIR([build-aux])
@@ -75,6 +83,9 @@ have_libgcrypt=no
 have_ksba=no
 use_zip=yes
 
+AC_SUBST(LIBNTBTLS_LT_CURRENT)
+AC_SUBST(LIBNTBTLS_LT_AGE)
+AC_SUBST(LIBNTBTLS_LT_REVISION)
 AC_SUBST(PACKAGE)
 AC_SUBST(PACKAGE_GT)
 AC_SUBST(VERSION)
@@ -82,6 +93,11 @@ AC_DEFINE_UNQUOTED(PACKAGE, "$PACKAGE", [Name of this package])
 AC_DEFINE_UNQUOTED(PACKAGE_GT, "$PACKAGE_GT",
                                 [Name of this package for gettext])
 AC_DEFINE_UNQUOTED(VERSION, "$VERSION", [Version of this package])
+VERSION_NUMBER=m4_esyscmd(printf "0x%02x%02x%02x" mym4_major \
+                          mym4_minor mym4_micro)
+AC_SUBST(VERSION_NUMBER)
+
+
 AC_DEFINE_UNQUOTED(PACKAGE_BUGREPORT, "$PACKAGE_BUGREPORT",
                                         [Bug report address])
 AC_DEFINE_UNQUOTED(NEED_LIBGCRYPT_VERSION, "$NEED_LIBGCRYPT_VERSION",
@@ -106,17 +122,17 @@ AH_TOP([
 # Stuff which goes at the bottom of config.h.
 #
 AH_BOTTOM([
-/* We didn't define endianness above, so get it from OS macros.  This
-   is intended for making fat binary builds on OS X. */
-#if !defined(BIG_ENDIAN_HOST) && !defined(LITTLE_ENDIAN_HOST)
+/* If the configure check for endianness has been disabled, get it from
+   OS macros.  This is intended for making fat binary builds on OS X.  */
+#ifdef DISABLED_ENDIAN_CHECK
 # if defined(__BIG_ENDIAN__)
-#  define BIG_ENDIAN_HOST 1
+#  define WORDS_BIGENDIAN 1
 # elif defined(__LITTLE_ENDIAN__)
-#  define LITTLE_ENDIAN_HOST 1
+#  undef WORDS_BIGENDIAN
 # else
 #  error "No endianness found"
 # endif
-#endif
+#endif /*DISABLED_ENDIAN_CHECK*/
 
 /* Provide the es_ macro for estream.  */
 #define GPGRT_ENABLE_ES_MACROS 1
@@ -129,6 +145,12 @@ AH_BOTTOM([
 
 #endif /*NTBTLS_CONFIG_H_INCLUDED*/
 ])
+
+
+# Substitutions to set generated files in a Emacs buffer to read-only.
+AC_SUBST(emacs_local_vars_begin, ['Local Variables:'])
+AC_SUBST(emacs_local_vars_read_only, ['buffer-read-only: t'])
+AC_SUBST(emacs_local_vars_end, ['End:'])
 
 
 AM_MAINTAINER_MODE
@@ -158,7 +180,6 @@ AC_CHECK_TOOL(AR, ar, :)
 AC_PATH_PROG(PERL,"perl")
 AC_CHECK_TOOL(WINDRES, windres, :)
 AC_ISC_POSIX
-AC_SYS_LARGEFILE
 
 # We need to compile and run a program on the build machine.  A
 # comment in libgpg-error says that the AC_PROG_CC_FOR_BUILD macro in
@@ -174,6 +195,10 @@ else
 fi
 AC_MSG_RESULT($CC_FOR_BUILD)
 AC_ARG_VAR(CC_FOR_BUILD,[build system C compiler])
+
+LT_PREREQ([2.2.6])
+LT_INIT([win32-dll disable-static])
+LT_LANG([Windows Resource])
 
 
 have_dosish_system=no
@@ -284,6 +309,26 @@ AC_TYPE_MODE_T
 AC_TYPE_SIGNAL
 AC_DECL_SYS_SIGLIST
 
+# For some systems we know that we have ld_version scripts.
+# Use it then as default.
+have_ld_version_script=no
+case "${host}" in
+    *-*-linux*)
+	have_ld_version_script=yes
+        ;;
+    *-*-gnu*)
+	have_ld_version_script=yes
+        ;;
+esac
+
+AC_ARG_ENABLE([ld-version-script],
+              AC_HELP_STRING([--enable-ld-version-script],
+                             [enable/disable use of linker version script.
+                              (default is system dependent)]),
+              [have_ld_version_script=$enableval],
+              [ : ] )
+AM_CONDITIONAL(HAVE_LD_VERSION_SCRIPT, test "$have_ld_version_script" = "yes")
+
 AC_ARG_ENABLE(endian-check,
               AC_HELP_STRING([--disable-endian-check],
 	      [disable the endian check and trust the OS provided macros]),
@@ -298,7 +343,92 @@ fi
 # Checks for library functions.
 #
 AC_MSG_NOTICE([checking for library functions])
-AC_CHECK_FUNCS([strlwr])
+AC_CHECK_FUNCS([strlwr flockfile])
+
+
+
+#
+# Check for ELF visibility support.
+#
+AC_CACHE_CHECK(whether the visibility attribute is supported,
+       ntbtls_cv_visibility_attribute,
+       [ntbtls_cv_visibility_attribute=no
+        AC_LANG_CONFTEST([AC_LANG_SOURCE(
+          [[int foo __attribute__ ((visibility ("hidden"))) = 1;
+            int bar __attribute__ ((visibility ("protected"))) = 1;
+          ]])])
+
+        if ${CC-cc} -Werror -S conftest.c -o conftest.s \
+                  1>&AS_MESSAGE_LOG_FD 2>&AS_MESSAGE_LOG_FD ; then
+            if grep '\.hidden.*foo' conftest.s >/dev/null 2>&1 ; then
+                if grep '\.protected.*bar' conftest.s >/dev/null 2>&1; then
+                    ntbtls_cv_visibility_attribute=yes
+                fi
+            fi
+        fi
+       ])
+if test "$ntbtls_cv_visibility_attribute" = "yes"; then
+    AC_CACHE_CHECK(for broken visibility attribute,
+       ntbtls_cv_broken_visibility_attribute,
+       [ntbtls_cv_broken_visibility_attribute=yes
+        AC_LANG_CONFTEST([AC_LANG_SOURCE(
+          [[int foo (int x);
+            int bar (int x) __asm__ ("foo")
+                            __attribute__ ((visibility ("hidden")));
+            int bar (int x) { return x; }
+          ]])])
+
+        if ${CC-cc} -Werror -S conftest.c -o conftest.s \
+                  1>&AS_MESSAGE_LOG_FD 2>&AS_MESSAGE_LOG_FD ; then
+           if grep '\.hidden@<:@ 	_@:>@foo' conftest.s >/dev/null 2>&1;
+            then
+               ntbtls_cv_broken_visibility_attribute=no
+           fi
+        fi
+       ])
+fi
+if test "$ntbtls_cv_visibility_attribute" = "yes"; then
+    AC_CACHE_CHECK(for broken alias attribute,
+       ntbtls_cv_broken_alias_attribute,
+       [ntbtls_cv_broken_alias_attribute=yes
+        AC_LANG_CONFTEST([AC_LANG_SOURCE(
+          [[extern int foo (int x) __asm ("xyzzy");
+            int bar (int x) { return x; }
+            extern __typeof (bar) foo __attribute ((weak, alias ("bar")));
+            extern int dfoo;
+            extern __typeof (dfoo) dfoo __asm ("abccb");
+            int dfoo = 1;
+          ]])])
+
+        if ${CC-cc} -Werror -S conftest.c -o conftest.s \
+                  1>&AS_MESSAGE_LOG_FD 2>&AS_MESSAGE_LOG_FD ; then
+           if grep 'xyzzy' conftest.s >/dev/null 2>&1 && \
+              grep 'abccb' conftest.s >/dev/null 2>&1; then
+              ntbtls_cv_broken_alias_attribute=no
+           fi
+        fi
+        ])
+fi
+if test "$ntbtls_cv_visibility_attribute" = "yes"; then
+    AC_CACHE_CHECK(if gcc supports -fvisibility=hidden,
+       ntbtls_cv_gcc_has_f_visibility,
+       [ntbtls_cv_gcc_has_f_visibility=no
+        _gcc_cflags_save=$CFLAGS
+        CFLAGS="-fvisibility=hidden"
+        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([],[])],
+                          ntbtls_cv_gcc_has_f_visibility=yes)
+        CFLAGS=$_gcc_cflags_save;
+       ])
+fi
+if test "$ntbtls_cv_visibility_attribute" = "yes" \
+   && test "$ntbtls_cv_broken_visibility_attribute" != "yes" \
+   && test "$ntbtls_cv_broken_alias_attribute" != "yes" \
+   && test "$ntbtls_cv_gcc_has_f_visibility" = "yes"
+ then
+   AC_DEFINE(NTBTLS_USE_VISIBILITY, 1,
+               [Define to use the GNU C visibility attribute.])
+   CFLAGS="$CFLAGS -fvisibility=hidden"
+fi
 
 
 #
@@ -510,7 +640,8 @@ fi
 AC_CONFIG_FILES([
 Makefile
 m4/Makefile
-src/Makefile.in
+src/Makefile
+src/ntbtls.h
 ])
 
 

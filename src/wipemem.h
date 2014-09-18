@@ -48,7 +48,7 @@
       _fast_wipememory2_unaligned_head(_vptr,_vset,_vlen);              \
       if (_vlen < sizeof(uint64_t))                                     \
         break;                                                          \
-      _vset_long *= U64_C(0x0101010101010101);                          \
+      _vset_long *= UINT64_C(0x0101010101010101);                          \
       do {                                                              \
         volatile uint64_t *_vptr_long = (volatile void *)_vptr;         \
         *_vptr_long = _vset_long;                                       \
