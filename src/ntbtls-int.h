@@ -53,6 +53,8 @@
 #define TLS_RENEGOTIATION_ENABLED       1
 #define TLS_RENEGOTIATION_NOT_ENFORCED  -1
 
+#define TLS_COMPRESS_NULL               0
+#define TLS_COMPRESS_DEFLATE            1
 
 
 /* Lifetime of session tickets in seconds.  */
@@ -241,7 +243,9 @@ gpg_error_t _ntbtls_derive_keys (ntbtls_t tls);
 
 
 /* Functions directly used by the public API.  */
-gpg_error_t _ntbtls_init (ntbtls_t *r_tls, unsigned int flags);
+gpg_error_t _ntbtls_new (ntbtls_t *r_tls, unsigned int flags);
+void _ntbtls_release (ntbtls_t tls);
+
 gpg_error_t _ntbtls_set_transport (ntbtls_t tls,
                                    gpgrt_stream_t inbound,
                                    gpgrt_stream_t outbound);

@@ -83,8 +83,9 @@ libntbtls_la_SOURCES = \
 	context.h ntbtls-int.h util.h wipemem.h \
 	protocol.c \
 	protocol-cli.c \
-	protocol-srv.c \
 	debug.c
+
+# protocol-srv.c
 
 install-data-local: install-def-file
 

@@ -55,7 +55,8 @@ typedef struct _ntbtls_context_s *ntbtls_t;
 
 
 /* Create a new TLS context.  */
-gpg_error_t ntbtls_init (ntbtls_t *r_tls, unsigned int flags);
+gpg_error_t ntbtls_new (ntbtls_t *r_tls, unsigned int flags);
+void        ntbtls_release (ntbtls_t tls);
 
 gpg_error_t ntbtls_set_transport (ntbtls_t tls,
                                   gpgrt_stream_t inbound,

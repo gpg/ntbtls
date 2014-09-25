@@ -38,13 +38,15 @@
    the function.  */
 void _ntbtls_debug_msg (int level, const char *format,
                         ...) _GPGRT_GCC_A_PRINTF(2,0);
-#define debug_msg _ntbtls_debug_msg
 void _ntbtls_debug_buf (int level, const char *text,
                         const void *buf, size_t len);
-#define debug_buf(a,b,c,d) _ntbtls_debug_buf ((a),(b),(c),(d))
-
 void _ntbtls_debug_bug (const char *file, int line);
-#define debug_bug() do { _ntbtls_debug_bug (__FILE__, __LINE); } while (0)
+void _ntbtls_debug_ret (int level, const char *name, gpg_error_t err);
+
+#define debug_msg          _ntbtls_debug_msg
+#define debug_buf(a,b,c,d) _ntbtls_debug_buf ((a),(b),(c),(d))
+#define debug_bug()        _ntbtls_debug_bug (__FILE__, __LINE__)
+#define debug_ret(l,n,e)   _ntbtls_debug_ret ((l),(n),(e))
 
 
 

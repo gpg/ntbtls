@@ -110,7 +110,7 @@ simple_client (void)
   ntbtls_t tls;
 
 
-  err = ntbtls_init (&tls);
+  err = ntbtls_new (&tls);
   if (err)
     die ("ntbtls_init failed: %s %s\n",
          gpg_strerror (err), gpg_strsource (err));
@@ -130,6 +130,8 @@ simple_client (void)
       die ("handshake failed");
     }
   info ("handshake done");
+
+  ntbtls_release (tls);
 }
 
 

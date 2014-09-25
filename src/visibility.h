@@ -41,7 +41,8 @@
 # define MARK_VISIBLE(name) /* */
 #endif
 
-MARK_VISIBLE (ntbtls_init)
+MARK_VISIBLE (ntbtls_new)
+MARK_VISIBLE (ntbtls_release)
 MARK_VISIBLE (ntbtls_set_transport)
 MARK_VISIBLE (ntbtls_get_stream)
 MARK_VISIBLE (ntbtls_handshake)

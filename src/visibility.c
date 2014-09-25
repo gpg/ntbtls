@@ -26,9 +26,16 @@
 
 
 gpg_error_t
-ntbtls_init (ntbtls_t *r_tls, unsigned int flags)
+ntbtls_new (ntbtls_t *r_tls, unsigned int flags)
 {
-  return _ntbtls_init (r_tls, flags);
+  return _ntbtls_new (r_tls, flags);
+}
+
+
+void
+ntbtls_release (ntbtls_t tls)
+{
+  _ntbtls_release (tls);
 }
 
 

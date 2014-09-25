@@ -38,6 +38,8 @@ _ntbtls_debug_msg (int level, const char *format, ...)
   va_start (arg_ptr, format);
   gpgrt_fputs ("ntbtls: ", es_stderr);
   gpgrt_vfprintf (es_stderr, format, arg_ptr);
+  if (*format && format[strlen(format)-1] != '\n')
+    gpgrt_fputc ('\n', stderr);
   va_end (arg_ptr);
   gpg_err_set_errno (saved_errno);
 }
@@ -52,6 +54,17 @@ _ntbtls_debug_bug (const char *file, int line)
   if (s)
     file = s + 1;
   _ntbtls_debug_msg (0, "bug detected at %s:%d\n", file, line);
+}
+
+
+void
+_ntbtls_debug_ret (int level, const char *name, gpg_error_t err)
+{
+  if (err)
+    _ntbtls_debug_msg (level, "%s returned %s <%s>\n",
+                       name, gpg_strerror (err), gpg_strsource (err));
+  else
+    _ntbtls_debug_msg (level, "%s returned success\n", name);
 }
 
 

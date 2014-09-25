@@ -422,9 +422,8 @@ write_client_hello (ntbtls_t tls)
 
   debug_msg (3, "client hello, current time: %lu", t);
 
-  if ((ret = tls->f_rng (tls->p_rng, p, 28)) != 0)
-    return (ret);
-
+  //FIXME: Check RNG requirements.
+  gcry_create_nonce (p, 28);
   p += 28;
 
   memcpy (tls->handshake->randbytes, buf + 6, 32);
@@ -443,7 +442,7 @@ write_client_hello (ntbtls_t tls)
    */
   n = tls->session_negotiate->length;
 
-  if (tls->renegotiation != SSL_INITIAL_HANDSHAKE || n < 16 || n > 32 ||
+  if (tls->renegotiation != TLS_INITIAL_HANDSHAKE || n < 16 || n > 32 ||
       tls->handshake->resume == 0)
     {
       n = 0;
@@ -592,7 +591,7 @@ ssl_parse_renegotiation_info (ntbtls_t ssl,
           if ((ret = ssl_send_fatal_handshake_failure (ssl)) != 0)
             return (ret);
 
-          return (POLARSSL_ERR_SSL_BAD_HS_SERVER_HELLO);
+          return gpg_error (GPG_ERR_BAD_HS_SERVER_HELLO);
         }
 
       ssl->secure_renegotiation = SSL_SECURE_RENEGOTIATION;
@@ -612,7 +611,7 @@ ssl_parse_renegotiation_info (ntbtls_t ssl,
           if ((ret = ssl_send_fatal_handshake_failure (ssl)) != 0)
             return (ret);
 
-          return (POLARSSL_ERR_SSL_BAD_HS_SERVER_HELLO);
+          return gpg_error (GPG_ERR_BAD_HS_SERVER_HELLO);
         }
     }
 
@@ -631,7 +630,7 @@ ssl_parse_max_fragment_length_ext (ntbtls_t ssl,
   if (ssl->mfl_code == SSL_MAX_FRAG_LEN_NONE ||
       len != 1 || buf[0] != ssl->mfl_code)
     {
-      return (POLARSSL_ERR_SSL_BAD_HS_SERVER_HELLO);
+      return gpg_error (GPG_ERR_BAD_HS_SERVER_HELLO);
     }
 
   return (0);
@@ -645,7 +644,7 @@ ssl_parse_truncated_hmac_ext (ntbtls_t ssl,
 {
   if (ssl->trunc_hmac == SSL_TRUNC_HMAC_DISABLED || len != 0)
     {
-      return (POLARSSL_ERR_SSL_BAD_HS_SERVER_HELLO);
+      return gpg_error (GPG_ERR_BAD_HS_SERVER_HELLO);
     }
 
   ((void) buf);
@@ -662,7 +661,7 @@ ssl_parse_session_ticket_ext (ntbtls_t ssl,
 {
   if (ssl->session_tickets == SSL_SESSION_TICKETS_DISABLED || len != 0)
     {
-      return (POLARSSL_ERR_SSL_BAD_HS_SERVER_HELLO);
+      return gpg_error (GPG_ERR_BAD_HS_SERVER_HELLO);
     }
 
   ((void) buf);
@@ -684,7 +683,7 @@ ssl_parse_supported_point_formats_ext (ntbtls_t ssl,
   if (list_size + 1 != len)
     {
       debug_msg (1, "bad server hello message");
-      return (POLARSSL_ERR_SSL_BAD_HS_SERVER_HELLO);
+      return gpg_error (GPG_ERR_BAD_HS_SERVER_HELLO);
     }
 
   p = buf + 1;
@@ -703,7 +702,7 @@ ssl_parse_supported_point_formats_ext (ntbtls_t ssl,
     }
 
   debug_msg (1, "no point format in common");
-  return (POLARSSL_ERR_SSL_BAD_HS_SERVER_HELLO);
+  return gpg_error (GPG_ERR_BAD_HS_SERVER_HELLO);
 }
 
 
@@ -715,7 +714,7 @@ ssl_parse_alpn_ext (ntbtls_t ssl, const unsigned char *buf, size_t len)
 
   /* If we didn't send it, the server shouldn't send it */
   if (ssl->alpn_list == NULL)
-    return (POLARSSL_ERR_SSL_BAD_HS_SERVER_HELLO);
+    return gpg_error (GPG_ERR_BAD_HS_SERVER_HELLO);
 
   /*
    * opaque ProtocolName<1..2^8-1>;
@@ -729,15 +728,15 @@ ssl_parse_alpn_ext (ntbtls_t ssl, const unsigned char *buf, size_t len)
 
   /* Min length is 2 (list_len) + 1 (name_len) + 1 (name) */
   if (len < 4)
-    return (POLARSSL_ERR_SSL_BAD_HS_SERVER_HELLO);
+    return gpg_error (GPG_ERR_BAD_HS_SERVER_HELLO);
 
   list_len = (buf[0] << 8) | buf[1];
   if (list_len != len - 2)
-    return (POLARSSL_ERR_SSL_BAD_HS_SERVER_HELLO);
+    return gpg_error (GPG_ERR_BAD_HS_SERVER_HELLO);
 
   name_len = buf[2];
   if (name_len != list_len - 1)
-    return (POLARSSL_ERR_SSL_BAD_HS_SERVER_HELLO);
+    return gpg_error (GPG_ERR_BAD_HS_SERVER_HELLO);
 
   /* Check that the server chosen protocol was in our list and save it */
   for (p = ssl->alpn_list; *p != NULL; p++)
@@ -749,7 +748,7 @@ ssl_parse_alpn_ext (ntbtls_t ssl, const unsigned char *buf, size_t len)
         }
     }
 
-  return (POLARSSL_ERR_SSL_BAD_HS_SERVER_HELLO);
+  return gpg_error (GPG_ERR_BAD_HS_SERVER_HELLO);
 }
 
 
@@ -775,16 +774,16 @@ parse_server_hello (ntbtls_t ssl)
    */
   buf = ssl->in_msg;
 
-  if ((ret = ssl_read_record (ssl)) != 0)
+  if ((ret = _ntbtls_read_record (ssl)) != 0)
     {
-      SSL_DEBUG_RET (1, "ssl_read_record", ret);
-      return (ret);
+      debug_ret (1, "read_record", ret);
+      return ret;
     }
 
   if (ssl->in_msgtype != TLS_MSG_HANDSHAKE)
     {
       debug_msg (1, "bad server hello message");
-      return (POLARSSL_ERR_SSL_UNEXPECTED_MESSAGE);
+      return gpg_error (GPG_ERR_UNEXPECTED_MSG);
     }
 
   debug_msg (3, "server hello, chosen version: [%d:%d]",  buf[4], buf[5]);
@@ -793,13 +792,13 @@ parse_server_hello (ntbtls_t ssl)
       buf[0] != TLS_HS_SERVER_HELLO || buf[4] != SSL_MAJOR_VERSION_3)
     {
       debug_msg (1, "bad server hello message");
-      return (POLARSSL_ERR_SSL_BAD_HS_SERVER_HELLO);
+      return gpg_error (GPG_ERR_BAD_HS_SERVER_HELLO);
     }
 
   if (buf[5] > ssl->max_minor_ver)
     {
       debug_msg (1, "bad server hello message");
-      return (POLARSSL_ERR_SSL_BAD_HS_SERVER_HELLO);
+      return gpg_error (GPG_ERR_BAD_HS_SERVER_HELLO);
     }
 
   ssl->minor_ver = buf[5];
@@ -813,7 +812,7 @@ parse_server_hello (ntbtls_t ssl)
       ssl_send_alert_message (ssl, TLS_ALERT_LEVEL_FATAL,
                               TLS_ALERT_MSG_PROTOCOL_VERSION);
 
-      return (POLARSSL_ERR_SSL_BAD_HS_PROTOCOL_VERSION);
+      return gpg_error (GPG_ERR_UNSUPPORTED_PROTOCOL);
     }
 
   t = ((uint32_t) buf[6] << 24)
@@ -830,7 +829,7 @@ parse_server_hello (ntbtls_t ssl)
   if (n > 32)
     {
       debug_msg (1, "bad server hello message");
-      return (POLARSSL_ERR_SSL_BAD_HS_SERVER_HELLO);
+      return gpg_error (GPG_ERR_BAD_HS_SERVER_HELLO);
     }
 
   /*
@@ -848,7 +847,7 @@ parse_server_hello (ntbtls_t ssl)
       if ((ext_len > 0 && ext_len < 4) || ssl->in_hslen != 44 + n + ext_len)
         {
           debug_msg (1, "bad server hello message");
-          return (POLARSSL_ERR_SSL_BAD_HS_SERVER_HELLO);
+          return gpg_error (GPG_ERR_BAD_HS_SERVER_HELLO);
         }
     }
 
@@ -863,7 +862,7 @@ parse_server_hello (ntbtls_t ssl)
   if (ssl->transform_negotiate->ciphersuite_info == NULL)
     {
       debug_msg (1, "ciphersuite info for %04x not found", i);
-      return (POLARSSL_ERR_SSL_BAD_INPUT_DATA);
+      return gpg_error (GPG_ERR_INV_ARG);
     }
 
   ssl_optimize_checksum (ssl, ssl->transform_negotiate->ciphersuite_info);
@@ -912,7 +911,7 @@ parse_server_hello (ntbtls_t ssl)
       if (ssl->ciphersuite_list[ssl->minor_ver][i] == 0)
         {
           debug_msg (1, "bad server hello message");
-          return (POLARSSL_ERR_SSL_BAD_HS_SERVER_HELLO);
+          return gpg_error (GPG_ERR_BAD_HS_SERVER_HELLO);
         }
 
       if (ssl->ciphersuite_list[ssl->minor_ver][i++] ==
@@ -927,7 +926,7 @@ parse_server_hello (ntbtls_t ssl)
     )
     {
       debug_msg (1, "bad server hello message");
-      return (POLARSSL_ERR_SSL_BAD_HS_SERVER_HELLO);
+      return gpg_error (GPG_ERR_BAD_HS_SERVER_HELLO);
     }
   ssl->session_negotiate->compression = comp;
 
@@ -943,7 +942,7 @@ parse_server_hello (ntbtls_t ssl)
       if (ext_size + 4 > ext_len)
         {
           debug_msg (1, "bad server hello message");
-          return (POLARSSL_ERR_SSL_BAD_HS_SERVER_HELLO);
+          return gpg_error (GPG_ERR_BAD_HS_SERVER_HELLO);
         }
 
       switch (ext_id)
@@ -1023,7 +1022,7 @@ parse_server_hello (ntbtls_t ssl)
       if (ext_len > 0 && ext_len < 4)
         {
           debug_msg (1, "bad server hello message");
-          return (POLARSSL_ERR_SSL_BAD_HS_SERVER_HELLO);
+          return gpg_error (GPG_ERR_BAD_HS_SERVER_HELLO);
         }
     }
 
@@ -1063,7 +1062,7 @@ parse_server_hello (ntbtls_t ssl)
       if ((ret = ssl_send_fatal_handshake_failure (ssl)) != 0)
         return (ret);
 
-      return (POLARSSL_ERR_SSL_BAD_HS_SERVER_HELLO);
+      return gpg_error (GPG_ERR_BAD_HS_SERVER_HELLO);
     }
 
   debug_msg (2, "<= parse server hello");
@@ -1076,7 +1075,7 @@ static int
 ssl_parse_server_dh_params (ntbtls_t ssl, unsigned char **p,
                             unsigned char *end)
 {
-  int ret = POLARSSL_ERR_SSL_FEATURE_UNAVAILABLE;
+  int ret = gpg_error (GPG_ERR_NOT_IMPLEMENTED);
 
   /*
    * Ephemeral DH parameters:
@@ -1096,7 +1095,7 @@ ssl_parse_server_dh_params (ntbtls_t ssl, unsigned char **p,
   if (ssl->handshake->dhm_ctx.len < 64 || ssl->handshake->dhm_ctx.len > 512)
     {
       debug_msg (1, "bad server key exchange message (DHM length)");
-      return (POLARSSL_ERR_SSL_BAD_HS_SERVER_KEY_EXCHANGE);
+      return gpg_error (GPG_ERR_BAD_HS_SERVER_KEX);
     }
 
   SSL_DEBUG_MPI (3, "DHM: P ", &ssl->handshake->dhm_ctx.P);
@@ -1115,8 +1114,8 @@ ssl_check_server_ecdh_params (const ntbtls_t ssl)
   curve_info = ecp_curve_info_from_grp_id (ssl->handshake->ecdh_ctx.grp.id);
   if (curve_info == NULL)
     {
-      debug_msg (1, "should never happen");
-      return (POLARSSL_ERR_SSL_INTERNAL_ERROR);
+      debug_bug ();
+      return gpg_error (GPG_ERR_INTERNAL);
     }
 
   debug_msg (2, "ECDH curve: %s", curve_info->name);
@@ -1134,7 +1133,7 @@ static int
 ssl_parse_server_ecdh_params (ntbtls_t ssl,
                               unsigned char **p, unsigned char *end)
 {
-  int ret = POLARSSL_ERR_SSL_FEATURE_UNAVAILABLE;
+  int ret = gpg_error (GPG_ERR_NOT_IMPLEMENTED);
 
   /*
    * Ephemeral ECDH parameters:
@@ -1154,7 +1153,7 @@ ssl_parse_server_ecdh_params (ntbtls_t ssl,
   if (ssl_check_server_ecdh_params (ssl) != 0)
     {
       debug_msg (1, "bad server key exchange message (ECDHE curve)");
-      return (POLARSSL_ERR_SSL_BAD_HS_SERVER_KEY_EXCHANGE);
+      return gpg_error (GPG_ERR_BAD_HS_SERVER_KEX);
     }
 
   return (ret);
@@ -1165,7 +1164,7 @@ static int
 ssl_parse_server_psk_hint (ntbtls_t ssl,
                            unsigned char **p, unsigned char *end)
 {
-  int ret = POLARSSL_ERR_SSL_FEATURE_UNAVAILABLE;
+  int ret = gpg_error (GPG_ERR_NOT_IMPLEMENTED);
   size_t len;
   ((void) ssl);
 
@@ -1181,7 +1180,7 @@ ssl_parse_server_psk_hint (ntbtls_t ssl,
     {
       debug_msg (1, "bad server key exchange message"
                  " (psk_identity_hint length)");
-      return (POLARSSL_ERR_SSL_BAD_HS_SERVER_KEY_EXCHANGE);
+      return gpg_error (GPG_ERR_BAD_HS_SERVER_KEX);
     }
 
   // TODO: Retrieve PSK identity hint and callback to app
@@ -1228,7 +1227,7 @@ ssl_write_encrypted_pms (ntbtls_t ssl,
   if (!pk_can_do (&ssl->session_negotiate->peer_cert->pk, POLARSSL_PK_RSA))
     {
       debug_msg (1, "certificate key type mismatch");
-      return (POLARSSL_ERR_SSL_PK_TYPE_MISMATCH);
+      return gpg_error (GPG_ERR_WRONG_PUBKEY_ALGO);
     }
 
   if ((ret = pk_encrypt (&ssl->session_negotiate->peer_cert->pk,
@@ -1270,7 +1269,7 @@ ssl_parse_signature_algorithm (ntbtls_t ssl,
     }
 
   if ((*p) + 2 > end)
-    return (POLARSSL_ERR_SSL_BAD_HS_SERVER_KEY_EXCHANGE);
+    return gpg_error (GPG_ERR_BAD_HS_SERVER_KEX);
 
   /*
    * Get hash algorithm
@@ -1279,7 +1278,7 @@ ssl_parse_signature_algorithm (ntbtls_t ssl,
   if (!*md_alg)
     {
       debug_msg (2, "Server used unsupported HashAlgorithm %d", *(p)[0]);
-      return (POLARSSL_ERR_SSL_BAD_HS_SERVER_KEY_EXCHANGE);
+      return gpg_error (GPG_ERR_BAD_HS_SERVER_KEX);
     }
 
   /*
@@ -1289,7 +1288,7 @@ ssl_parse_signature_algorithm (ntbtls_t ssl,
   if (!*pk_alg)
     {
       debug_msg (2, "server used unsupported SignatureAlgorithm %d", (*p)[1]);
-      return (POLARSSL_ERR_SSL_BAD_HS_SERVER_KEY_EXCHANGE);
+      return gpg_error (GPG_ERR_BAD_HS_SERVER_KEX);
     }
 
   debug_msg (2, "Server used SignatureAlgorithm %d", (*p)[1]);
@@ -1309,7 +1308,7 @@ ssl_get_ecdh_params_from_cert (ntbtls_t ssl)
   if (!pk_can_do (&ssl->session_negotiate->peer_cert->pk, POLARSSL_PK_ECKEY))
     {
       debug_msg (1, "server key not ECDH capable");
-      return (POLARSSL_ERR_SSL_PK_TYPE_MISMATCH);
+      return gpg_error (GPG_ERR_WRONG_PUBKEY_ALGO);
     }
 
   peer_key = pk_ec (ssl->session_negotiate->peer_cert->pk);
@@ -1324,7 +1323,7 @@ ssl_get_ecdh_params_from_cert (ntbtls_t ssl)
   if (ssl_check_server_ecdh_params (ssl) != 0)
     {
       debug_msg (1, "bad server certificate (ECDH curve)");
-      return (POLARSSL_ERR_SSL_BAD_HS_CERTIFICATE);
+      return gpg_error (GPG_ERR_BAD_HS_CERT);
     }
 
   return (ret);
@@ -1372,16 +1371,16 @@ parse_server_key_exchange (ntbtls_t ssl)
   ((void) p);
   ((void) end);
 
-  if ((ret = ssl_read_record (ssl)) != 0)
+  if ((ret = _ntbtls_read_record (ssl)) != 0)
     {
-      SSL_DEBUG_RET (1, "ssl_read_record", ret);
+      debug_ret (1, "read_record", ret);
       return (ret);
     }
 
   if (ssl->in_msgtype != TLS_MSG_HANDSHAKE)
     {
       debug_msg (1, "bad server key exchange message");
-      return (POLARSSL_ERR_SSL_UNEXPECTED_MESSAGE);
+      return gpg_error (GPG_ERR_UNEXPECTED_MSG);
     }
 
   /*
@@ -1398,7 +1397,7 @@ parse_server_key_exchange (ntbtls_t ssl)
         }
 
       debug_msg (1, "bad server key exchange message");
-      return (POLARSSL_ERR_SSL_UNEXPECTED_MESSAGE);
+      return gpg_error (GPG_ERR_UNEXPECTED_MSG);
     }
 
   p = ssl->in_msg + 4;
@@ -1413,7 +1412,7 @@ parse_server_key_exchange (ntbtls_t ssl)
       if (ssl_parse_server_psk_hint (ssl, &p, end) != 0)
         {
           debug_msg (1, "bad server key exchange message");
-          return (POLARSSL_ERR_SSL_BAD_HS_SERVER_KEY_EXCHANGE);
+          return gpg_error (GPG_ERR_BAD_HS_SERVER_KEX);
         }
     }                           /* FALLTROUGH */
 
@@ -1427,7 +1426,7 @@ parse_server_key_exchange (ntbtls_t ssl)
       if (ssl_parse_server_dh_params (ssl, &p, end) != 0)
         {
           debug_msg (1, "bad server key exchange message");
-          return (POLARSSL_ERR_SSL_BAD_HS_SERVER_KEY_EXCHANGE);
+          return gpg_error (GPG_ERR_BAD_HS_SERVER_KEX);
         }
     }
   else if (ciphersuite_info->key_exchange == POLARSSL_KEY_EXCHANGE_ECDHE_RSA ||
@@ -1437,13 +1436,13 @@ parse_server_key_exchange (ntbtls_t ssl)
       if (ssl_parse_server_ecdh_params (ssl, &p, end) != 0)
         {
           debug_msg (1, "bad server key exchange message");
-          return (POLARSSL_ERR_SSL_BAD_HS_SERVER_KEY_EXCHANGE);
+          return gpg_error (GPG_ERR_BAD_HS_SERVER_KEX);
         }
     }
   else
     {
       debug_bug ();
-      return (POLARSSL_ERR_SSL_INTERNAL_ERROR);
+      return gpg_error (GPG_ERR_INTERNAL);
     }
 
 
@@ -1462,19 +1461,19 @@ parse_server_key_exchange (ntbtls_t ssl)
                                              &md_alg, &pk_alg) != 0)
             {
               debug_msg (1, "bad server key exchange message");
-              return (POLARSSL_ERR_SSL_BAD_HS_SERVER_KEY_EXCHANGE);
+              return gpg_error (GPG_ERR_BAD_HS_SERVER_KEX);
             }
 
           if (pk_alg != ssl_get_ciphersuite_sig_pk_alg (ciphersuite_info))
             {
               debug_msg (1, "bad server key exchange message");
-              return (POLARSSL_ERR_SSL_BAD_HS_SERVER_KEY_EXCHANGE);
+              return gpg_error (GPG_ERR_BAD_HS_SERVER_KEX);
             }
         }
       else
         {
           debug_bug ();
-          return (POLARSSL_ERR_SSL_INTERNAL_ERROR);
+          return gpg_error (GPG_ERR_INTERNAL);
         }
 
       /*
@@ -1486,7 +1485,7 @@ parse_server_key_exchange (ntbtls_t ssl)
       if (end != p + sig_len)
         {
           debug_msg (1, "bad server key exchange message");
-          return (POLARSSL_ERR_SSL_BAD_HS_SERVER_KEY_EXCHANGE);
+          return gpg_error (GPG_ERR_BAD_HS_SERVER_KEX);
         }
 
       debug_buf (3, "signature", p, sig_len);
@@ -1525,7 +1524,7 @@ parse_server_key_exchange (ntbtls_t ssl)
       else
         {
           debug_bug ();
-          return (POLARSSL_ERR_SSL_INTERNAL_ERROR);
+          return gpg_error (GPG_ERR_INTERNAL);
         }
 
       debug_buf (3, "parameters hash", hash, hashlen != 0 ? hashlen :
@@ -1537,7 +1536,7 @@ parse_server_key_exchange (ntbtls_t ssl)
       if (!pk_can_do (&ssl->session_negotiate->peer_cert->pk, pk_alg))
         {
           debug_msg (1, "bad server key exchange message");
-          return (POLARSSL_ERR_SSL_PK_TYPE_MISMATCH);
+          return gpg_error (GPG_ERR_WRONG_PUBKEY_ALGO);
         }
 
       if ((ret = pk_verify (&ssl->session_negotiate->peer_cert->pk,
@@ -1592,16 +1591,16 @@ parse_certificate_request (ntbtls_t ssl)
    */
   if (ssl->record_read == 0)
     {
-      if ((ret = ssl_read_record (ssl)) != 0)
+      if ((ret = _ntbtls_read_record (ssl)) != 0)
         {
-          SSL_DEBUG_RET (1, "ssl_read_record", ret);
+          debug_ret (1, "read_record", ret);
           return (ret);
         }
 
       if (ssl->in_msgtype != TLS_MSG_HANDSHAKE)
         {
           debug_msg (1, "bad certificate request message");
-          return (POLARSSL_ERR_SSL_UNEXPECTED_MESSAGE);
+          return gpg_error (GPG_ERR_UNEXPECTED_MSG);
         }
 
       ssl->record_read = 1;
@@ -1634,7 +1633,7 @@ parse_certificate_request (ntbtls_t ssl)
   if (ssl->in_hslen < 6 + n)
     {
       debug_msg (1, "bad certificate request message");
-      return (POLARSSL_ERR_SSL_BAD_HS_CERTIFICATE_REQUEST);
+      return gpg_error (GPG_ERR_BAD_HS_CERT_REQ);
     }
 
   p = buf + 5;
@@ -1674,7 +1673,7 @@ parse_certificate_request (ntbtls_t ssl)
       if (ssl->in_hslen < 6 + n)
         {
           debug_msg (1, "bad certificate request message");
-          return (POLARSSL_ERR_SSL_BAD_HS_CERTIFICATE_REQUEST);
+          return gpg_error (GPG_ERR_BAD_HS_CERT_REQ);
         }
     }
 
@@ -1686,7 +1685,7 @@ parse_certificate_request (ntbtls_t ssl)
   if (ssl->in_hslen != 7 + m + n)
     {
       debug_msg (1, "bad certificate request message");
-      return (POLARSSL_ERR_SSL_BAD_HS_CERTIFICATE_REQUEST);
+      return gpg_error (GPG_ERR_BAD_HS_CERT_REQ);
     }
 
  exit:
@@ -1705,16 +1704,16 @@ parse_server_hello_done (ntbtls_t ssl)
 
   if (ssl->record_read == 0)
     {
-      if ((ret = ssl_read_record (ssl)) != 0)
+      if ((ret = _ntbtls_read_record (ssl)) != 0)
         {
-          SSL_DEBUG_RET (1, "ssl_read_record", ret);
+          debug_ret (1, "ssl_read_record", ret);
           return (ret);
         }
 
       if (ssl->in_msgtype != TLS_MSG_HANDSHAKE)
         {
           debug_msg (1, "bad server hello done message");
-          return (POLARSSL_ERR_SSL_UNEXPECTED_MESSAGE);
+          return gpg_error (GPG_ERR_UNEXPECTED_MSG);
         }
     }
   ssl->record_read = 0;
@@ -1722,7 +1721,7 @@ parse_server_hello_done (ntbtls_t ssl)
   if (ssl->in_hslen != 4 || ssl->in_msg[0] != TLS_HS_SERVER_HELLO_DONE)
     {
       debug_msg (1, "bad server hello done message");
-      return (POLARSSL_ERR_SSL_BAD_HS_SERVER_HELLO_DONE);
+      return gpg_error (GPG_ERR_BAD_HS_SERVER_HELLO_DONE);
     }
 
   ssl->state++;
@@ -1820,7 +1819,7 @@ write_client_key_exchange (ntbtls_t ssl)
        * opaque psk_identity<0..2^16-1>;
        */
       if (ssl->psk == NULL || ssl->psk_identity == NULL)
-        return (POLARSSL_ERR_SSL_PRIVATE_KEY_REQUIRED);
+        return gpg_error (GPG_ERR_NO_SECKEY);
 
       i = 4;
       n = ssl->psk_identity_len;
@@ -1876,8 +1875,8 @@ write_client_key_exchange (ntbtls_t ssl)
         }
       else
         {
-          debug_msg (1, "should never happen");
-          return (POLARSSL_ERR_SSL_INTERNAL_ERROR);
+          debug_bug ();
+          return gpg_error (GPG_ERR_INTERNAL);
         }
 
       if ((ret = ssl_psk_derive_premaster (ssl,
@@ -1896,9 +1895,8 @@ write_client_key_exchange (ntbtls_t ssl)
     }
   else
     {
-      ((void) ciphersuite_info);
-      debug_msg (1, "should never happen");
-      return (POLARSSL_ERR_SSL_INTERNAL_ERROR);
+      debug_bug ();
+      return gpg_error (GPG_ERR_INTERNAL);
     }
 
   if ((ret = _ntbtls_derive_keys (ssl)) != 0)
@@ -1928,7 +1926,7 @@ write_client_key_exchange (ntbtls_t ssl)
 static int
 write_certificate_verify (ntbtls_t ssl)
 {
-  int ret = POLARSSL_ERR_SSL_FEATURE_UNAVAILABLE;
+  int ret = gpg_error (GPG_ERR_NOT_IMPLEMENTED);
   const ssl_ciphersuite_t *ciphersuite_info =
     ssl->transform_negotiate->ciphersuite_info;
   size_t n = 0, offset = 0;
@@ -1959,7 +1957,7 @@ write_certificate_verify (ntbtls_t ssl)
   if (ssl_own_key (ssl) == NULL)
     {
       debug_msg (1, "got no private key");
-      return (POLARSSL_ERR_SSL_PRIVATE_KEY_REQUIRED);
+      return gpg_error (GPG_ERR_NO_SECKEY);
     }
 
   /*
@@ -2003,8 +2001,8 @@ write_certificate_verify (ntbtls_t ssl)
     }
   else
     {
-      debug_msg (1, "should never happen");
-      return (POLARSSL_ERR_SSL_INTERNAL_ERROR);
+      debug_bug ();
+      return gpg_error (GPG_ERR_INTERNAL);
     }
 
   if ((ret = pk_sign (ssl_own_key (ssl), md_alg, hash_start, hashlen,
@@ -2046,16 +2044,16 @@ parse_new_session_ticket (ntbtls_t ssl)
 
   debug_msg (2, "=> parse new session ticket");
 
-  if ((ret = ssl_read_record (ssl)) != 0)
+  if ((ret = _ntbtls_read_record (ssl)) != 0)
     {
-      SSL_DEBUG_RET (1, "ssl_read_record", ret);
+      debug_ret (1, "read_record", ret);
       return (ret);
     }
 
   if (ssl->in_msgtype != TLS_MSG_HANDSHAKE)
     {
       debug_msg (1, "bad new session ticket message");
-      return (POLARSSL_ERR_SSL_UNEXPECTED_MESSAGE);
+      return gpg_error (GPG_ERR_UNEXPECTED_MSG);
     }
 
   /*
@@ -2073,7 +2071,7 @@ parse_new_session_ticket (ntbtls_t ssl)
   if (ssl->in_msg[0] != TLS_HS_NEW_SESSION_TICKET || ssl->in_hslen < 10)
     {
       debug_msg (1, "bad new session ticket message");
-      return (POLARSSL_ERR_SSL_BAD_HS_NEW_SESSION_TICKET);
+      return gpg_error (GPG_ERR_BAD_TICKET);
     }
 
   lifetime = (ssl->in_msg[4] << 24) | (ssl->in_msg[5] << 16) |
@@ -2084,7 +2082,7 @@ parse_new_session_ticket (ntbtls_t ssl)
   if (ticket_len + 10 != ssl->in_hslen)
     {
       debug_msg (1, "bad new session ticket message");
-      return (POLARSSL_ERR_SSL_BAD_HS_NEW_SESSION_TICKET);
+      return gpg_error (GPG_ERR_BAD_TICKET);
     }
 
   debug_msg (3, "ticket length: %d", ticket_len);
