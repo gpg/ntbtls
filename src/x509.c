@@ -52,7 +52,6 @@ struct x509_privkey_s
 gpg_error_t
 _ntbtls_x509_new (x509_cert_t *r_cert)
 {
-  gpg_error_t err;
   x509_cert_t cert;
 
   *r_cert = NULL;
@@ -60,6 +59,8 @@ _ntbtls_x509_new (x509_cert_t *r_cert)
   cert = calloc (1, sizeof *cert);
   if (!cert)
     return gpg_error_from_syserror ();
+
+  *r_cert = cert;
 
   return 0;
 }
@@ -85,7 +86,6 @@ gpg_error_t
 _ntbtls_x509_append_cert (x509_cert_t cert, const void *der, size_t derlen)
 {
   gpg_error_t err;
-  ksba_cert_t crt;
 
   if (!cert)
     return gpg_error (GPG_ERR_INV_ARG);
@@ -135,7 +135,7 @@ _ntbtls_x509_append_cert (x509_cert_t cert, const void *der, size_t derlen)
 const unsigned char *
 _ntbtls_x509_get_cert (x509_cert_t cert, int idx, size_t *r_derlen)
 {
-  for (; cert && idx; cert = cert->next, idx--)
+  for (; cert && idx >= 0; cert = cert->next, idx--)
     ;
   if (!cert)
     return NULL;
@@ -144,9 +144,52 @@ _ntbtls_x509_get_cert (x509_cert_t cert, int idx, size_t *r_derlen)
 }
 
 
+/* Return the public key from the certificate with index IDX in CERT
+   and store it as an S-expression at R_PK.  On error return an error
+   code and store NULL at R_PK.  */
+gpg_error_t
+_ntbtls_x509_get_pk (x509_cert_t cert, int idx, gcry_sexp_t *r_pk)
+{
+  gpg_error_t err;
+  ksba_sexp_t pk;
+  size_t pklen;
+  gcry_sexp_t s_pk;
+
+  if (!r_pk)
+    return gpg_error (GPG_ERR_INV_ARG);
+  *r_pk = NULL;
+
+  if (idx < 0)
+    gpg_error (GPG_ERR_INV_INDEX);
+  for (; cert && idx; cert = cert->next, idx--)
+    ;
+  if (!cert)
+    return gpg_error (GPG_ERR_NO_DATA);
+
+  pk = ksba_cert_get_public_key (cert->crt);
+  pklen = gcry_sexp_canon_len (pk, 0, NULL, NULL);
+  if (!pklen)
+    {
+      /* CRT is NULL or other problem.  */
+      ksba_free (pk);
+      return gpg_error (GPG_ERR_NO_PUBKEY);
+    }
+
+  err = gcry_sexp_sscan (&s_pk, NULL, pk, pklen);
+  ksba_free (pk);
+  if (err)
+    {
+      debug_ret (1, "gcry_sexp_scan", err);
+      return err;
+    }
+  *r_pk = s_pk;
+  return 0;
+}
+
+
 
 gpg_error_t
-_ntbtls_x509_verify (x509_cert_t cert, x509_cert_t trust_ca, x509_crl_t ca_crl,
+_ntbtls_x509_verify (x509_cert_t chain, x509_cert_t trust_ca, x509_crl_t ca_crl,
                      const char *cn, int *r_flags)
 {
   //FIXME:
@@ -158,7 +201,7 @@ _ntbtls_x509_verify (x509_cert_t cert, x509_cert_t trust_ca, x509_crl_t ca_crl,
 /* Return true if PRIVKEY can do an operation using the public key
    algorithm PKALGO.  */
 int
-_ntbtls_x509_can_do (x509_privkey_t privkey, pk_algo_t pkalgo)
+_ntbtls_x509_can_do (x509_privkey_t privkey, pk_algo_t pk_alg)
 {
   if (!privkey)
     return 0;

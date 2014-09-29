@@ -24,6 +24,19 @@
 #include "visibility.h"
 
 
+const char *
+ntbtls_check_version (const char *req_version)
+{
+  return _ntbtls_check_version (req_version);
+}
+
+
+void
+ntbtls_set_debug (int level, const char *prefix, gpgrt_stream_t stream)
+{
+  _ntbtls_set_debug (level, prefix, stream);
+}
+
 
 gpg_error_t
 ntbtls_new (ntbtls_t *r_tls, unsigned int flags)

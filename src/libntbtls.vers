@@ -21,6 +21,9 @@
 
 NTBTLS_1.0 {
   global:
+    ntbtls_check_version;
+    ntbtls_set_debug;
+
     ntbtls_new;
     ntbtls_release;
     ntbtls_set_transport;

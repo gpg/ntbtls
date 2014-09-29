@@ -471,7 +471,7 @@ write_client_hello (ntbtls_t tls)
   debug_msg (3, "client hello, session id len.: %d", n);
   debug_buf (3, "client hello, session id", buf + 39, n);
 
-  //FIXME: We do not have a way to set tye ciphersuites.  Thus
+  //FIXME: We do not have a way to set the ciphersuites.  Thus
   // consider to replace this with simpler code.
   ciphersuites = tls->ciphersuite_list[tls->minor_ver];
   n = 0;
@@ -1057,10 +1057,12 @@ parse_server_hello (ntbtls_t tls)
 }
 
 
-static int
-parse_server_dh_params (ntbtls_t ssl, unsigned char **p, unsigned char *end)
+static gpg_error_t
+parse_server_dh_params (ntbtls_t tls, unsigned char **p, unsigned char *end)
 {
-  int ret = gpg_error (GPG_ERR_NOT_IMPLEMENTED);
+  gpg_error_t err;
+  unsigned int nbits;
+  size_t n;
 
   /*
    * Ephemeral DH parameters:
@@ -1071,24 +1073,22 @@ parse_server_dh_params (ntbtls_t ssl, unsigned char **p, unsigned char *end)
    *     opaque dh_Ys<1..2^16-1>;
    * } ServerDHParams;
    */
-  //FIXME:
-  /* if ((ret = dhm_read_params (&ssl->handshake->dhm_ctx, p, end)) != 0) */
-  /*   { */
-  /*     debug_ret (2, "dhm_read_params", ret); */
-  /*     return (ret); */
-  /*   } */
 
-  /* if (ssl->handshake->dhm_ctx.len < 64 || ssl->handshake->dhm_ctx.len > 512) */
-  /*   { */
-  /*     debug_msg (1, "bad server key exchange message (DHM length)"); */
-  /*     return gpg_error (GPG_ERR_BAD_HS_SERVER_KEX); */
-  /*   } */
+  err = _ntbtls_dhm_read_params (tls->handshake->dhm_ctx, *p, end - *p, &n);
+  if (err)
+    {
+      debug_ret (2, "dhm_read_params", err);
+      return err;
+    }
+  *p += n;
+  nbits = _ntbtls_dhm_get_nbits (tls->handshake->dhm_ctx);
+  if (nbits < 512 || nbits > 4096)
+    {
+      debug_msg (1, "bad server key exchange message (DHM length: %u)", nbits);
+      return gpg_error (GPG_ERR_BAD_HS_SERVER_KEX);
+    }
 
-  /* SSL_DEBUG_MPI (3, "DHM: P ", &ssl->handshake->dhm_ctx.P); */
-  /* SSL_DEBUG_MPI (3, "DHM: G ", &ssl->handshake->dhm_ctx.G); */
-  /* SSL_DEBUG_MPI (3, "DHM: GY", &ssl->handshake->dhm_ctx.GY); */
-
-  return (ret);
+  return 0;
 }
 
 
@@ -1511,23 +1511,15 @@ parse_server_key_exchange (ntbtls_t tls)
       debug_buf (3, "parameters hash", hash, hashlen);
 
 
-      //FIXME:
       /*
        * Verify signature
        */
-      /* Check that the indicated PK algorithm matches the provided key.  */
-      /* if (!pk_can_do (&tls->session_negotiate->peer_chain->pk, pk_alg)) */
-      /*   { */
-      /*     debug_msg (1, "bad server key exchange message"); */
-      /*     return gpg_error (GPG_ERR_WRONG_PUBKEY_ALGO); */
-      /*   } */
 
-      /* if ((ret = pk_verify (&tls->session_negotiate->peer_chain->pk, */
-      /*                       md_alg, hash, hashlen, p, sig_len)) != 0) */
-      /*   { */
-      /*     debug_ret (1, "pk_verify", ret); */
-      /*     return (ret); */
-      /*   } */
+      err = _ntbtls_pk_verify (tls->session_negotiate->peer_chain,
+                               pk_alg, md_alg, hash, hashlen, p, sig_len);
+      debug_ret (1, "pk_verify", err);
+      if (err)
+        return err;
     }
 
  leave:
@@ -1689,6 +1681,7 @@ parse_server_hello_done (ntbtls_t tls)
   if (!tls->record_read)
     {
       err = _ntbtls_read_record (tls);
+      if (err)
         {
           debug_ret (1, "read_record", err);
           return err;
@@ -1730,39 +1723,27 @@ write_client_key_exchange (ntbtls_t tls)
     {
       /*
        * DHM key exchange -- send G^X mod P
-       */
-      n = 0; //FIXME: tls->handshake->dhm_ctx.len;
-
-      tls->out_msg[4] = (unsigned char) (n >> 8);
-      tls->out_msg[5] = (unsigned char) (n);
-      i = 6;
-
-      /* err = dhm_make_public (&tls->handshake->dhm_ctx, */
-      /*                        (int) mpi_size (&tls->handshake->dhm_ctx.P), */
-      /*                        &tls->out_msg[i], n, tls->f_rng, tls->p_rng); */
-      err = gpg_error (GPG_ERR_NOT_IMPLEMENTED);
+       *
+       * We don't have the remaining size of the buffer available,
+       * thus we use a value which will always fit into our buffer. */
+      i = 4;
+      err = _ntbtls_dhm_make_public (tls->handshake->dhm_ctx,
+                                     tls->out_msg + i, 514, &n);
       if (err)
         {
           debug_ret (1, "dhm_make_public", err);
           return err;
         }
 
-      /* SSL_DEBUG_MPI (3, "DHM: X ", &ssl->handshake->dhm_ctx.X); */
-      /* SSL_DEBUG_MPI (3, "DHM: GX", &tls->handshake->dhm_ctx.GX); */
-
-      tls->handshake->pmslen = TLS_PREMASTER_SIZE;
-
-      /* err = dhm_calc_secret (&tls->handshake->dhm_ctx, */
-      /*                        tls->handshake->premaster, */
-      /*                        &tls->handshake->pmslen); */
-      err = gpg_error (GPG_ERR_NOT_IMPLEMENTED);
+      err = _ntbtls_dhm_calc_secret (tls->handshake->dhm_ctx,
+                                     tls->handshake->premaster,
+                                     TLS_PREMASTER_SIZE,
+                                     &tls->handshake->pmslen);
       if (err)
         {
           debug_ret (1, "dhm_calc_secret", err);
           return err;
         }
-
-      /* SSL_DEBUG_MPI (3, "DHM: K ", &tls->handshake->dhm_ctx.K); */
     }
   else if (kex == KEY_EXCHANGE_ECDHE_RSA
            || kex == KEY_EXCHANGE_ECDHE_ECDSA

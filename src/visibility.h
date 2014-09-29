@@ -41,6 +41,8 @@
 # define MARK_VISIBLE(name) /* */
 #endif
 
+MARK_VISIBLE (ntbtls_check_version)
+MARK_VISIBLE (ntbtls_set_debug)
 MARK_VISIBLE (ntbtls_new)
 MARK_VISIBLE (ntbtls_release)
 MARK_VISIBLE (ntbtls_set_transport)
@@ -56,7 +58,10 @@ MARK_VISIBLE (ntbtls_handshake)
 /* To avoid accidental use of the public functions inside ntbtls,
    we redefine them to catch such errors.  */
 
-#define ntbtls_init                  _ntbtls_USE_THE_UNDERSCORED_FUNCTION
+#define ntbtls_check_version         _ntbtls_USE_THE_UNDERSCORED_FUNCTION
+#define ntbtls_set_debug             _ntbtls_USE_THE_UNDERSCORED_FUNCTION
+#define ntbtls_new                   _ntbtls_USE_THE_UNDERSCORED_FUNCTION
+#define ntbtls_released              _ntbtls_USE_THE_UNDERSCORED_FUNCTION
 #define ntbtls_set_transport         _ntbtls_USE_THE_UNDERSCORED_FUNCTION
 #define ntbtls_get_stream            _ntbtls_USE_THE_UNDERSCORED_FUNCTION
 #define ntbtls_handshake             _ntbtls_USE_THE_UNDERSCORED_FUNCTION

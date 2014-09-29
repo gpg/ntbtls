@@ -26,7 +26,7 @@ min_automake_version="1.11"
 # another commit and push so that the git magic is able to work.
 m4_define([mym4_package],[ntbtls])
 m4_define([mym4_major], [0])
-m4_define([mym4_minor], [0])
+m4_define([mym4_minor], [1])
 m4_define([mym4_micro], [0])
 
 # To start a new development series, i.e a new major or minor number
@@ -605,8 +605,16 @@ BUILD_FILEVERSION=`echo "$VERSION" | sed 's/\([0-9.]*\).*/\1./;s/\./,/g'`
 changequote([,])dnl
 BUILD_FILEVERSION="${BUILD_FILEVERSION}mym4_revision_dec"
 AC_SUBST(BUILD_FILEVERSION)
-
-BUILD_TIMESTAMP=`date -u +%Y-%m-%dT%H:%M+0000 2>/dev/null || date`
+AC_ARG_ENABLE([build-timestamp],
+              AC_HELP_STRING([--enable-build-timestamp],
+                [set an explicit build timestamp for reproducibility.
+                 (default is the current time in ISO-8601 format)]),
+                [if test "$enableval" = "no"; then
+                    BUILD_TIMESTAMP="<none>"
+                 else
+                    BUILD_TIMESTAMP="$enableval"
+                 fi],
+        [BUILD_TIMESTAMP=`date -u +%Y-%m-%dT%H:%M+0000 2>/dev/null || date`])
 AC_SUBST(BUILD_TIMESTAMP)
 AC_DEFINE_UNQUOTED(BUILD_TIMESTAMP, "$BUILD_TIMESTAMP",
                    [The time this package was configured for a build])

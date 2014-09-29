@@ -24,6 +24,31 @@
 
 #include "ntbtls-int.h"
 
+static int debug_level;
+static const char *debug_prefix;
+static estream_t debug_stream;
+
+
+void
+_ntbtls_set_debug (int level, const char *prefix, gpgrt_stream_t stream)
+{
+  static char *debug_prefix_buffer;
+
+  debug_prefix = "ntbtls";
+  if (prefix)
+    {
+      free (debug_prefix_buffer);
+      debug_prefix_buffer = malloc (strlen (prefix));
+      if (debug_prefix_buffer)
+        debug_prefix = debug_prefix_buffer;
+    }
+
+  debug_stream = stream? stream : es_stderr;
+
+  debug_level = level > 0? level : 0;
+}
+
+
 
 /* FIXME: For now we print to stderr.  */
 void
@@ -32,7 +57,8 @@ _ntbtls_debug_msg (int level, const char *format, ...)
   va_list arg_ptr;
   int saved_errno;
 
-  (void)level;
+  if (!debug_level || level > debug_level)
+    return;
 
   saved_errno = errno;
   va_start (arg_ptr, format);
@@ -50,6 +76,9 @@ _ntbtls_debug_bug (const char *file, int line)
 {
   const char *s;
 
+  if (!debug_level)
+    return;
+
   s = strrchr (file, '/');
   if (s)
     file = s + 1;
@@ -60,19 +89,42 @@ _ntbtls_debug_bug (const char *file, int line)
 void
 _ntbtls_debug_ret (int level, const char *name, gpg_error_t err)
 {
+  if (!debug_level || level > debug_level)
+    return;
+
   if (err)
-    _ntbtls_debug_msg (level, "%s returned %s <%s>\n",
+    _ntbtls_debug_msg (level, "%s returned: %s <%s>\n",
                        name, gpg_strerror (err), gpg_strsource (err));
   else
-    _ntbtls_debug_msg (level, "%s returned success\n", name);
+    _ntbtls_debug_msg (level, "%s returned: success\n", name);
 }
 
 
 void
 _ntbtls_debug_buf (int level, const char *text, const void *buf, size_t len)
 {
-  (void)level;
+  if (!debug_level || level > debug_level)
+    return;
 
-  gpgrt_fputs ("ntbtls: ", es_stderr);
   gcry_log_debughex (text, buf, len);
+}
+
+
+void
+_ntbtls_debug_mpi (int level, const char *text, gcry_mpi_t a)
+{
+  if (!debug_level || level > debug_level)
+    return;
+
+  gcry_log_debugmpi (text, a);
+}
+
+
+void
+_ntbtls_debug_sxp (int level, const char *text, gcry_sexp_t a)
+{
+  if (!debug_level || level > debug_level)
+    return;
+
+  gcry_log_debugsxp (text, a);
 }

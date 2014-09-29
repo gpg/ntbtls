@@ -29,12 +29,15 @@
 #include "ntbtls-int.h"
 #include "ciphersuites.h"
 
+
+
 static void transform_deinit (transform_t transform);
 static void session_deinit (session_t session);
 static void handshake_params_deinit (handshake_params_t handshake);
 static void ticket_keys_deinit (ticket_keys_t tkeys);
 
 static void update_checksum_sha256 (ntbtls_t, const unsigned char *, size_t);
+static void calc_verify_tls_sha256 (ntbtls_t, unsigned char *);
 static void calc_finished_tls_sha256 (ntbtls_t, unsigned char *, int);
 static void calc_verify_tls_sha384 (ntbtls_t, unsigned char *);
 static void calc_finished_tls_sha384 (ntbtls_t, unsigned char *, int);
@@ -145,443 +148,415 @@ sha_hmac (const unsigned char *key, size_t keylen,
  * Key material generation
  */
 
-static int
-tls_prf_sha256 (const unsigned char *secret, size_t slen,
-                const char *label,
-                const unsigned char *random, size_t rlen,
-                unsigned char *dstbuf, size_t dlen)
+static gpg_error_t
+do_tls_prf (const unsigned char *secret, size_t slen,
+            const char *label,
+            const unsigned char *random, size_t rlen,
+            unsigned char *dstbuf, size_t dlen,
+            size_t hashlen)
 {
   gpg_error_t err;
   size_t nb;
   size_t i, j, k;
   unsigned char tmp[128];
-  unsigned char h_i[32];
+  unsigned char h_i[64];
 
-  if (sizeof (tmp) < 32 + strlen (label) + rlen)
+  if (sizeof (tmp) < hashlen + strlen (label) + rlen)
     return gpg_error (GPG_ERR_INV_ARG);
 
   nb = strlen (label);
-  memcpy (tmp + 32, label, nb);
-  memcpy (tmp + 32 + nb, random, rlen);
+  memcpy (tmp + hashlen, label, nb);
+  memcpy (tmp + hashlen + nb, random, rlen);
   nb += rlen;
 
   /*
    * Compute P_<hash>(secret, label + random)[0..dlen]
    */
-  err = sha_hmac (secret, slen, tmp + 32, nb, tmp, 32);
+  err = sha_hmac (secret, slen, tmp + hashlen, nb, tmp, hashlen);
   if (err)
     return err;
 
-  for (i = 0; i < dlen; i += 32)
+  for (i = 0; i < dlen; i += hashlen)
     {
-      err = sha_hmac (secret, slen, tmp, 32 + nb, h_i, 32);
+      err = sha_hmac (secret, slen, tmp, hashlen + nb, h_i, hashlen);
       if (err)
         return err;
-      err = sha_hmac (secret, slen, tmp, 32, tmp, 32);
+      err = sha_hmac (secret, slen, tmp, hashlen, tmp, hashlen);
       if (err)
         return err;
 
-      k = (i + 32 > dlen) ? dlen % 32 : 32;
+      k = (i + hashlen > dlen) ? dlen % hashlen : hashlen;
 
       for (j = 0; j < k; j++)
         dstbuf[i + j] = h_i[j];
     }
 
   wipememory (tmp, sizeof (tmp));
-  wipememory (h_i, sizeof (h_i));
+  wipememory (h_i, hashlen);
 
   return 0;
 }
 
 
-static int
+static gpg_error_t
+tls_prf_sha256 (const unsigned char *secret, size_t slen,
+                const char *label,
+                const unsigned char *random, size_t rlen,
+                unsigned char *dstbuf, size_t dlen)
+{
+  return do_tls_prf (secret, slen, label, random, rlen, dstbuf, dlen, 32);
+}
+
+
+static gpg_error_t
 tls_prf_sha384 (const unsigned char *secret, size_t slen,
                 const char *label,
                 const unsigned char *random, size_t rlen,
                 unsigned char *dstbuf, size_t dlen)
 {
-  gpg_error_t err;
-  size_t nb;
-  size_t i, j, k;
-  unsigned char tmp[128];
-  unsigned char h_i[48];
-
-  if (sizeof (tmp) < 48 + strlen (label) + rlen)
-    return gpg_error (GPG_ERR_INV_ARG);
-
-  nb = strlen (label);
-  memcpy (tmp + 48, label, nb);
-  memcpy (tmp + 48 + nb, random, rlen);
-  nb += rlen;
-
-  /*
-   * Compute P_<hash>(secret, label + random)[0..dlen]
-   */
-  err = sha_hmac (secret, slen, tmp + 48, nb, tmp, 48);
-  if (err)
-    return err;
-
-  for (i = 0; i < dlen; i += 48)
-    {
-      err = sha_hmac (secret, slen, tmp, 48 + nb, h_i, 48);
-      if (err)
-        return err;
-      err = sha_hmac (secret, slen, tmp, 48, tmp, 48);
-      if (err)
-        return err;
-
-      k = (i + 48 > dlen) ? dlen % 48 : 48;
-
-      for (j = 0; j < k; j++)
-        dstbuf[i + j] = h_i[j];
-    }
-
-  wipememory (tmp, sizeof (tmp));
-  wipememory (h_i, sizeof (h_i));
-
-  return (0);
+  return do_tls_prf (secret, slen, label, random, rlen, dstbuf, dlen, 48);
 }
 
 
 gpg_error_t
-_ntbtls_derive_keys (ntbtls_t ssl)
+_ntbtls_derive_keys (ntbtls_t tls)
 {
-  //FIXME:
-  /* int ret = 0; */
-  /* unsigned char tmp[64]; */
-  /* unsigned char keyblk[256]; */
-  /* unsigned char *key1; */
-  /* unsigned char *key2; */
-  /* unsigned char *mac_enc; */
-  /* unsigned char *mac_dec; */
-  /* size_t iv_copy_len; */
-  /* const cipher_info_t *cipher_info; */
-  /* const md_info_t *md_info; */
+  gpg_error_t err;
+  unsigned char tmp[64];
+  unsigned char keyblk[256];
+  unsigned char *key1;
+  unsigned char *key2;
+  unsigned char *mac_enc;
+  unsigned char *mac_dec;
+  size_t iv_copy_len;
+  cipher_algo_t cipher;
+  cipher_mode_t ciphermode;
+  mac_algo_t mac;
+  session_t session = tls->session_negotiate;
+  transform_t transform = tls->transform_negotiate;
+  handshake_params_t handshake = tls->handshake;
 
-  /* session_t session = ssl->session_negotiate; */
-  /* ssl_transform *transform = ssl->transform_negotiate; */
-  /* ssl_handshake_params *handshake = ssl->handshake; */
+  debug_msg (2, "=> derive keys");
 
-  /* debug_msg (2, "=> derive keys"); */
+  if (tls->minor_ver != TLS_MINOR_VERSION_3)
+    {
+      debug_bug ();
+      return gpg_error (GPG_ERR_INTERNAL);
+    }
 
-  /* cipher_info = cipher_info_from_type (transform->ciphersuite->cipher); */
-  /* if (cipher_info == NULL) */
-  /*   { */
-  /*     debug_msg (1, "cipher info for %d not found", */
-  /*                transform->ciphersuite->cipher); */
-  /*     return gpg_error (GPG_ERR_INV_ARG); */
-  /*   } */
+  cipher = _ntbtls_ciphersuite_get_cipher (transform->ciphersuite,
+                                           &ciphermode);
+  if (!cipher || !ciphermode)
+    {
+      debug_msg (1, "cipher algo not found");
+      return gpg_error (GPG_ERR_INV_ARG);
+    }
 
-  /* md_info = md_info_from_type (transform->ciphersuite->mac); */
-  /* if (md_info == NULL) */
-  /*   { */
-  /*     debug_msg (1, "md info for %d not found", */
-  /*                transform->ciphersuite->mac); */
-  /*     return gpg_error (GPG_ERR_INV_ARG); */
-  /*   } */
+  mac = _ntbtls_ciphersuite_get_mac (transform->ciphersuite);
+  if (!mac)
+    {
+      debug_msg (1, "mac algo not found");
+      return gpg_error (GPG_ERR_INV_ARG);
+    }
 
-  /* /\* */
-  /*  * Set appropriate PRF function and other TLS functions */
-  /*  *\/ */
-  /* if (ssl->minor_ver == TLS_MINOR_VERSION_3 && */
-  /*     transform->ciphersuite->mac == GCRY_MD_SHA384) */
-  /*   { */
-  /*     handshake->tls_prf = tls_prf_sha384; */
-  /*     handshake->calc_verify = calc_verify_tls_sha384; */
-  /*     handshake->calc_finished = calc_finished_tls_sha384; */
-  /*   } */
-  /* else if (ssl->minor_ver == TLS_MINOR_VERSION_3) */
-  /*   { */
-  /*     handshake->tls_prf = tls_prf_sha256; */
-  /*     handshake->calc_verify = calc_verify_tls_sha256; */
-  /*     handshake->calc_finished = calc_finished_tls_sha256; */
-  /*   } */
-  /* else */
-  /*   { */
-  /*     debug_bug (); */
-  /*     return gpg_error (GPG_ERR_INTERNAL); */
-  /*   } */
+  /*
+   * Set appropriate PRF function and other TLS functions
+   */
+  if (mac == GCRY_MAC_HMAC_SHA384)
+    {
+      handshake->tls_prf = tls_prf_sha384;
+      handshake->calc_verify = calc_verify_tls_sha384;
+      handshake->calc_finished = calc_finished_tls_sha384;
+    }
+  else
+    {
+      handshake->tls_prf = tls_prf_sha256;
+      handshake->calc_verify = calc_verify_tls_sha256;
+      handshake->calc_finished = calc_finished_tls_sha256;
+    }
 
-  /* /\* */
-  /*  * TLSv1+: */
-  /*  *   master = PRF( premaster, "master secret", randbytes )[0..47] */
-  /*  *\/ */
-  /* if (handshake->resume == 0) */
-  /*   { */
-  /*     debug_buf (3, "premaster secret", handshake->premaster,handshake->pmslen); */
+  /*
+   * TLSv1+:
+   *   master = PRF( premaster, "master secret", randbytes )[0..47]
+   */
+  if (!handshake->resume)
+    {
+      debug_buf (3, "premaster secret",
+                 handshake->premaster, handshake->pmslen);
 
-  /*     handshake->tls_prf (handshake->premaster, handshake->pmslen, */
-  /*                         "master secret", */
-  /*                         handshake->randbytes, 64, session->master, 48); */
+      handshake->tls_prf (handshake->premaster, handshake->pmslen,
+                          "master secret",
+                          handshake->randbytes, 64, session->master, 48);
 
-  /*     wipememory (handshake->premaster, sizeof (handshake->premaster)); */
-  /*   } */
-  /* else */
-  /*   debug_msg (3, "no premaster (session resumed)"); */
+      wipememory (handshake->premaster, sizeof (handshake->premaster));
+    }
+  else
+    debug_msg (3, "no premaster (session resumed)");
 
-  /* /\* */
-  /*  * Swap the client and server random values. */
-  /*  *\/ */
-  /* memcpy (tmp, handshake->randbytes, 64); */
-  /* memcpy (handshake->randbytes, tmp + 32, 32); */
-  /* memcpy (handshake->randbytes + 32, tmp, 32); */
-  /* wipememory (tmp, sizeof (tmp)); */
+  /*
+   * Swap the client and server random values.
+   */
+  memcpy (tmp, handshake->randbytes, 64);
+  memcpy (handshake->randbytes, tmp + 32, 32);
+  memcpy (handshake->randbytes + 32, tmp, 32);
+  wipememory (tmp, sizeof (tmp));
 
-  /* /\* */
-  /*  *  TLSv1: */
-  /*  *    key block = PRF( master, "key expansion", randbytes ) */
-  /*  *\/ */
-  /* handshake->tls_prf (session->master, 48, "key expansion", */
-  /*                     handshake->randbytes, 64, keyblk, 256); */
+  /*
+   *  TLSv1:
+   *    key block = PRF( master, "key expansion", randbytes )
+   */
+  handshake->tls_prf (session->master, 48,
+                      "key expansion",
+                      handshake->randbytes, 64, keyblk, 256);
 
-  /* debug_msg (3, "ciphersuite = %s", */
-  /*            ssl_get_ciphersuite_name (session->ciphersuite)); */
-  /* debug_buf (3, "master secret", session->master, 48); */
-  /* debug_buf (4, "random bytes", handshake->randbytes, 64); */
-  /* debug_buf (4, "key block", keyblk, 256); */
+  debug_msg (3, "ciphersuite = %s",
+             _ntbtls_ciphersuite_get_name (session->ciphersuite));
+  debug_buf (3, "master secret", session->master, 48);
+  debug_buf (4, "random bytes", handshake->randbytes, 64);
+  debug_buf (4, "key block", keyblk, 256);
 
-  /* wipememory (handshake->randbytes, sizeof (handshake->randbytes)); */
+  wipememory (handshake->randbytes, sizeof (handshake->randbytes));
 
-  /* /\* */
-  /*  * Determine the appropriate key, IV and MAC length. */
-  /*  *\/ */
+  /*
+   * Determine the appropriate key, IV and MAC length.
+   */
 
-  /* transform->keylen = cipher_info->key_length / 8; */
+  transform->keylen = gcry_cipher_get_algo_keylen (cipher);
+  /* FIXME: Check that KEYLEN has an upper bound.  */
 
-  /* if (cipher_info->mode == POLARSSL_MODE_GCM || */
-  /*     cipher_info->mode == POLARSSL_MODE_CCM) */
-  /*   { */
-  /*     transform->maclen = 0; */
+  if (ciphermode == GCRY_CIPHER_MODE_GCM || ciphermode == GCRY_CIPHER_MODE_CCM)
+    {
+      transform->maclen = 0;
 
-  /*     transform->ivlen = 12; */
-  /*     transform->fixed_ivlen = 4; */
+      transform->ivlen = 12;
+      transform->fixed_ivlen = 4;
 
-  /*     /\* Minimum length is expicit IV + tag *\/ */
-  /*     transform->minlen = transform->ivlen - transform->fixed_ivlen */
-  /*       + (transform->ciphersuite->flags & */
-  /*          POLARSSL_CIPHERSUITE_SHORT_TAG ? 8 : 16); */
-  /*   } */
-  /* else */
-  /*   { */
-  /*     int ret; */
+      /* Minimum length is expicit IV + tag */
+      transform->minlen =
+        (transform->ivlen
+         - transform->fixed_ivlen
+         + ((_ntbtls_ciphersuite_get_flags (transform->ciphersuite)
+             & CIPHERSUITE_FLAG_SHORT_TAG)? 8 : 16));
+    }
+  else
+    {
+      size_t blklen = gcry_cipher_get_algo_blklen (cipher);
 
-  /*     /\* Initialize HMAC contexts *\/ */
-  /*     if ((ret = md_init_ctx (&transform->md_ctx_enc, md_info)) != 0 || */
-  /*         (ret = md_init_ctx (&transform->md_ctx_dec, md_info)) != 0) */
-  /*       { */
-  /*         debug_ret (1, "md_init_ctx", ret); */
-  /*         return (ret); */
-  /*       } */
+      /* Initialize HMAC contexts */
+      /* Fixme: Check whether the context may really be open.  */
+      gcry_mac_close (transform->mac_ctx_enc);
+      err = gcry_mac_open (&transform->mac_ctx_enc, mac, 0, NULL);
+      if (!err)
+        {
+          gcry_mac_close (transform->mac_ctx_dec);
+          err = gcry_mac_open (&transform->mac_ctx_dec, mac, 0, NULL);
+        }
+      if (err)
+        {
+          debug_ret (1, "gcry_mac_open", err);
+          return err;
+        }
 
-  /*     /\* Get MAC length *\/ */
-  /*     transform->maclen = md_get_size (md_info); */
+      /* Get MAC length */
+      transform->maclen = gcry_mac_get_algo_maclen (mac);
+      if (transform->maclen < TLS_TRUNCATED_HMAC_LEN)
+        {
+          debug_bug ();
+          return gpg_error (GPG_ERR_BUG);
+        }
 
-  /*     /\* */
-  /*      * If HMAC is to be truncated, we shall keep the leftmost bytes, */
-  /*      * (rfc 6066 page 13 or rfc 2104 section 4), */
-  /*      * so we only need to adjust the length here. */
-  /*      *\/ */
-  /*     if (session->use_trunc_hmac) */
-  /*       transform->maclen = TLS_TRUNCATED_HMAC_LEN; */
+      /*
+       * If HMAC is to be truncated, we shall keep the leftmost bytes,
+       * (rfc 6066 page 13 or rfc 2104 section 4),
+       * so we only need to adjust the length here.
+       */
+      if (session->use_trunc_hmac)
+        transform->maclen = TLS_TRUNCATED_HMAC_LEN;
 
-  /*     /\* IV length *\/ */
-  /*     transform->ivlen = cipher_info->iv_size; */
+      /* IV length.  According to RFC-5246, Appendix C, we shall use
+         the block length of the IV length.  */
+      transform->ivlen = blklen;
 
-  /*     /\* Minimum length *\/ */
-  /*     if (cipher_info->mode == POLARSSL_MODE_STREAM) */
-  /*       transform->minlen = transform->maclen; */
-  /*     else */
-  /*       { */
-  /*         /\* */
-  /*          * GenericBlockCipher: */
-  /*          * first multiple of blocklen greater than maclen */
-  /*          * + IV except for SSL3 and TLS 1.0 */
-  /*          *\/ */
-  /*         transform->minlen = (transform->maclen */
-  /*                              + cipher_info->block_size */
-  /*                              - transform->maclen % cipher_info->block_size); */
+      /* Minimum length */
+      if (ciphermode == GCRY_CIPHER_MODE_STREAM)
+        transform->minlen = transform->maclen;
+      else
+        {
+          /*
+           * GenericBlockCipher:
+           * First multiple of blocklen greater than maclen
+           * + IV.
+           */
+          transform->minlen = (transform->maclen
+                               + blklen
+                               - (transform->maclen % blklen)
+                               + transform->ivlen);
+        }
+    }
 
-  /*         if (ssl->minor_ver == TLS_MINOR_VERSION_2 */
-  /*             || ssl->minor_ver == TLS_MINOR_VERSION_3) */
-  /*           { */
-  /*             transform->minlen += transform->ivlen; */
-  /*           } */
-  /*         else */
-  /*           { */
-  /*             debug_bug (); */
-  /*             return gpg_error (GPG_ERR_INTERNAL); */
-  /*           } */
-  /*       } */
-  /*   } */
+  debug_msg (3, "keylen: %d, minlen: %d, ivlen: %d, maclen: %d",
+             transform->keylen, transform->minlen, transform->ivlen,
+             transform->maclen);
 
-  /* debug_msg (3, "keylen: %d, minlen: %d, ivlen: %d, maclen: %d", */
-  /*            transform->keylen, transform->minlen, transform->ivlen, */
-  /*            transform->maclen); */
+  /*
+   * Finally setup the cipher contexts, IVs and MAC secrets.
+   */
+  if (tls->is_client)
+    {
+      key1 = keyblk + transform->maclen * 2;
+      key2 = keyblk + transform->maclen * 2 + transform->keylen;
 
-  /* /\* */
-  /*  * Finally setup the cipher contexts, IVs and MAC secrets. */
-  /*  *\/ */
-  /* if (tls->is_client) */
-  /*   { */
-  /*     key1 = keyblk + transform->maclen * 2; */
-  /*     key2 = keyblk + transform->maclen * 2 + transform->keylen; */
+      mac_enc = keyblk;
+      mac_dec = keyblk + transform->maclen;
 
-  /*     mac_enc = keyblk; */
-  /*     mac_dec = keyblk + transform->maclen; */
+      /*
+       * This is not used in TLS v1.1.  FIXME: Check and remove.
+       */
+      iv_copy_len = (transform->fixed_ivlen ?
+                     transform->fixed_ivlen : transform->ivlen);
+      memcpy (transform->iv_enc, key2 + transform->keylen, iv_copy_len);
+      memcpy (transform->iv_dec, key2 + transform->keylen + iv_copy_len,
+              iv_copy_len);
+    }
+  else
+    {
+      key1 = keyblk + transform->maclen * 2 + transform->keylen;
+      key2 = keyblk + transform->maclen * 2;
 
-  /*     /\* */
-  /*      * This is not used in TLS v1.1. */
-  /*      *\/ */
-  /*     iv_copy_len = (transform->fixed_ivlen) ? */
-  /*       transform->fixed_ivlen : transform->ivlen; */
-  /*     memcpy (transform->iv_enc, key2 + transform->keylen, iv_copy_len); */
-  /*     memcpy (transform->iv_dec, key2 + transform->keylen + iv_copy_len, */
-  /*             iv_copy_len); */
-  /*   } */
-  /* else */
-  /*   { */
-  /*     key1 = keyblk + transform->maclen * 2 + transform->keylen; */
-  /*     key2 = keyblk + transform->maclen * 2; */
+      mac_enc = keyblk + transform->maclen;
+      mac_dec = keyblk;
 
-  /*     mac_enc = keyblk + transform->maclen; */
-  /*     mac_dec = keyblk; */
+      /*
+       * This is not used in TLS v1.1.  FIXME: Check and remove
+       */
+      iv_copy_len = (transform->fixed_ivlen ?
+                     transform->fixed_ivlen : transform->ivlen);
+      memcpy (transform->iv_dec, key1 + transform->keylen, iv_copy_len);
+      memcpy (transform->iv_enc, key1 + transform->keylen + iv_copy_len,
+              iv_copy_len);
+    }
 
-  /*     /\* */
-  /*      * This is not used in TLS v1.1. */
-  /*      *\/ */
-  /*     iv_copy_len = (transform->fixed_ivlen) ? */
-  /*       transform->fixed_ivlen : transform->ivlen; */
-  /*     memcpy (transform->iv_dec, key1 + transform->keylen, iv_copy_len); */
-  /*     memcpy (transform->iv_enc, key1 + transform->keylen + iv_copy_len, */
-  /*             iv_copy_len); */
-  /*   } */
 
-  /* if (ssl->minor_ver >= TLS_MINOR_VERSION_1) */
-  /*   { */
-  /*     md_hmac_starts (&transform->md_ctx_enc, mac_enc, transform->maclen); */
-  /*     md_hmac_starts (&transform->md_ctx_dec, mac_dec, transform->maclen); */
-  /*   } */
-  /* else */
-  /*   { */
-  /*     debug_bug (); */
-  /*     return gpg_error (GPG_ERR_INTERNAL); */
-  /*   } */
+  if (ciphermode != GCRY_CIPHER_MODE_GCM && ciphermode != GCRY_CIPHER_MODE_CCM)
+    {
+      err = gcry_mac_setkey (transform->mac_ctx_enc,
+                             mac_enc, transform->maclen);
+      if (!err)
+        err = gcry_mac_setkey (transform->mac_ctx_dec,
+                               mac_dec, transform->maclen);
+      if (err)
+        {
+          debug_ret (1, "gcry_mac_setkey", err);
+          return err;
+        }
+    }
 
-  /* if ((ret = cipher_init_ctx (&transform->cipher_ctx_enc, cipher_info)) != 0) */
-  /*   { */
-  /*     debug_ret (1, "cipher_init_ctx", ret); */
-  /*     return (ret); */
-  /*   } */
+  gcry_cipher_close (transform->cipher_ctx_enc);
+  err = gcry_cipher_open (&transform->cipher_ctx_enc, cipher, ciphermode, 0);
+  if (!err)
+    {
+      gcry_cipher_close (transform->cipher_ctx_dec);
+      err = gcry_cipher_open (&transform->cipher_ctx_dec, cipher, ciphermode,0);
+    }
+  if (err)
+    {
+      debug_ret (1, "gcry_cipher_open", err);
+      return err;
+    }
+  transform->cipher_mode_enc = ciphermode;
+  transform->cipher_mode_dec = ciphermode;
 
-  /* if ((ret = cipher_init_ctx (&transform->cipher_ctx_dec, cipher_info)) != 0) */
-  /*   { */
-  /*     debug_ret (1, "cipher_init_ctx", ret); */
-  /*     return (ret); */
-  /*   } */
+  err = gcry_cipher_setkey (transform->cipher_ctx_enc,
+                            key1, transform->keylen);
+  if (!err)
+    err = gcry_cipher_setkey (transform->cipher_ctx_dec,
+                              key2, transform->keylen);
+  if (err)
+    {
+      debug_ret (1, "cipher_setkey", err);
+      return err;
+    }
 
-  /* if ((ret = cipher_setkey (&transform->cipher_ctx_enc, key1, */
-  /*                           cipher_info->key_length, POLARSSL_ENCRYPT)) != 0) */
-  /*   { */
-  /*     debug_ret (1, "cipher_setkey", ret); */
-  /*     return (ret); */
-  /*   } */
+  wipememory (keyblk, sizeof (keyblk));
 
-  /* if ((ret = cipher_setkey (&transform->cipher_ctx_dec, key2, */
-  /*                           cipher_info->key_length, POLARSSL_DECRYPT)) != 0) */
-  /*   { */
-  /*     debug_ret (1, "cipher_setkey", ret); */
-  /*     return (ret); */
-  /*   } */
+  /* Initialize compression.  */
+  if (session->compression == TLS_COMPRESS_DEFLATE)
+    {
+      /* if (tls->compress_buf == NULL) */
+      /*   { */
+      /*     deboug_msg (3, "Allocating compression buffer"); */
+      /*     ssl->compress_buf = malloc (SSL_BUFFER_LEN); */
+      /*     if (!ssl->compress_buf) */
+      /*       { */
+      /*         err = gpg_error_from_syserror (); */
+      /*         debug_msg (1, "malloc(%d bytes) failed", SSL_BUFFER_LEN); */
+      /*         return err; */
+      /*       } */
+      /*   } */
 
-  /* if (cipher_info->mode == POLARSSL_MODE_CBC) */
-  /*   { */
-  /*     if ((ret = cipher_set_padding_mode (&transform->cipher_ctx_enc, */
-  /*                                         POLARSSL_PADDING_NONE)) != 0) */
-  /*       { */
-  /*         debug_ret (1, "cipher_set_padding_mode", ret); */
-  /*         return (ret); */
-  /*       } */
+      /* debug_msg (3, "Initializing zlib states"); */
 
-  /*     if ((ret = cipher_set_padding_mode (&transform->cipher_ctx_dec, */
-  /*                                         POLARSSL_PADDING_NONE)) != 0) */
-  /*       { */
-  /*         debug_ret (1, "cipher_set_padding_mode", ret); */
-  /*         return (ret); */
-  /*       } */
-  /*   } */
+      /* memset (&transform->ctx_deflate, 0, sizeof (transform->ctx_deflate));*/
+      /* memset (&transform->ctx_inflate, 0, sizeof (transform->ctx_inflate));*/
 
-  /* wipememory (keyblk, sizeof (keyblk)); */
+      /* if (deflateInit (&transform->ctx_deflate, */
+      /*                  Z_DEFAULT_COMPRESSION) != Z_OK || */
+      /*     inflateInit (&transform->ctx_inflate) != Z_OK) */
+        {
+          debug_msg (1, "Failed to initialize compression");
+          return gpg_error (GPG_ERR_COMPR_FAILED);
+        }
+    }
 
-  /* /\* Initialize compression.  *\/ */
-  /* if (session->compression == SSL_COMPRESS_DEFLATE) */
-  /*   { */
-  /*     if (ssl->compress_buf == NULL) */
-  /*       { */
-  /*         debug_msg (3, "Allocating compression buffer"); */
-  /*         ssl->compress_buf = malloc (SSL_BUFFER_LEN); */
-  /*         if (!ssl->compress_buf) */
-  /*           { */
-  /*             err = gpg_error_from_syserror (); */
-  /*             debug_msg (1, "malloc(%d bytes) failed", SSL_BUFFER_LEN); */
-  /*             return err; */
-  /*           } */
-  /*       } */
+  debug_msg (2, "<= derive keys");
 
-  /*     debug_msg (3, "Initializing zlib states"); */
-
-  /*     memset (&transform->ctx_deflate, 0, sizeof (transform->ctx_deflate)); */
-  /*     memset (&transform->ctx_inflate, 0, sizeof (transform->ctx_inflate)); */
-
-  /*     if (deflateInit (&transform->ctx_deflate, */
-  /*                      Z_DEFAULT_COMPRESSION) != Z_OK || */
-  /*         inflateInit (&transform->ctx_inflate) != Z_OK) */
-  /*       { */
-  /*         debug_msg (1, "Failed to initialize compression"); */
-  /*         return gpg_error (GPG_ERR_COMPR_FAILED); */
-  /*       } */
-  /*   } */
-
-  /* debug_msg (2, "<= derive keys"); */
-
-  return (0);
+  return 0;
 }
 
 
 static void
-calc_verify_tls_sha256 (ntbtls_t ssl, unsigned char hash[32])
+calc_verify_tls (gcry_md_hd_t md_input, md_algo_t md_alg,
+                 unsigned char *hash, size_t hashlen)
 {
-  /* sha256_context sha256; */
+  gpg_error_t err;
+  gcry_md_hd_t md;
+  char *p;
 
-  /* debug_msg (2, "=> calc verify sha256"); */
+  debug_msg (2, "=> calc verify tls sha%d", hashlen*8);
 
-  /* memcpy (&sha256, &ssl->handshake->fin_sha256, sizeof (sha256_context)); */
-  /* sha256_finish (&sha256, hash); */
+  err = gcry_md_copy (&md, md_input);
+  if (err)
+    {
+      debug_ret (1, "calc_verify_tls", err);
+      memset (hash, 0, hashlen);
+      return;
+    }
+  p = gcry_md_read (md, md_alg);
+  if (!p)
+    {
+      debug_bug ();
+      memset (hash, 0, hashlen);
+      gcry_md_close (md);
+      return;
+    }
+  memcpy (hash, p, hashlen);
+  gcry_md_close (md);
 
-  /* debug_buf (3, "calculated verify result", hash, 32); */
-  /* debug_msg (2, "<= calc verify"); */
-
-  /* sha256_free (&sha256); */
-
-  /* return; */
+  debug_buf (3, "calculated verify result", hash, hashlen);
+  debug_msg (2, "<= calc verify tls sha%d", hashlen*8);
 }
 
 
 static void
-calc_verify_tls_sha384 (ntbtls_t ssl, unsigned char hash[48])
+calc_verify_tls_sha256 (ntbtls_t tls, unsigned char hash[32])
 {
-  /* sha512_context sha512; */
+  calc_verify_tls (tls->handshake->fin_sha256, GCRY_MD_SHA256, hash, 32);
+}
 
-  /* debug_msg (2, "=> calc verify sha384"); */
-
-  /* memcpy (&sha512, &ssl->handshake->fin_sha512, sizeof (sha512_context)); */
-  /* sha512_finish (&sha512, hash); */
-
-  /* debug_buf (3, "calculated verify result", hash, 48); */
-  /* debug_msg (2, "<= calc verify"); */
-
-  /* sha512_free (&sha512); */
-
-  /* return; */
+static void
+calc_verify_tls_sha384 (ntbtls_t tls, unsigned char hash[48])
+{
+  calc_verify_tls (tls->handshake->fin_sha512, GCRY_MD_SHA384, hash, 48);
 }
 
 
@@ -679,581 +654,572 @@ _ntbtls_psk_derive_premaster (ntbtls_t tls, key_exchange_type_t kex)
 /*
  * Encryption/decryption functions
  */
-static int
-ssl_encrypt_buf (ntbtls_t ssl)
+static gpg_error_t
+encrypt_buf (ntbtls_t tls)
 {
-  //FIXME:
-  /* size_t i; */
-  /* const cipher_mode_t mode = */
-  /*   cipher_get_cipher_mode (&ssl->transform_out->cipher_ctx_enc); */
+  gpg_error_t err;
+  size_t tmplen, i;
+  cipher_mode_t mode = tls->transform_out->cipher_mode_enc;
 
-  /* debug_msg (2, "=> encrypt buf"); */
+  debug_msg (2, "=> encrypt buf");
 
-  /* /\* */
-  /*  * Add MAC before encrypt, except for AEAD modes */
-  /*  *\/ */
-  /* if (mode != POLARSSL_MODE_GCM && mode != POLARSSL_MODE_CCM) */
-  /*   { */
-  /*     if (ssl->minor_ver >= TLS_MINOR_VERSION_1) */
-  /*       { */
-  /*         md_hmac_update (&ssl->transform_out->md_ctx_enc, ssl->out_ctr, 13); */
-  /*         md_hmac_update (&ssl->transform_out->md_ctx_enc, */
-  /*                         ssl->out_msg, ssl->out_msglen); */
-  /*         md_hmac_finish (&ssl->transform_out->md_ctx_enc, */
-  /*                         ssl->out_msg + ssl->out_msglen); */
-  /*         md_hmac_reset (&ssl->transform_out->md_ctx_enc); */
-  /*       } */
-  /*     else */
-  /*       { */
-  /*         debug_bug (); */
-  /*         return gpg_error (GPG_ERR_INTERNAL); */
-  /*       } */
+  if (tls->minor_ver < TLS_MINOR_VERSION_3)
+    {
+      debug_bug ();
+      return gpg_error (GPG_ERR_BUG);
+    }
 
-  /*     debug_buf (4, "computed mac", */
-  /*                ssl->out_msg + ssl->out_msglen, */
-  /*                ssl->transform_out->maclen); */
 
-  /*     ssl->out_msglen += ssl->transform_out->maclen; */
-  /*   } */
+  /*
+   * Add MAC before encrypt, except for AEAD modes
+   */
+  if (mode != GCRY_CIPHER_MODE_GCM && mode != GCRY_CIPHER_MODE_CCM)
+    {
+      /* fixme: Add error checking.  */
+      gcry_mac_write (tls->transform_out->mac_ctx_enc, tls->out_ctr, 13);
+      gcry_mac_write (tls->transform_out->mac_ctx_enc,
+                      tls->out_msg, tls->out_msglen);
+      tmplen = tls->transform_out->maclen;
+      gcry_mac_read (tls->transform_out->mac_ctx_enc,
+                     tls->out_msg + tls->out_msglen, &tmplen);
+      gcry_mac_reset (tls->transform_out->mac_ctx_enc);
 
-  /* /\* */
-  /*  * Encrypt */
-  /*  *\/ */
-  /* if (mode == POLARSSL_MODE_STREAM) */
-  /*   { */
-  /*     int ret; */
-  /*     size_t olen = 0; */
+      debug_buf (4, "computed mac",
+                 tls->out_msg + tls->out_msglen,
+                 tls->transform_out->maclen);
 
-  /*     debug_msg (3, "before encrypt: msglen = %d, " */
-  /*                "including %d bytes of padding", */
-  /*                ssl->out_msglen, 0); */
+      tls->out_msglen += tls->transform_out->maclen;
+    }
 
-  /*     debug_buf (4, "before encrypt: output payload", */
-  /*                ssl->out_msg, ssl->out_msglen); */
+  /*
+   * Encrypt
+   */
+  if (mode == GCRY_CIPHER_MODE_STREAM)
+    {
+      size_t olen = 0;
 
-  /*     if ((ret = cipher_crypt (&ssl->transform_out->cipher_ctx_enc, */
-  /*                              ssl->transform_out->iv_enc, */
-  /*                              ssl->transform_out->ivlen, */
-  /*                              ssl->out_msg, ssl->out_msglen, */
-  /*                              ssl->out_msg, &olen)) != 0) */
-  /*       { */
-  /*         debug_ret (1, "cipher_crypt", ret); */
-  /*         return (ret); */
-  /*       } */
+      debug_msg (3, "before encrypt: msglen = %d,"
+                 " including %d bytes of padding", tls->out_msglen, 0);
+      debug_buf (4, "before encrypt: output payload",
+                 tls->out_msg, tls->out_msglen);
 
-  /*     if (ssl->out_msglen != olen) */
-  /*       { */
-  /*         debug_bug (); */
-  /*         return gpg_error (GPG_ERR_INTERNAL); */
-  /*       } */
-  /*   } */
-  /* else if (mode == POLARSSL_MODE_GCM || mode == POLARSSL_MODE_CCM) */
-  /*   { */
-  /*     int ret; */
-  /*     size_t enc_msglen, olen; */
-  /*     unsigned char *enc_msg; */
-  /*     unsigned char add_data[13]; */
-  /*     unsigned char taglen = ssl->transform_out->ciphersuite->flags & */
-  /*       POLARSSL_CIPHERSUITE_SHORT_TAG ? 8 : 16; */
+      /* err = cipher_crypt (&tls->transform_out->cipher_ctx_enc, */
+      /*                     tls->transform_out->iv_enc, */
+      /*                     tls->transform_out->ivlen, */
+      /*                     tls->out_msg, tls->out_msglen, */
+      /*                     tls->out_msg, &olen); */
+      err = gpg_error (GPG_ERR_NOT_IMPLEMENTED);
+      if (err)
+        {
+          debug_ret (1, "cipher_crypt", err);
+          return err;
+        }
 
-  /*     memcpy (add_data, ssl->out_ctr, 8); */
-  /*     add_data[8] = ssl->out_msgtype; */
-  /*     add_data[9] = ssl->major_ver; */
-  /*     add_data[10] = ssl->minor_ver; */
-  /*     add_data[11] = (ssl->out_msglen >> 8) & 0xFF; */
-  /*     add_data[12] = ssl->out_msglen & 0xFF; */
+      if (tls->out_msglen != olen)
+        {
+          debug_bug ();
+          return gpg_error (GPG_ERR_INTERNAL);
+        }
+    }
+  else if (mode == GCRY_CIPHER_MODE_GCM || mode == GCRY_CIPHER_MODE_CCM)
+    {
+      size_t enc_msglen, olen;
+      unsigned char *enc_msg;
+      unsigned char add_data[13];
+      unsigned char taglen;
 
-  /*     debug_buf (4, "additional data used for AEAD", add_data, 13); */
 
-  /*     /\* */
-  /*      * Generate IV */
-  /*      *\/ */
-  /*     ret = ssl->f_rng (ssl->p_rng, */
-  /*                       ssl->transform_out->iv_enc + */
-  /*                       ssl->transform_out->fixed_ivlen, */
-  /*                       ssl->transform_out->ivlen - */
-  /*                       ssl->transform_out->fixed_ivlen); */
-  /*     if (ret != 0) */
-  /*       return (ret); */
+      taglen = (_ntbtls_ciphersuite_get_flags (tls->transform_out->ciphersuite)
+                & CIPHERSUITE_FLAG_SHORT_TAG)? 8 : 16;
 
-  /*     memcpy (ssl->out_iv, */
-  /*             ssl->transform_out->iv_enc + ssl->transform_out->fixed_ivlen, */
-  /*             ssl->transform_out->ivlen - ssl->transform_out->fixed_ivlen); */
+      memcpy (add_data, tls->out_ctr, 8);
+      add_data[8] = tls->out_msgtype;
+      add_data[9] = tls->major_ver;
+      add_data[10] = tls->minor_ver;
+      add_data[11] = (tls->out_msglen >> 8) & 0xFF;
+      add_data[12] = tls->out_msglen & 0xFF;
 
-  /*     debug_buf (4, "IV used", ssl->out_iv, */
-  /*                ssl->transform_out->ivlen - ssl->transform_out->fixed_ivlen); */
+      debug_buf (4, "additional data used for AEAD", add_data, 13);
 
-  /*     /\* */
-  /*      * Fix pointer positions and message length with added IV */
-  /*      *\/ */
-  /*     enc_msg = ssl->out_msg; */
-  /*     enc_msglen = ssl->out_msglen; */
-  /*     ssl->out_msglen += ssl->transform_out->ivlen - */
-  /*       ssl->transform_out->fixed_ivlen; */
+      /*
+       * Generate IV
+       */
+      gcry_create_nonce (tls->transform_out->iv_enc
+                         + tls->transform_out->fixed_ivlen,
+                         tls->transform_out->ivlen
+                         - tls->transform_out->fixed_ivlen);
 
-  /*     debug_msg (3, "before encrypt: msglen = %d, " */
-  /*                "including %d bytes of padding", ssl->out_msglen, 0); */
+      memcpy (tls->out_iv,
+              tls->transform_out->iv_enc + tls->transform_out->fixed_ivlen,
+              tls->transform_out->ivlen - tls->transform_out->fixed_ivlen);
 
-  /*     debug_buf (4, "before encrypt: output payload", */
-  /*                ssl->out_msg, ssl->out_msglen); */
+      debug_buf (4, "IV used", tls->out_iv,
+                 tls->transform_out->ivlen - tls->transform_out->fixed_ivlen);
 
-  /*     /\* */
-  /*      * Encrypt and authenticate */
-  /*      *\/ */
-  /*     if ((ret = cipher_auth_encrypt (&ssl->transform_out->cipher_ctx_enc, */
-  /*                                     ssl->transform_out->iv_enc, */
-  /*                                     ssl->transform_out->ivlen, */
-  /*                                     add_data, 13, */
-  /*                                     enc_msg, enc_msglen, */
-  /*                                     enc_msg, &olen, */
-  /*                                     enc_msg + enc_msglen, taglen)) != 0) */
-  /*       { */
-  /*         debug_ret (1, "cipher_auth_encrypt", ret); */
-  /*         return (ret); */
-  /*       } */
+      /*
+       * Fix pointer positions and message length with added IV
+       */
+      enc_msg = tls->out_msg;
+      enc_msglen = tls->out_msglen;
+      tls->out_msglen += (tls->transform_out->ivlen
+                          - tls->transform_out->fixed_ivlen);
 
-  /*     if (olen != enc_msglen) */
-  /*       { */
-  /*         debug_bug (); */
-  /*         return gpg_error (GPG_ERR_INTERNAL); */
-  /*       } */
+      debug_msg (3, "before encrypt: msglen = %d, "
+                 "including %d bytes of padding", tls->out_msglen, 0);
+      debug_buf (4, "before encrypt: output payload",
+                 tls->out_msg, tls->out_msglen);
 
-  /*     ssl->out_msglen += taglen; */
+      /*
+       * Encrypt and authenticate
+       */
+      /* err = cipher_auth_encrypt (&tls->transform_out->cipher_ctx_enc, */
+      /*                            tls->transform_out->iv_enc, */
+      /*                            tls->transform_out->ivlen, */
+      /*                            add_data, 13, */
+      /*                            enc_msg, enc_msglen, */
+      /*                            enc_msg, &olen, */
+      /*                            enc_msg + enc_msglen, taglen); */
+      err = gpg_error (GPG_ERR_NOT_IMPLEMENTED);
+      if (err)
+        {
+          debug_ret (1, "cipher_auth_encrypt", err);
+          return err;
+        }
 
-  /*     debug_buf (4, "after encrypt: tag", enc_msg + enc_msglen, taglen); */
-  /*   } */
-  /* else if (mode == POLARSSL_MODE_CBC) */
-  /*   { */
-  /*     int ret; */
-  /*     unsigned char *enc_msg; */
-  /*     size_t enc_msglen, padlen, olen = 0; */
+      if (olen != enc_msglen)
+        {
+          debug_bug ();
+          return gpg_error (GPG_ERR_BUG);
+        }
 
-  /*     padlen = ssl->transform_out->ivlen - (ssl->out_msglen + 1) % */
-  /*       ssl->transform_out->ivlen; */
-  /*     if (padlen == ssl->transform_out->ivlen) */
-  /*       padlen = 0; */
+      tls->out_msglen += taglen;
 
-  /*     for (i = 0; i <= padlen; i++) */
-  /*       ssl->out_msg[ssl->out_msglen + i] = (unsigned char) padlen; */
+      debug_buf (4, "after encrypt: tag", enc_msg + enc_msglen, taglen);
+    }
+  else if (mode == GCRY_CIPHER_MODE_CBC)
+    {
+      unsigned char *enc_msg;
+      size_t enc_msglen, padlen;
 
-  /*     ssl->out_msglen += padlen + 1; */
+      padlen = (tls->transform_out->ivlen
+                - ((tls->out_msglen + 1) % tls->transform_out->ivlen));
+      if (padlen == tls->transform_out->ivlen)
+        padlen = 0;
 
-  /*     enc_msglen = ssl->out_msglen; */
-  /*     enc_msg = ssl->out_msg; */
+      for (i = 0; i <= padlen; i++)
+        tls->out_msg[tls->out_msglen + i] = (unsigned char) padlen;
 
-  /*     /\* */
-  /*      * Prepend per-record IV for block cipher in TLS v1.1 and up as per */
-  /*      * Method 1 (6.2.3.2. in RFC4346 and RFC5246) */
-  /*      *\/ */
-  /*     if (ssl->minor_ver >= TLS_MINOR_VERSION_2) */
-  /*       { */
-  /*         /\* */
-  /*          * Generate IV */
-  /*          *\/ */
-  /*         int ret = ssl->f_rng (ssl->p_rng, ssl->transform_out->iv_enc, */
-  /*                               ssl->transform_out->ivlen); */
-  /*         if (ret != 0) */
-  /*           return (ret); */
+      tls->out_msglen += padlen + 1;
 
-  /*         memcpy (ssl->out_iv, ssl->transform_out->iv_enc, */
-  /*                 ssl->transform_out->ivlen); */
+      enc_msglen = tls->out_msglen;
+      enc_msg = tls->out_msg;
 
-  /*         /\* */
-  /*          * Fix pointer positions and message length with added IV */
-  /*          *\/ */
-  /*         enc_msg = ssl->out_msg; */
-  /*         enc_msglen = ssl->out_msglen; */
-  /*         ssl->out_msglen += ssl->transform_out->ivlen; */
-  /*       } */
+      /*
+       * Prepend per-record IV for block cipher in TLS v1.1 and up as per
+       * Method 1 (RFC-5246, 6.2.3.2)
+       */
 
-  /*     debug_msg (3, "before encrypt: msglen = %d, " */
-  /*                "including %d bytes of IV and %d bytes of padding", */
-  /*                ssl->out_msglen, ssl->transform_out->ivlen, */
-  /*                padlen + 1); */
+      /* Generate IV.  */
+      gcry_create_nonce (tls->transform_out->iv_enc, tls->transform_out->ivlen);
 
-  /*     debug_buf (4, "before encrypt: output payload", */
-  /*                ssl->out_iv, ssl->out_msglen); */
+      memcpy (tls->out_iv, tls->transform_out->iv_enc,
+              tls->transform_out->ivlen);
 
-  /*     if ((ret = cipher_crypt (&ssl->transform_out->cipher_ctx_enc, */
-  /*                              ssl->transform_out->iv_enc, */
-  /*                              ssl->transform_out->ivlen, */
-  /*                              enc_msg, enc_msglen, enc_msg, &olen)) != 0) */
-  /*       { */
-  /*         debug_ret (1, "cipher_crypt", ret); */
-  /*         return (ret); */
-  /*       } */
+      /* Fix pointer positions and message length with added IV.  */
+      enc_msg = tls->out_msg;
+      enc_msglen = tls->out_msglen;
+      tls->out_msglen += tls->transform_out->ivlen;
 
-  /*     if (enc_msglen != olen) */
-  /*       { */
-  /*         debug_bug (); */
-  /*         return gpg_error (GPG_ERR_INTERNAL); */
-  /*       } */
+      debug_msg (3, "before encrypt: msglen = %d, "
+                 "including %d bytes of IV and %d bytes of padding",
+                 tls->out_msglen, tls->transform_out->ivlen, padlen + 1);
+      debug_buf (4, "before encrypt: output payload",
+                 tls->out_iv, tls->out_msglen);
 
-  /*   } */
-  /* else */
-  /*   { */
-  /*     debug_bug (); */
-  /*     return gpg_error (GPG_ERR_INTERNAL); */
-  /*   } */
+      err = gcry_cipher_reset (tls->transform_out->cipher_ctx_enc);
+      if (err)
+        {
+          debug_ret (1, "cipher_reset", err);
+          return err;
+        }
+      err = gcry_cipher_setiv (tls->transform_out->cipher_ctx_enc,
+                               tls->transform_out->iv_enc,
+                               tls->transform_out->ivlen);
+      if (err)
+        {
+          debug_ret (1, "cipher_setiv", err);
+          return err;
+        }
 
-  /* for (i = 8; i > 0; i--) */
-  /*   if (++ssl->out_ctr[i - 1] != 0) */
-  /*     break; */
+      err = gcry_cipher_encrypt (tls->transform_out->cipher_ctx_enc,
+                                 enc_msg, enc_msglen, NULL, 0);
+      if (err)
+        {
+          debug_ret (1, "cipher_encrypt", err);
+          return err;
+        }
+    }
+  else
+    {
+      debug_bug ();
+      return gpg_error (GPG_ERR_INTERNAL);
+    }
 
-  /* /\* The loops goes to its end iff the counter is wrapping *\/ */
-  /* if (i == 0) */
-  /*   { */
-  /*     debug_msg (1, "outgoing message counter would wrap"); */
-  /*     return gpg_error (GPG_ERR_WOULD_WRAP); */
-  /*   } */
+  for (i = 8; i > 0; i--)
+    if (++tls->out_ctr[i - 1] != 0)
+      break;
 
-  /* debug_msg (2, "<= encrypt buf"); */
+  /* The loops goes to its end iff the counter is wrapping */
+  if (!i)
+    {
+      debug_msg (1, "outgoing message counter would wrap");
+      return gpg_error (GPG_ERR_WOULD_WRAP);
+    }
 
-  /* return (0); */
+  debug_msg (2, "<= encrypt buf");
+
+  return 0;
 }
 
-#define POLARSSL_SSL_MAX_MAC_SIZE   48
 
 static int
-ssl_decrypt_buf (ntbtls_t ssl)
+decrypt_buf (ntbtls_t tls)
 {
-  //FIXME:
-  /* size_t i; */
-  /* const cipher_mode_t mode = */
-  /*   cipher_get_cipher_mode (&ssl->transform_in->cipher_ctx_dec); */
-  /* size_t padlen = 0, correct = 1; */
+  gpg_error_t err;
+  cipher_mode_t mode = tls->transform_out->cipher_mode_dec;
+  size_t padlen = 0;
+  size_t correct = 1;
+  size_t tmplen, i;
 
-  /* debug_msg (2, "=> decrypt buf"); */
+  debug_msg (2, "=> decrypt buf");
 
-  /* if (ssl->in_msglen < ssl->transform_in->minlen) */
-  /*   { */
-  /*     debug_msg (1, "in_msglen (%d) < minlen (%d)", */
-  /*                ssl->in_msglen, ssl->transform_in->minlen); */
-  /*     return gpg_error (GPG_ERR_INV_MAC)
-  /*   } */
+  if (tls->minor_ver < TLS_MINOR_VERSION_3)
+    {
+      debug_bug ();
+      return gpg_error (GPG_ERR_BUG);
+    }
 
-  /* if (mode == POLARSSL_MODE_STREAM) */
-  /*   { */
-  /*     int ret; */
-  /*     size_t olen = 0; */
+  if (tls->in_msglen < tls->transform_in->minlen)
+    {
+      debug_msg (1, "in_msglen (%d) < minlen (%d)",
+                 tls->in_msglen, tls->transform_in->minlen);
+      return gpg_error (GPG_ERR_INV_MAC);
+    }
 
-  /*     padlen = 0; */
+  if (mode == GCRY_CIPHER_MODE_STREAM)
+    {
+      size_t olen = 0;
 
-  /*     if ((ret = cipher_crypt (&ssl->transform_in->cipher_ctx_dec, */
-  /*                              ssl->transform_in->iv_dec, */
-  /*                              ssl->transform_in->ivlen, */
-  /*                              ssl->in_msg, ssl->in_msglen, */
-  /*                              ssl->in_msg, &olen)) != 0) */
-  /*       { */
-  /*         debug_ret (1, "cipher_crypt", ret); */
-  /*         return (ret); */
-  /*       } */
+      padlen = 0;
 
-  /*     if (ssl->in_msglen != olen) */
-  /*       { */
-  /*         debug_bug (); */
-  /*         return gpg_error (GPG_ERR_INTERNAL); */
-  /*       } */
-  /*   } */
-  /* else if (mode == POLARSSL_MODE_GCM || mode == POLARSSL_MODE_CCM) */
-  /*   { */
-  /*     int ret; */
-  /*     size_t dec_msglen, olen; */
-  /*     unsigned char *dec_msg; */
-  /*     unsigned char *dec_msg_result; */
-  /*     unsigned char add_data[13]; */
-  /*     unsigned char taglen = ssl->transform_in->ciphersuite->flags & */
-  /*       POLARSSL_CIPHERSUITE_SHORT_TAG ? 8 : 16; */
-  /*     unsigned char explicit_iv_len = ssl->transform_in->ivlen - */
-  /*       ssl->transform_in->fixed_ivlen; */
+      /* err = cipher_crypt (tls->transform_in->cipher_ctx_dec, */
+      /*                     tls->transform_in->iv_dec, */
+      /*                     tls->transform_in->ivlen, */
+      /*                     tls->in_msg, tls->in_msglen, */
+      /*                     tls->in_msg, &olen); */
+      err = gpg_error (GPG_ERR_NOT_IMPLEMENTED);
+      if (err)
+        {
+          debug_ret (1, "cipher_crypt", err);
+          return err;
+        }
 
-  /*     if (ssl->in_msglen < explicit_iv_len + taglen) */
-  /*       { */
-  /*         debug_msg (1, "msglen (%d) < explicit_iv_len (%d) " */
-  /*                    "+ taglen (%d)", ssl->in_msglen, */
-  /*                    explicit_iv_len, taglen); */
-  /*         return gpg_error (GPG_ERR_INV_MAC);
-  /*       } */
-  /*     dec_msglen = ssl->in_msglen - explicit_iv_len - taglen; */
+      if (tls->in_msglen != olen)
+        {
+          debug_bug ();
+          return gpg_error (GPG_ERR_INTERNAL);
+        }
+    }
+  else if (mode == GCRY_CIPHER_MODE_GCM || mode == GCRY_CIPHER_MODE_CCM)
+    {
+      size_t dec_msglen, olen;
+      unsigned char *dec_msg;
+      unsigned char add_data[13];
+      unsigned char taglen, explicit_iv_len;
 
-  /*     dec_msg = ssl->in_msg; */
-  /*     dec_msg_result = ssl->in_msg; */
-  /*     ssl->in_msglen = dec_msglen; */
+      taglen = (_ntbtls_ciphersuite_get_flags (tls->transform_in->ciphersuite)
+                & CIPHERSUITE_FLAG_SHORT_TAG)? 8 : 16;
+      explicit_iv_len = (tls->transform_in->ivlen
+                         - tls->transform_in->fixed_ivlen);
 
-  /*     memcpy (add_data, ssl->in_ctr, 8); */
-  /*     add_data[8] = ssl->in_msgtype; */
-  /*     add_data[9] = ssl->major_ver; */
-  /*     add_data[10] = ssl->minor_ver; */
-  /*     add_data[11] = (ssl->in_msglen >> 8) & 0xFF; */
-  /*     add_data[12] = ssl->in_msglen & 0xFF; */
+      if (tls->in_msglen < explicit_iv_len + taglen)
+        {
+          debug_msg (1, "msglen (%d) < explicit_iv_len (%d) "
+                     "+ taglen (%d)", tls->in_msglen,
+                     explicit_iv_len, taglen);
+          return gpg_error (GPG_ERR_INV_MAC);
+         }
+      dec_msglen = tls->in_msglen - explicit_iv_len - taglen;
 
-  /*     debug_buf (4, "additional data used for AEAD", add_data, 13); */
+      dec_msg = tls->in_msg;
+      tls->in_msglen = dec_msglen;
 
-  /*     memcpy (ssl->transform_in->iv_dec + ssl->transform_in->fixed_ivlen, */
-  /*             ssl->in_iv, */
-  /*             ssl->transform_in->ivlen - ssl->transform_in->fixed_ivlen); */
+      memcpy (add_data, tls->in_ctr, 8);
+      add_data[8] = tls->in_msgtype;
+      add_data[9] = tls->major_ver;
+      add_data[10] = tls->minor_ver;
+      add_data[11] = (tls->in_msglen >> 8) & 0xFF;
+      add_data[12] = tls->in_msglen & 0xFF;
 
-  /*     debug_buf (4, "IV used", */
-  /*                ssl->transform_in->iv_dec, ssl->transform_in->ivlen); */
-  /*     debug_buf (4, "TAG used", dec_msg + dec_msglen, taglen); */
+      debug_buf (4, "additional data used for AEAD", add_data, 13);
 
-  /*     /\* */
-  /*      * Decrypt and authenticate */
-  /*      *\/ */
-  /*     if ((ret = cipher_auth_decrypt (&ssl->transform_in->cipher_ctx_dec, */
-  /*                                     ssl->transform_in->iv_dec, */
-  /*                                     ssl->transform_in->ivlen, */
-  /*                                     add_data, 13, */
-  /*                                     dec_msg, dec_msglen, */
-  /*                                     dec_msg_result, &olen, */
-  /*                                     dec_msg + dec_msglen, taglen)) != 0) */
-  /*       { */
-  /*         debug_ret (1, "cipher_auth_decrypt", ret); */
+      memcpy (tls->transform_in->iv_dec + tls->transform_in->fixed_ivlen,
+              tls->in_iv,
+              tls->transform_in->ivlen - tls->transform_in->fixed_ivlen);
 
-  /*         if (ret == POLARSSL_ERR_CIPHER_AUTH_FAILED) */
-  /*           return gpg_error (GPG_ERR_BAD_MAC); */
+      debug_buf (4, "IV used",
+                 tls->transform_in->iv_dec, tls->transform_in->ivlen);
+      debug_buf (4, "TAG used", dec_msg + dec_msglen, taglen);
 
-  /*         return (ret); */
-  /*       } */
+      /*
+       * Decrypt and authenticate
+       */
+      /* err = cipher_auth_decrypt (tls->transform_in->cipher_ctx_dec, */
+      /*                            tls->transform_in->iv_dec, */
+      /*                            tls->transform_in->ivlen, */
+      /*                            add_data, 13, */
+      /*                            dec_msg, dec_msglen, */
+      /*                            dec_msg_result, &olen, */
+      /*                            dec_msg + dec_msglen, taglen); */
+      err = gpg_error (GPG_ERR_NOT_IMPLEMENTED);
+      if (err)
+        {
+          debug_ret (1, "cipher_auth_decrypt", err);
 
-  /*     if (olen != dec_msglen) */
-  /*       { */
-  /*         debug_bug (); */
-  /*         return gpg_error (GPG_ERR_INTERNAL); */
-  /*       } */
-  /*   } */
-  /* else if (mode == POLARSSL_MODE_CBC) */
-  /*   { */
-  /*     /\* */
-  /*      * Decrypt and check the padding */
-  /*      *\/ */
-  /*     int ret; */
-  /*     unsigned char *dec_msg; */
-  /*     unsigned char *dec_msg_result; */
-  /*     size_t dec_msglen; */
-  /*     size_t minlen = 0; */
-  /*     size_t olen = 0; */
+          /* if (gpg_err_code (err) == POLARSSL_ERR_CIPHER_AUTH_FAILED) */
+          /*   err = gpg_error (GPG_ERR_BAD_MAC); */
 
-  /*     /\* */
-  /*      * Check immediate ciphertext sanity */
-  /*      *\/ */
-  /*     if (ssl->in_msglen % ssl->transform_in->ivlen != 0) */
-  /*       { */
-  /*         debug_msg (1, "msglen (%d) %% ivlen (%d) != 0", */
-  /*                    ssl->in_msglen, ssl->transform_in->ivlen); */
-  /*         return gpg_error (GPG_ERR_INV_MAC); */
-  /*       } */
+          return err;
+        }
 
-  /*     if (ssl->minor_ver >= TLS_MINOR_VERSION_2) */
-  /*       minlen += ssl->transform_in->ivlen; */
+      if (olen != dec_msglen)
+        {
+          debug_bug ();
+          return gpg_error (GPG_ERR_INTERNAL);
+        }
+    }
+  else if (mode == GCRY_CIPHER_MODE_CBC)
+    {
+      /*
+       * Decrypt and check the padding
+       */
+      unsigned char *dec_msg;
+      size_t pad_count, real_count, padding_idx;
+      size_t dec_msglen;
+      size_t minlen = 0;
+      size_t olen = 0;
 
-  /*     if (ssl->in_msglen < minlen + ssl->transform_in->ivlen || */
-  /*         ssl->in_msglen < minlen + ssl->transform_in->maclen + 1) */
-  /*       { */
-  /*         debug_msg (1, "msglen (%d) < max( ivlen(%d), maclen (%d) " */
-  /*                    "+ 1 ) ( + expl IV )", */
-  /*                    ssl->in_msglen, */
-  /*                    ssl->transform_in->ivlen, */
-  /*                    ssl->transform_in->maclen); */
-  /*         return gpg_error (GPG_ERR_INV_MAC); */
-  /*       } */
+      /*
+       * Check immediate ciphertext sanity
+       */
+      if ((tls->in_msglen % tls->transform_in->ivlen))
+        {
+          debug_msg (1, "msglen (%d) %% ivlen (%d) != 0",
+                     tls->in_msglen, tls->transform_in->ivlen);
+          return gpg_error (GPG_ERR_INV_MAC);
+        }
 
-  /*     dec_msglen = ssl->in_msglen; */
-  /*     dec_msg = ssl->in_msg; */
-  /*     dec_msg_result = ssl->in_msg; */
+      minlen += tls->transform_in->ivlen;
 
-  /*     /\* */
-  /*      * Initialize for prepended IV for block cipher in TLS v1.1 and up */
-  /*      *\/ */
-  /*     if (ssl->minor_ver >= TLS_MINOR_VERSION_2) */
-  /*       { */
-  /*         dec_msglen -= ssl->transform_in->ivlen; */
-  /*         ssl->in_msglen -= ssl->transform_in->ivlen; */
+      if (tls->in_msglen < minlen + tls->transform_in->ivlen
+          || tls->in_msglen < minlen + tls->transform_in->maclen + 1)
+        {
+          debug_msg (1, "msglen (%d) < max( ivlen(%d), maclen (%d) "
+                     "+ 1 ) ( + expl IV )",
+                     tls->in_msglen,
+                     tls->transform_in->ivlen,
+                     tls->transform_in->maclen);
+          return gpg_error (GPG_ERR_INV_MAC);
+        }
 
-  /*         for (i = 0; i < ssl->transform_in->ivlen; i++) */
-  /*           ssl->transform_in->iv_dec[i] = ssl->in_iv[i]; */
-  /*       } */
+      dec_msglen = tls->in_msglen;
+      dec_msg = tls->in_msg;
 
-  /*     if ((ret = cipher_crypt (&ssl->transform_in->cipher_ctx_dec, */
-  /*                              ssl->transform_in->iv_dec, */
-  /*                              ssl->transform_in->ivlen, */
-  /*                              dec_msg, dec_msglen, */
-  /*                              dec_msg_result, &olen)) != 0) */
-  /*       { */
-  /*         debug_ret (1, "cipher_crypt", ret); */
-  /*         return (ret); */
-  /*       } */
+      /*
+       * Initialize for prepended IV.
+       */
+      dec_msglen -= tls->transform_in->ivlen;
+      tls->in_msglen -= tls->transform_in->ivlen;
 
-  /*     if (dec_msglen != olen) */
-  /*       { */
-  /*         debug_bug (); */
-  /*         return gpg_error (GPG_ERR_INTERNAL); */
-  /*       } */
+      for (i = 0; i < tls->transform_in->ivlen; i++)
+        tls->transform_in->iv_dec[i] = tls->in_iv[i];
 
-  /*     padlen = 1 + ssl->in_msg[ssl->in_msglen - 1]; */
+      err = gcry_cipher_reset (tls->transform_out->cipher_ctx_dec);
+      if (err)
+        {
+          debug_ret (1, "cipher_reset", err);
+          return err;
+        }
+      err = gcry_cipher_setiv (tls->transform_out->cipher_ctx_dec,
+                               tls->transform_out->iv_dec,
+                               tls->transform_out->ivlen);
+      if (err)
+        {
+          debug_ret (1, "cipher_setiv", err);
+          return err;
+        }
 
-  /*     if (ssl->in_msglen < ssl->transform_in->maclen + padlen) */
-  /*       { */
-  /*         debug_msg (1, "msglen (%d) < maclen (%d) + padlen (%d)", */
-  /*                    ssl->in_msglen, ssl->transform_in->maclen, padlen); */
-  /*         padlen = 0; */
-  /*         correct = 0; */
-  /*       } */
+      err = gcry_cipher_decrypt (tls->transform_out->cipher_ctx_dec,
+                                 dec_msg, dec_msglen, NULL, 0);
+      if (err)
+        {
+          debug_ret (1, "cipher_decrypt", err);
+          return err;
+        }
 
-  /*     if (ssl->minor_ver > TLS_MINOR_VERSION_0) */
-  /*       { */
-  /*         /\* */
-  /*          * TLSv1+: always check the padding up to the first failure */
-  /*          * and fake check up to 256 bytes of padding */
-  /*          *\/ */
-  /*         size_t pad_count = 0, real_count = 1; */
-  /*         size_t padding_idx = ssl->in_msglen - padlen - 1; */
+      padlen = 1 + tls->in_msg[tls->in_msglen - 1];
 
-  /*         /\* */
-  /*          * Padding is guaranteed to be incorrect if: */
-  /*          *   1. padlen >= ssl->in_msglen */
-  /*          * */
-  /*          *   2. padding_idx >= TLS_MAX_CONTENT_LEN + */
-  /*          *                     ssl->transform_in->maclen */
-  /*          * */
-  /*          * In both cases we reset padding_idx to a safe value (0) to */
-  /*          * prevent out-of-buffer reads. */
-  /*          *\/ */
-  /*         correct &= (ssl->in_msglen >= padlen + 1); */
-  /*         correct &= (padding_idx < TLS_MAX_CONTENT_LEN + */
-  /*                     ssl->transform_in->maclen); */
+      if (tls->in_msglen < tls->transform_in->maclen + padlen)
+        {
+          debug_msg (1, "msglen (%d) < maclen (%d) + padlen (%d)",
+                     tls->in_msglen, tls->transform_in->maclen, padlen);
+          padlen = 0;
+          correct = 0;
+        }
 
-  /*         padding_idx *= correct; */
+      /*
+       * Always check the padding up to the first failure and fake
+       * check up to 256 bytes of padding
+       */
+      pad_count = 0;
+      real_count = 1;
+      padding_idx = tls->in_msglen - padlen - 1;
 
-  /*         for (i = 1; i <= 256; i++) */
-  /*           { */
-  /*             real_count &= (i <= padlen); */
-  /*             pad_count += real_count * */
-  /*               (ssl->in_msg[padding_idx + i] == padlen - 1); */
-  /*           } */
+      /*
+       * Padding is guaranteed to be incorrect if:
+       *   1. padlen >= tls->in_msglen
+       *
+       *   2. padding_idx >= TLS_MAX_CONTENT_LEN +
+       *                     tls->transform_in->maclen
+       *
+       * In both cases we reset padding_idx to a safe value (0) to
+       * prevent out-of-buffer reads.
+       */
+      correct &= (tls->in_msglen >= padlen + 1);
+      correct &= (padding_idx < TLS_MAX_CONTENT_LEN
+                  + tls->transform_in->maclen);
+      padding_idx *= correct;
 
-  /*         correct &= (pad_count == padlen);     /\* Only 1 on correct padding *\/ */
+      for (i = 1; i <= 256; i++)
+        {
+          real_count &= (i <= padlen);
+          pad_count += real_count * (tls->in_msg[padding_idx + i] == padlen-1);
+        }
 
-  /*         if (padlen > 0 && correct == 0) */
-  /*           debug_msg (1, "bad padding byte detected"); */
+      correct &= (pad_count == padlen);     /* Only 1 on correct padding */
 
-  /*         padlen &= correct * 0x1FF; */
-  /*       } */
-  /*     else */
-  /*       { */
-  /*         debug_bug (); */
-  /*         return gpg_error (GPG_ERR_INTERNAL); */
-  /*       } */
-  /*   } */
-  /* else */
-  /*   { */
-  /*     debug_bug (); */
-  /*     return gpg_error (GPG_ERR_INTERNAL); */
-  /*   } */
+      if (padlen > 0 && !correct)
+        debug_msg (1, "bad padding byte detected");
 
-  /* debug_buf (4, "raw buffer after decryption", ssl->in_msg, ssl->in_msglen); */
+      padlen &= correct * 0x1FF;
+    }
+  else
+    {
+      debug_bug ();
+      return gpg_error (GPG_ERR_INTERNAL);
+    }
 
-  /* /\* */
-  /*  * Always compute the MAC (RFC4346, CBCTIME), except for AEAD of course */
-  /*  *\/ */
-  /* if (mode != POLARSSL_MODE_GCM && mode != POLARSSL_MODE_CCM) */
-  /*   { */
-  /*     unsigned char tmp[POLARSSL_SSL_MAX_MAC_SIZE]; */
+  debug_buf (4, "raw buffer after decryption", tls->in_msg, tls->in_msglen);
 
-  /*     ssl->in_msglen -= (ssl->transform_in->maclen + padlen); */
+  /*
+   * Always compute the MAC (RFC4346, CBCTIME), except for AEAD of course
+   */
+  if (mode != GCRY_CIPHER_MODE_GCM && mode != GCRY_CIPHER_MODE_CCM)
+    {
+      unsigned char tmp[TLS_MAX_MAC_SIZE];
+      size_t j, extra_run;
 
-  /*     ssl->in_hdr[3] = (unsigned char) (ssl->in_msglen >> 8); */
-  /*     ssl->in_hdr[4] = (unsigned char) (ssl->in_msglen); */
+      tls->in_msglen -= (tls->transform_in->maclen + padlen);
 
-  /*     memcpy (tmp, ssl->in_msg + ssl->in_msglen, ssl->transform_in->maclen); */
+      tls->in_hdr[3] = (unsigned char) (tls->in_msglen >> 8);
+      tls->in_hdr[4] = (unsigned char) (tls->in_msglen);
 
-  /*     if (ssl->minor_ver > TLS_MINOR_VERSION_0) */
-  /*       { */
-  /*         /\* */
-  /*          * Process MAC and always update for padlen afterwards to make */
-  /*          * total time independent of padlen */
-  /*          * */
-  /*          * extra_run compensates MAC check for padlen */
-  /*          * */
-  /*          * Known timing attacks: */
-  /*          *  - Lucky Thirteen (http://www.isg.rhul.ac.uk/tls/TLStiming.pdf) */
-  /*          * */
-  /*          * We use ( ( Lx + 8 ) / 64 ) to handle 'negative Lx' values */
-  /*          * correctly. (We round down instead of up, so -56 is the correct */
-  /*          * value for our calculations instead of -55) */
-  /*          *\/ */
-  /*         size_t j, extra_run = 0; */
-  /*         extra_run = (13 + ssl->in_msglen + padlen + 8) / 64 - */
-  /*           (13 + ssl->in_msglen + 8) / 64; */
+      memcpy (tmp, tls->in_msg + tls->in_msglen, tls->transform_in->maclen);
 
-  /*         extra_run &= correct * 0xFF; */
+      /*
+       * Process MAC and always update for padlen afterwards to make
+       * total time independent of padlen
+       *
+       * extra_run compensates MAC check for padlen
+       *
+       * Known timing attacks:
+       *  - Lucky Thirteen (http://www.isg.rhul.ac.uk/tls/TLStiming.pdf)
+       *
+       * We use ( ( Lx + 8 ) / 64 ) to handle 'negative Lx' values
+       * correctly. (We round down instead of up, so -56 is the correct
+       * value for our calculations instead of -55)
+       */
+      extra_run = ((13 + tls->in_msglen + padlen + 8) / 64
+                   - (13 + tls->in_msglen + 8) / 64);
 
-  /*         md_hmac_update (&ssl->transform_in->md_ctx_dec, ssl->in_ctr, 13); */
-  /*         md_hmac_update (&ssl->transform_in->md_ctx_dec, ssl->in_msg, */
-  /*                         ssl->in_msglen); */
-  /*         md_hmac_finish (&ssl->transform_in->md_ctx_dec, */
-  /*                         ssl->in_msg + ssl->in_msglen); */
-  /*         for (j = 0; j < extra_run; j++) */
-  /*           md_process (&ssl->transform_in->md_ctx_dec, ssl->in_msg); */
+      extra_run &= correct * 0xFF;
 
-  /*         md_hmac_reset (&ssl->transform_in->md_ctx_dec); */
-  /*       } */
-  /*     else */
-  /*       { */
-  /*         debug_bug (); */
-  /*         return gpg_error (GPG_ERR_INTERNAL); */
-  /*       } */
+      gcry_mac_write (tls->transform_in->mac_ctx_dec, tls->in_ctr, 13);
+      gcry_mac_write (tls->transform_in->mac_ctx_dec, tls->in_msg,
+                      tls->in_msglen);
+      tmplen = tls->transform_in->maclen;
+      gcry_mac_read (tls->transform_in->mac_ctx_dec,
+                     tls->in_msg + tls->in_msglen, &tmplen);
+      //FIXME:
+      //FIXME:  We need to implement our own version of this
+      //FIXME:  Maybe we can use gcry_mac_write after the read but that
+      //        Needs to be checked and a comment must be added to
+      //        Libgcrypt so that we do not accidently optimize this away.
+      /* for (j = 0; j < extra_run; j++) */
+      /*   md_process (&tls->transform_in->md_ctx_dec, tls->in_msg); */
 
-  /*     debug_buf (4, "message  mac", tmp, ssl->transform_in->maclen); */
-  /*     debug_buf (4, "computed mac", */
-  /*                ssl->in_msg + ssl->in_msglen, ssl->transform_in->maclen); */
+      gcry_mac_reset (tls->transform_in->mac_ctx_dec);
 
-  /*     if (memcmpct (tmp, ssl->in_msg + ssl->in_msglen, */
-  /*                       ssl->transform_in->maclen) != 0) */
-  /*       { */
-  /*         debug_msg (1, "message mac does not match"); */
-  /*         correct = 0; */
-  /*       } */
+      debug_buf (4, "message  mac", tmp, tls->transform_in->maclen);
+      debug_buf (4, "computed mac",
+                 tls->in_msg + tls->in_msglen, tls->transform_in->maclen);
 
-  /*     /\* */
-  /*      * Finally check the correct flag */
-  /*      *\/ */
-  /*     if (correct == 0) */
-  /*       return gpg_error (GPG_ERR_BAD_MAC); */
-  /*   } */
+      if (memcmpct (tmp, tls->in_msg + tls->in_msglen,
+                    tls->transform_in->maclen))
+        {
+          debug_msg (1, "message mac does not match");
+          correct = 0;
+        }
 
-  /* if (ssl->in_msglen == 0) */
-  /*   { */
-  /*     ssl->nb_zero++; */
+      /*
+       * Finally check the correct flag
+       */
+      if (!correct)
+        return gpg_error (GPG_ERR_BAD_MAC);
+    }
 
-  /*     /\* */
-  /*      * Three or more empty messages may be a DoS attack */
-  /*      * (excessive CPU consumption). */
-  /*      *\/ */
-  /*     if (ssl->nb_zero > 3) */
-  /*       { */
-  /*         debug_msg (1, "received four consecutive empty " */
-  /*                    "messages, possible DoS attack"); */
-  /*         return gpg_error (GPG_ERR_INV_MAC); */
-  /*       } */
-  /*   } */
-  /* else */
-  /*   ssl->nb_zero = 0; */
+  if (!tls->in_msglen)
+    {
+      tls->nb_zero++;
 
-  /* for (i = 8; i > 0; i--) */
-  /*   if (++ssl->in_ctr[i - 1] != 0) */
-  /*     break; */
+      /*
+       * Three or more empty messages may be a DoS attack
+       * (excessive CPU consumption).
+       */
+      if (tls->nb_zero > 3)
+        {
+          debug_msg (1, "received four consecutive empty "
+                     "messages, possible DoS attack");
+          return gpg_error (GPG_ERR_INV_MAC);
+        }
+    }
+  else
+    tls->nb_zero = 0;
 
-  /* /\* The loops goes to its end iff the counter is wrapping *\/ */
-  /* if (i == 0) */
-  /*   { */
-  /*     debug_msg (1, "incoming message counter would wrap"); */
-  /*     return gpg_error (GPG_ERR_WOULD_WRAP); */
-  /*   } */
+  for (i = 8; i > 0; i--)
+    if (++tls->in_ctr[i - 1] != 0)
+      break;
 
-  /* debug_msg (2, "<= decrypt buf"); */
+  /* The loops goes to its end iff the counter is wrapping */
+  if (!i)
+    {
+      debug_msg (1, "incoming message counter would wrap");
+      return gpg_error (GPG_ERR_WOULD_WRAP);
+    }
 
-  /* return (0); */
+  debug_msg (2, "<= decrypt buf");
+
+  return 0;
 }
 
 
@@ -1382,7 +1348,7 @@ _ntbtls_fetch_input (ntbtls_t tls, size_t nb_want)
         err = gpg_error_from_syserror ();
 
       debug_msg (2, "in_left: %d, nb_want: %d", tls->in_left, nb_want);
-      debug_ret (2, "es_read", nread);
+      debug_ret (2, "es_read", err);
 
       if (err || !nread /*ie. EOF*/)
         break;
@@ -1392,7 +1358,7 @@ _ntbtls_fetch_input (ntbtls_t tls, size_t nb_want)
 
   debug_msg (2, "<= fetch input");
 
-  return 0;
+  return err;
 }
 
 
@@ -1480,10 +1446,10 @@ _ntbtls_write_record (ntbtls_t tls)
 
       if (tls->transform_out)
         {
-          err = ssl_encrypt_buf (tls);
+          err = encrypt_buf (tls);
           if (err)
             {
-              debug_ret (1, "ssl_encrypt_buf", err);
+              debug_ret (1, "encrypt_buf", err);
               return err;
             }
 
@@ -1555,7 +1521,7 @@ _ntbtls_read_record (ntbtls_t tls)
       if (tls->state != TLS_HANDSHAKE_OVER)
         tls->handshake->update_checksum (tls, tls->in_msg, tls->in_hslen);
 
-      return (0);
+      return 0;
     }
 
   tls->in_hslen = 0;
@@ -1645,7 +1611,7 @@ _ntbtls_read_record (ntbtls_t tls)
 
   if (!done && tls->transform_in)
     {
-      err = ssl_decrypt_buf (tls);
+      err = decrypt_buf (tls);
       if (err)
         {
           if (gpg_err_code (err) == GPG_ERR_INV_MAC
@@ -2170,9 +2136,9 @@ update_checksum_sha384 (ntbtls_t tls, const unsigned char *buf, size_t len)
 void
 _ntbtls_optimize_checksum (ntbtls_t tls, const ciphersuite_t suite)
 {
-  if (_ntbtls_ciphersuite_get_mac (suite) == GCRY_MD_SHA384)
+  if (_ntbtls_ciphersuite_get_mac (suite) == GCRY_MAC_HMAC_SHA384)
     tls->handshake->update_checksum = update_checksum_sha384;
-  else if (_ntbtls_ciphersuite_get_mac (suite) != GCRY_MD_SHA384)
+  else if (_ntbtls_ciphersuite_get_mac (suite) != GCRY_MAC_HMAC_SHA384)
     tls->handshake->update_checksum = update_checksum_sha256;
   else
     {
@@ -2191,88 +2157,74 @@ update_checksum_start (ntbtls_t tls, const unsigned char *buf, size_t len)
 
 
 
-/* static void */
-/* calc_finished_tls_sha256 (ntbtls_t ssl, unsigned char *buf, int is_client) */
-/* { */
-/*   int len = 12; */
-/*   const char *sender; */
-/*   sha256_context sha256; */
-/*   unsigned char padbuf[32]; */
+static void
+calc_finished_tls (ntbtls_t tls, int is_sha384,
+                   unsigned char *buf, int is_client)
+{
+  gpg_error_t err;
+  gcry_md_hd_t md;
+  int len = 12;
+  const char *sender;
+  unsigned char padbuf[48];
+  size_t hashlen = is_sha384? 48 : 32;
+  session_t session;
+  char *p;
 
-/*   session_t session = ssl->session_negotiate; */
-/*   if (!session) */
-/*     session = ssl->session; */
+  session = tls->session_negotiate;
+  if (!session)
+    session = tls->session;
 
-/*   debug_msg (2, "=> calc  finished tls sha256"); */
+  debug_msg (2, "=> calc finished tls sha%d", is_sha384? 384 : 256);
 
-/*   memcpy (&sha256, &ssl->handshake->fin_sha256, sizeof (sha256_context)); */
+  err = gcry_md_copy (&md, (is_sha384 ? tls->handshake->fin_sha512
+                            /*     */ : tls->handshake->fin_sha256));
+  if (err)
+    {
+      debug_ret (1, "calc_finished_tls", err);
+      memset (buf, 0, len);
+      return;
+    }
 
-/*   /\* */
-/*    * TLSv1.2: */
-/*    *   hash = PRF( master, finished_label, */
-/*    *               Hash( handshake ) )[0.11] */
-/*    *\/ */
+  /*
+   * TLSv1.2:
+   *   hash = PRF( master, finished_label,
+   *               Hash( handshake ) )[0.11]
+   */
+  sender = is_client ? "client finished" : "server finished";
 
-/* #if !defined(POLARSSL_SHA256_ALT) */
-/*   debug_buf (4, "finished sha2 state", sha256.state, sizeof (sha256.state)); */
-/* #endif */
+  p = gcry_md_read (md, is_sha384? GCRY_MD_SHA384 : GCRY_MD_SHA256);
+  if (p)
+    memcpy (padbuf, p, hashlen);
+  gcry_md_close (md);
+  if (!p)
+    {
+      debug_bug ();
+      memset (buf, 0, len);
+      return;
+    }
 
-/*   sender = is_client ? "client finished" : "server finished"; */
+  tls->handshake->tls_prf (session->master, 48, sender,
+                           padbuf, hashlen, buf, len);
 
-/*   sha256_finish (&sha256, padbuf); */
+  debug_buf (3, "calc finished result", buf, len);
 
-/*   ssl->handshake->tls_prf (session->master, 48, sender, padbuf, 32, buf, len); */
+  wipememory (padbuf, hashlen);
 
-/*   debug_buf (3, "calc finished result", buf, len); */
-
-/*   sha256_free (&sha256); */
-
-/*   wipememory (padbuf, sizeof (padbuf)); */
-
-/*   debug_msg (2, "<= calc  finished"); */
-/* } */
+  debug_msg (2, "<= calc finished tls sha%d", is_sha384? 384 : 256);
+}
 
 
-/* static void */
-/* calc_finished_tls_sha384 (ntbtls_t ssl, unsigned char *buf, int is_client) */
-/* { */
-/*   int len = 12; */
-/*   const char *sender; */
-/*   sha512_context sha512; */
-/*   unsigned char padbuf[48]; */
+static void
+calc_finished_tls_sha256 (ntbtls_t tls, unsigned char *buf, int is_client)
+{
+  calc_finished_tls (tls, 0, buf, is_client);
+}
 
-/*   session_t session = ssl->session_negotiate; */
-/*   if (!session) */
-/*     session = ssl->session; */
-
-/*   debug_msg (2, "=> calc  finished tls sha384"); */
-
-/*   memcpy (&sha512, &ssl->handshake->fin_sha512, sizeof (sha512_context)); */
-
-/*   /\* */
-/*    * TLSv1.2: */
-/*    *   hash = PRF( master, finished_label, */
-/*    *               Hash( handshake ) )[0.11] */
-/*    *\/ */
-
-/* #if !defined(POLARSSL_SHA512_ALT) */
-/*   debug_buf (4, "finished sha512 state", sha512.state, sizeof (sha512.state)); */
-/* #endif */
-
-/*   sender = is_client ? "client finished" : "server finished"; */
-
-/*   sha512_finish (&sha512, padbuf); */
-
-/*   ssl->handshake->tls_prf (session->master, 48, sender, padbuf, 48, buf, len); */
-
-/*   debug_buf (3, "calc finished result", buf, len); */
-
-/*   sha512_free (&sha512); */
-
-/*   wipememory (padbuf, sizeof (padbuf)); */
-
-/*   debug_msg (2, "<= calc  finished"); */
-/* } */
+static void
+calc_finished_tls_sha384 (ntbtls_t tls, unsigned char *buf, int is_client)
+{
+  calc_finished_tls (tls, 1, buf, is_client);
+}
 
 
 void
@@ -2351,8 +2303,9 @@ _ntbtls_write_finished (ntbtls_t tls)
 
   tls->handshake->calc_finished (tls, tls->out_msg + 4, tls->is_client);
 
-  //FIXME: TODO TLS/1.2 Hash length is determined by cipher suite (Page 63)
-  hashlen = (tls->minor_ver == TLS_MINOR_VERSION_0) ? 36 : 12;
+  /* TODO TLS/1.2 Hash length is determined by cipher suite (Page 63)
+     but all currently defined cipher suite keep it at 12.  */
+  hashlen = 12;
 
   tls->verify_data_len = hashlen;
   memcpy (tls->own_verify_data, tls->out_msg + 4, hashlen);
@@ -2406,7 +2359,7 @@ _ntbtls_parse_finished (ntbtls_t tls)
 
   debug_msg (2, "=> parse finished");
 
-  tls->handshake->calc_finished (tls, buf, tls->is_client);
+  tls->handshake->calc_finished (tls, buf, !tls->is_client);
 
   /*
    * Switch to our negotiated transform and session parameters for inbound
@@ -2442,8 +2395,8 @@ _ntbtls_parse_finished (ntbtls_t tls)
       return gpg_error (GPG_ERR_UNEXPECTED_MSG);
     }
 
-  //FIXME: TODO TLS/1.2 Hash length is determined by cipher suite (Page 63)
-  hashlen = (tls->minor_ver == TLS_MINOR_VERSION_0) ? 36 : 12;
+  /* TODO TLS/1.2 Hash length is determined by cipher suite (Page 63).  */
+  hashlen = 12;
 
   if (tls->in_msg[0] != TLS_HS_FINISHED || tls->in_hslen != 4 + hashlen)
     {
@@ -2454,6 +2407,8 @@ _ntbtls_parse_finished (ntbtls_t tls)
   if (memcmpct (tls->in_msg + 4, buf, hashlen))
     {
       debug_msg (1, "bad finished message");
+      debug_buf (2, "want", buf, hashlen);
+      debug_buf (2, " got", tls->in_msg+4, hashlen);
       return gpg_error (GPG_ERR_BAD_HS_FINISHED);
     }
 
@@ -2485,8 +2440,8 @@ transform_init (transform_t transform)
   /* cipher_init (&transform->cipher_ctx_enc); */
   /* cipher_init (&transform->cipher_ctx_dec); */
 
-  /* md_init (&transform->md_ctx_enc); */
-  /* md_init (&transform->md_ctx_dec); */
+  /* md_init (&transform->mac_ctx_enc); */
+  /* md_init (&transform->mac_ctx_dec); */
   return err;
 }
 
@@ -2504,8 +2459,8 @@ transform_deinit (transform_t transform)
   /* cipher_free (&transform->cipher_ctx_enc); */
   /* cipher_free (&transform->cipher_ctx_dec); */
 
-  /* md_free (&transform->md_ctx_enc); */
-  /* md_free (&transform->md_ctx_dec); */
+  /* md_free (&transform->mac_ctx_enc); */
+  /* md_free (&transform->mac_ctx_dec); */
 
   wipememory (transform, sizeof *transform);
 }
@@ -2549,11 +2504,21 @@ handshake_params_init (handshake_params_t handshake)
       return err;
     }
 
+  err = _ntbtls_dhm_new (&handshake->dhm_ctx);
+  if (err)
+    {
+      gcry_md_close (handshake->fin_sha256);
+      handshake->fin_sha256 = NULL;
+      gcry_md_close (handshake->fin_sha512);
+      handshake->fin_sha512 = NULL;
+      return err;
+    }
+
   handshake->update_checksum = update_checksum_start;
   handshake->sig_alg = TLS_HASH_SHA1;
 
+
   //*FIXME:
-  /* dhm_init (&handshake->dhm_ctx); */
   /* ecdh_init (&handshake->ecdh_ctx); */
   return 0;
 }
@@ -2565,8 +2530,10 @@ handshake_params_deinit (handshake_params_t handshake)
   if (!handshake)
     return;
 
+  _ntbtls_dhm_release (handshake->dhm_ctx);
+  handshake->dhm_ctx = NULL;
+
   //FIXME:
-  /* dhm_free (&handshake->dhm_ctx); */
   /* ecdh_free (&handshake->ecdh_ctx); */
 
   free (handshake->curves);
@@ -2703,7 +2670,13 @@ _ntbtls_new (ntbtls_t *r_tls, unsigned int flags)
       tls->use_session_tickets = 1;
     }
 
-  /* FIXME: ssl_set_ciphersuites (ssl, ssl_list_ciphersuites ()); */
+  /* We only support TLS 1.2 and thus we set the list for the other
+     TLS versions to NULL.  */
+  tls->ciphersuite_list[TLS_MINOR_VERSION_0] = NULL;
+  tls->ciphersuite_list[TLS_MINOR_VERSION_1] = NULL;
+  tls->ciphersuite_list[TLS_MINOR_VERSION_2] = NULL;
+  tls->ciphersuite_list[TLS_MINOR_VERSION_3] = _ntbtls_ciphersuite_list ();
+
 
   tls->renego_max_records = TLS_RENEGO_MAX_RECORDS_DEFAULT;
 
@@ -2875,6 +2848,13 @@ _ntbtls_set_transport (ntbtls_t tls, estream_t inbound, estream_t outbound)
     return gpg_error (GPG_ERR_INV_ARG);
   if (tls->inbound || tls->outbound)
     return gpg_error (GPG_ERR_CONFLICT);
+
+  /* fixme: Instead of calling a flush we set the stream to nowbug for
+     now.  This makes debugging easier.  */
+  if (es_setvbuf (inbound, NULL, _IONBF, 0))
+    return gpg_error_from_syserror ();
+  if (es_setvbuf (outbound, NULL, _IONBF, 0))
+    return gpg_error_from_syserror ();
 
   tls->inbound = inbound;
   tls->outbound = outbound;

@@ -21,11 +21,11 @@
 #ifndef NTBTLS_CONTEXT_H
 #define NTBTLS_CONTEXT_H
 
-#include <gcrypt.h>
 #include <zlib.h>
 
 
 typedef enum gcry_md_algos md_algo_t;
+typedef enum gcry_mac_algos mac_algo_t;
 typedef enum gcry_cipher_algos cipher_algo_t;
 typedef enum gcry_cipher_modes cipher_mode_t;
 typedef enum gcry_pk_algos pk_algo_t;
@@ -114,6 +114,13 @@ typedef struct x509_crl_s *x509_crl_t;
 
 
 /*
+ * Object to hold an DHM context.
+ */
+struct dhm_context_s;
+typedef struct dhm_context_s *dhm_context_t;
+
+
+/*
  * This structure is used for storing current session data.
  */
 struct _ntbtls_session_s
@@ -161,16 +168,18 @@ struct _ntbtls_transform_s
   size_t minlen;                /*!<  min. ciphertext length  */
   size_t ivlen;                 /*!<  IV length               */
   size_t fixed_ivlen;           /*!<  Fixed part of IV (AEAD) */
-  size_t maclen;                /*!<  MAC length              */
+  size_t maclen;                /* MAC length in bytes        */
 
   unsigned char iv_enc[16];     /*!<  IV (encryption)         */
   unsigned char iv_dec[16];     /*!<  IV (decryption)         */
 
-  gcry_md_hd_t md_ctx_enc;      /*!<  MAC (encryption)        */
-  gcry_md_hd_t md_ctx_dec;      /*!<  MAC (decryption)        */
+  gcry_mac_hd_t mac_ctx_enc;    /* MAC (encryption)           */
+  gcry_mac_hd_t mac_ctx_dec;    /* MAC (decryption)           */
 
-  gcry_cipher_hd_t cipher_ctx_enc; /*!<  encryption context      */
-  gcry_cipher_hd_t cipher_ctx_dec; /*!<  decryption context      */
+  gcry_cipher_hd_t cipher_ctx_enc; /* Encryption context.     */
+  cipher_mode_t    cipher_mode_enc;/* Mode for encryption.    */
+  gcry_cipher_hd_t cipher_ctx_dec; /* Decryption context.     */
+  cipher_mode_t    cipher_mode_dec;/* Mode for encryption.    */
 
   /*
    * Session specific compression layer
@@ -206,7 +215,7 @@ struct _ntbtls_handshake_params_s
   int sig_alg;                  /*!<  Hash algorithm for signature   */
   int cert_type;                /*!<  Requested cert type            */
   int verify_sig_alg;           /*!<  Signature algorithm for verify */
-  /*dhm_context*/void* dhm_ctx;          /*!<  DHM key exchange        */
+  dhm_context_t dhm_ctx;        /* DHM key exchange info.   */
   /*ecdh_context*/void* ecdh_ctx;        /*!<  ECDH key exchange       */
   const /*ecp_curve_info*/void **curves;/*!<  Supported elliptic curves */
   /**
@@ -222,14 +231,15 @@ struct _ntbtls_handshake_params_s
   /*
    * Checksum contexts
    */
-  gcry_md_hd_t fin_sha256;
-  gcry_md_hd_t fin_sha512;
+  gcry_md_hd_t fin_sha256;     /* Checksum of all handshake messages.  */
+  gcry_md_hd_t fin_sha512;     /* Ditto.  */
 
   void (*update_checksum) (ntbtls_t, const unsigned char *, size_t);
   void (*calc_verify) (ntbtls_t, unsigned char *);
   void (*calc_finished) (ntbtls_t, unsigned char *, int);
-  int (*tls_prf) (const unsigned char *, size_t, const char *,
-                  const unsigned char *, size_t, unsigned char *, size_t);
+  gpg_error_t (*tls_prf) (const unsigned char *, size_t, const char *,
+                          const unsigned char *, size_t, unsigned char *,
+                          size_t);
 
   size_t pmslen;                /*!<  premaster length        */
 

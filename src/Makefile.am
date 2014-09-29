@@ -80,11 +80,12 @@ libntbtls_la_LIBADD = $(ntbtls_res) @LTLIBOBJS@ @GPG_ERROR_LIBS@
 libntbtls_la_SOURCES = \
 	ntbtls.h \
         visibility.c visibility.h \
-	context.h ntbtls-int.h util.h wipemem.h \
+	context.h ntbtls-int.h wipemem.h \
+	util.c util.h \
 	protocol.c \
 	protocol-cli.c \
 	ciphersuites.c ciphersuites.h \
-	x509.c \
+	pkglue.c x509.c dhm.c \
 	debug.c
 
 # protocol-srv.c

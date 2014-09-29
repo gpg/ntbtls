@@ -23,6 +23,13 @@
 #include <string.h>
 #include <stdarg.h>
 
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+
 #include "ntbtls.h"
 
 #define PGMNAME "ntbtls-cli"
@@ -102,20 +109,98 @@ info (const char *format, ...)
 }
 
 
+
+static int
+connect_server (const char *server, unsigned short port)
+{
+  gpg_error_t err;
+  int sock = -1;
+  struct sockaddr_in addr;
+  struct hostent *host;
+
+  addr.sin_family = AF_INET;
+  addr.sin_port = htons (port);
+  host = gethostbyname ((char*)server);
+  if (!host)
+    {
+      err = gpg_error_from_syserror ();
+      fail ("host '%s' not found: %s\n", server, gpg_strerror (err));
+      return -1;
+    }
+
+  addr.sin_addr = *(struct in_addr*)host->h_addr;
+
+  sock = socket (AF_INET, SOCK_STREAM, 0);
+  if (sock == -1)
+    {
+      err = gpg_error_from_syserror ();
+      die ("error creating socket: %s\n", gpg_strerror (err));
+      return -1;
+    }
+
+  if (connect (sock, (struct sockaddr *)&addr, sizeof addr) == -1)
+    {
+      err = gpg_error_from_syserror ();
+      fail ("error connecting '%s': %s\n", server, gpg_strerror (err));
+      close (sock);
+      return -1;
+    }
+
+  return sock;
+}
+
+
+static int
+connect_estreams (const char *server, estream_t *r_in, estream_t *r_out)
+{
+  gpg_error_t err;
+  int sock;
+
+  *r_in = *r_out = NULL;
+
+  sock = connect_server (server, 8443);
+  if (!sock == -1)
+    return gpg_error (GPG_ERR_GENERAL);
+  *r_in = es_fdopen_nc (sock, "rb");
+  if (!*r_in)
+    {
+      err = gpg_error_from_syserror ();
+      close (sock);
+      return err;
+    }
+  *r_out = es_fdopen (sock, "wb");
+  if (!*r_out)
+    {
+      err = gpg_error_from_syserror ();
+      es_fclose (*r_in);
+      *r_in = NULL;
+      close (sock);
+      return err;
+    }
+
+  return 0;
+}
+
 
 
 static void
-simple_client (void)
+simple_client (const char *server)
 {
   gpg_error_t err;
   ntbtls_t tls;
+  estream_t inbound, outbound;
 
   err = ntbtls_new (&tls, NTBTLS_CLIENT);
   if (err)
     die ("ntbtls_init failed: %s <%s>\n",
          gpg_strerror (err), gpg_strsource (err));
 
-  err = ntbtls_set_transport (tls, es_stdin, es_stdout);
+  err = connect_estreams (server, &inbound, &outbound);
+  if (err)
+    die ("error connecting server: %s <%s>\n",
+         gpg_strerror (err), gpg_strsource (err));
+
+  err = ntbtls_set_transport (tls, inbound, outbound);
   if (err)
     die ("ntbtls_set_transport failed: %s <%s>\n",
          gpg_strerror (err), gpg_strsource (err));
@@ -134,6 +219,8 @@ simple_client (void)
   info ("handshake done");
 
   ntbtls_release (tls);
+  es_fclose (inbound);
+  es_fclose (outbound);
 }
 
 
@@ -142,6 +229,7 @@ int
 main (int argc, char **argv)
 {
   int last_argc = -1;
+  int debug_level = 0;
 
   if (argc)
     { argc--; argv++; }
@@ -153,15 +241,41 @@ main (int argc, char **argv)
           argc--; argv++;
           break;
         }
+      else if (!strcmp (*argv, "--version"))
+        {
+          printf ("%s\n", ntbtls_check_version (NULL));
+          if (verbose)
+            printf ("%s", ntbtls_check_version ("\001\001"));
+          return 0;
+        }
       else if (!strcmp (*argv, "--verbose"))
         {
           verbose = 1;
           argc--; argv++;
         }
-      else if (strncmp (*argv, "--", 2))
+      else if (!strcmp (*argv, "--debug"))
+        {
+          verbose = 1;
+          argc--; argv++;
+          if (argc)
+            {
+              debug_level = atoi (*argv);
+              argc--; argv++;
+            }
+          else
+            debug_level = 1;
+        }
+      else if (!strncmp (*argv, "--", 2) && (*argv)[2])
         die ("Invalid option '%s'\n", *argv);
     }
 
-  simple_client ();
+  if (!ntbtls_check_version (PACKAGE_VERSION))
+    die ("NTBTLS library too old (need %s, have %s)\n",
+         PACKAGE_VERSION, ntbtls_check_version (NULL));
+
+  if (debug_level)
+    ntbtls_set_debug (debug_level, NULL, NULL);
+
+  simple_client (argc? *argv : "localhost");
   return 0;
 }

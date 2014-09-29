@@ -202,8 +202,11 @@ ciphersuite_t _ntbtls_ciphersuite_from_id (int suite_id);
 
 const char *_ntbtls_ciphersuite_get_name (int suite_id);
 
-md_algo_t _ntbtls_ciphersuite_get_mac (ciphersuite_t suite);
+cipher_algo_t _ntbtls_ciphersuite_get_cipher (ciphersuite_t suite,
+                                              cipher_mode_t *r_mode);
+mac_algo_t _ntbtls_ciphersuite_get_mac (ciphersuite_t suite);
 key_exchange_type_t _ntbtls_ciphersuite_get_kex (ciphersuite_t suite);
+unsigned int _ntbtls_ciphersuite_get_flags (ciphersuite_t suite);
 pk_algo_t _ntbtls_ciphersuite_get_sig_pk_alg (ciphersuite_t suite);
 int _ntbtls_ciphersuite_version_ok (ciphersuite_t suite,
                                     int min_minor_ver, int max_minor_ver);

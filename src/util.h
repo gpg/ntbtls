@@ -57,6 +57,7 @@ memcmpct (const void *_a, const void *_b, size_t len)
 
 
 /*-- debug.c --*/
+void _ntbtls_set_debug (int level, const char *prefix, gpgrt_stream_t stream);
 
 /* FIXME: Add a public version of _GPGRT_GCC_A_PRINTF to libgpg-error.
    Use variadic macros is possibel to check the level before calling
@@ -67,11 +68,15 @@ void _ntbtls_debug_buf (int level, const char *text,
                         const void *buf, size_t len);
 void _ntbtls_debug_bug (const char *file, int line);
 void _ntbtls_debug_ret (int level, const char *name, gpg_error_t err);
+void _ntbtls_debug_mpi (int level, const char *text, gcry_mpi_t a);
+void _ntbtls_debug_sxp (int level, const char *text, gcry_sexp_t a);
 
 #define debug_msg          _ntbtls_debug_msg
 #define debug_buf(a,b,c,d) _ntbtls_debug_buf ((a),(b),(c),(d))
 #define debug_bug()        _ntbtls_debug_bug (__FILE__, __LINE__)
 #define debug_ret(l,n,e)   _ntbtls_debug_ret ((l),(n),(e))
+#define debug_mpi(l,t,a)   _ntbtls_debug_mpi ((l),(t),(a))
+#define debug_sxp(l,t,a)   _ntbtls_debug_sxp ((l),(t),(a))
 
 
 

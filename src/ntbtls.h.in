@@ -53,9 +53,12 @@ struct _ntbtls_context_s;
 typedef struct _ntbtls_context_s *ntbtls_t;
 
 
+/* Check that the library fulfills the version requirement.  */
+const char *ntbtls_check_version (const char *req_version);
 
 /* Create a new TLS context.  */
 gpg_error_t ntbtls_new (ntbtls_t *r_tls, unsigned int flags);
+
 void        ntbtls_release (ntbtls_t tls);
 
 gpg_error_t ntbtls_set_transport (ntbtls_t tls,
@@ -68,6 +71,17 @@ gpg_error_t ntbtls_get_stream (ntbtls_t tls,
 
 gpg_error_t ntbtls_handshake (ntbtls_t tls);
 
+
+
+/*
+ * Support functions
+ */
+
+/* Enable debugging at LEVEL (> 0) using an optional PREFIX (default:
+   "ntbtls") and an optional debug stream STREAM (default: es_stderr).
+   This function is not thread-safe and shall thus be called only once
+   before any extra threads have been started.  */
+void ntbtls_set_debug (int level, const char *prefix, gpgrt_stream_t stream);
 
 
 #if 0 /* (Keep Emacsens' auto-indent happy.) */

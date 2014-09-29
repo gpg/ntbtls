@@ -24,6 +24,8 @@
 #error ntbtls.h already included
 #endif
 
+#include <gcrypt.h>
+
 #include "ntbtls.h"
 #include "util.h"
 
@@ -73,6 +75,8 @@
 /* Lifetime of session tickets in seconds.  */
 #define TLS_DEFAULT_TICKET_LIFETIME  86400
 
+/* Maximum size of a MAC.  */
+#define TLS_MAX_MAC_SIZE   48
 
 
 /*
@@ -274,6 +278,9 @@ tls_own_cert (ntbtls_t tls)
  * Prototypes
  */
 
+/*-- util.c --*/
+const char *_ntbtls_check_version (const char *req_version);
+
 /*-- protocol.c --*/
 gpg_error_t _ntbtls_fetch_input (ntbtls_t tls, size_t nb_want);
 gpg_error_t _ntbtls_flush_output (ntbtls_t tls);
@@ -321,6 +328,14 @@ gpg_error_t _ntbtls_handshake_server_step (ntbtls_t tls);
 /*-- protocol-cli.c --*/
 gpg_error_t _ntbtls_handshake_client_step (ntbtls_t tls);
 
+
+/*-- pkglue.c --*/
+gpg_error_t _ntbtls_pk_verify (x509_cert_t chain,
+                               pk_algo_t pk_alg, md_algo_t md_alg,
+                               const unsigned char *hash, size_t hashlen,
+                               const unsigned char *sig, size_t siglen);
+
+
 /*-- x509.c --*/
 
 /*
@@ -345,6 +360,7 @@ gpg_error_t _ntbtls_x509_append_cert (x509_cert_t cert,
                                       const void *der, size_t derlen);
 const unsigned char *_ntbtls_x509_get_cert (x509_cert_t cert, int idx,
                                             size_t *r_derlen);
+gpg_error_t _ntbtls_x509_get_pk (x509_cert_t cert, int idx, gcry_sexp_t *r_pk);
 
 
 gpg_error_t _ntbtls_x509_verify (x509_cert_t cert, x509_cert_t trust_ca,
@@ -352,6 +368,22 @@ gpg_error_t _ntbtls_x509_verify (x509_cert_t cert, x509_cert_t trust_ca,
                                  const char *cn, int *r_flags);
 
 int _ntbtls_x509_can_do (x509_privkey_t privkey, pk_algo_t pkalgo);
+
+
+/*-- dhm.c --*/
+gpg_error_t _ntbtls_dhm_new (dhm_context_t *r_dhm);
+void _ntbtls_dhm_release (dhm_context_t dhm);
+gpg_error_t _ntbtls_dhm_read_params (dhm_context_t dhm,
+                                     const void *der, size_t derlen,
+                                     size_t *r_nparsed);
+unsigned int _ntbtls_dhm_get_nbits (dhm_context_t dhm);
+gpg_error_t _ntbtls_dhm_make_public (dhm_context_t dhm,
+                                     unsigned char *outbuf, size_t outbufsize,
+                                     size_t *r_outbuflen);
+gpg_error_t _ntbtls_dhm_calc_secret (dhm_context_t dhm,
+                                     unsigned char *outbuf, size_t outbufsize,
+                                     size_t *r_outbuflen);
+
 
 
 
