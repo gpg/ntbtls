@@ -56,14 +56,21 @@ LIBNTBTLS_LT_CURRENT=0
 LIBNTBTLS_LT_AGE=0
 LIBNTBTLS_LT_REVISION=0
 
+# If the API is changed in an incompatible way: increment the next counter.
+NTBTLS_CONFIG_API_VERSION=1
 
-NEED_GPG_ERROR_VERSION=1.15
+# Minimum versions for required libraries
+
+NEED_GPG_ERROR_VERSION=1.16
 
 NEED_LIBGCRYPT_API=1
 NEED_LIBGCRYPT_VERSION=1.6.0
 
 NEED_KSBA_API=1
 NEED_KSBA_VERSION=1.2.0
+
+
+# End of config section
 
 PACKAGE=$PACKAGE_NAME
 VERSION=$PACKAGE_VERSION
@@ -258,6 +265,8 @@ AC_MSG_NOTICE([checking for libraries])
 #
 AM_PATH_GPG_ERROR("$NEED_GPG_ERROR_VERSION",
                   have_gpg_error=yes,have_gpg_error=no)
+AC_DEFINE(GPG_ERR_SOURCE_DEFAULT, GPG_ERR_SOURCE_TLS,
+          [The default error source for NTBTLS.])
 
 
 #
@@ -569,6 +578,20 @@ AC_ARG_ENABLE(optimization,
 #
 
 
+
+#
+# Set variables for use by ntbtls-config.
+#
+NTBTLS_CONFIG_LIBS="-lntbtls -lksba -lgcrypt"
+NTBTLS_CONFIG_CFLAGS=""
+NTBTLS_CONFIG_HOST="$host"
+
+AC_SUBST(NTBTLS_CONFIG_API_VERSION)
+AC_SUBST(NTBTLS_CONFIG_LIBS)
+AC_SUBST(NTBTLS_CONFIG_CFLAGS)
+AC_SUBST(NTBTLS_CONFIG_HOST)
+
+
 #
 # Provide information about the build.
 #
@@ -642,7 +665,11 @@ Makefile
 m4/Makefile
 src/Makefile
 src/ntbtls.h
+src/ntbtls-config
 ])
+AC_CONFIG_COMMANDS([ntbtls-conf],[[
+chmod +x src/ntbtls-config
+]])
 
 
 AC_OUTPUT

@@ -43,9 +43,9 @@ extern "C" {
 #define NTBTLS_VERSION_NUMBER @VERSION_NUMBER@
 
 
-/* Flags used by ntbtls_init.  */
-#define NTBTLS_INIT_SERVER  0
-#define NTBTLS_INIT_CLIENT  1
+/* Flags used by ntbtls_new.  */
+#define NTBTLS_SERVER  0
+#define NTBTLS_CLIENT  1
 
 
 /* The TLS context object.  */

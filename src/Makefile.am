@@ -83,6 +83,8 @@ libntbtls_la_SOURCES = \
 	context.h ntbtls-int.h util.h wipemem.h \
 	protocol.c \
 	protocol-cli.c \
+	ciphersuites.c ciphersuites.h \
+	x509.c \
 	debug.c
 
 # protocol-srv.c
@@ -90,3 +92,10 @@ libntbtls_la_SOURCES = \
 install-data-local: install-def-file
 
 uninstall-local: uninstall-def-file
+
+
+# Sample programs
+
+ntbtls_cli_CFLAGS = @LIBGCRYPT_CFLAGS@ @KSBA_CFLAGS@ @GPG_ERROR_CFLAGS@
+ntbtls_cli_LDFLAGS = -no-install
+ntbtls_cli_LDADD = libntbtls.la @LIBGCRYPT_LIBS@ @KSBA_LIBS@ @GPG_ERROR_LIBS@

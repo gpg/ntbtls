@@ -31,6 +31,31 @@
 #define DIMof(type,member)   DIM(((type *)0)->member)
 
 
+/* Return the size of a OID string without the nul.  */
+//FIXME: Do we use it?
+#define OID_SIZE(x) (sizeof(x) - 1)
+
+
+/* Constant-time compare of two buffers.  Returns 0 if buffers are
+   equal, and 1 if buffers differ.  At most places this function can
+   be used as a memcmp replacement.  However, -1 will never be
+   returned, thus it can't be used for sorting etc.  */
+static inline int
+memcmpct (const void *_a, const void *_b, size_t len)
+{
+  const unsigned char *a = _a;
+  const unsigned char *b = _b;
+  size_t diff, i;
+
+  /* Constant-time compare. */
+  for (i = 0, diff = 0; i < len; i++)
+    diff -= !!(a[i] - b[i]);
+
+  return !!diff;
+}
+
+
+
 /*-- debug.c --*/
 
 /* FIXME: Add a public version of _GPGRT_GCC_A_PRINTF to libgpg-error.

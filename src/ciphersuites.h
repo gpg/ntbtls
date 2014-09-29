@@ -52,17 +52,14 @@
 #define TLS_RSA_WITH_CAMELLIA_256_CBC_SHA        0x84
 #define TLS_DHE_RSA_WITH_CAMELLIA_256_CBC_SHA    0x88
 
-#define TLS_PSK_WITH_RC4_128_SHA                 0x8A
 #define TLS_PSK_WITH_3DES_EDE_CBC_SHA            0x8B
 #define TLS_PSK_WITH_AES_128_CBC_SHA             0x8C
 #define TLS_PSK_WITH_AES_256_CBC_SHA             0x8D
 
-#define TLS_DHE_PSK_WITH_RC4_128_SHA             0x8E
 #define TLS_DHE_PSK_WITH_3DES_EDE_CBC_SHA        0x8F
 #define TLS_DHE_PSK_WITH_AES_128_CBC_SHA         0x90
 #define TLS_DHE_PSK_WITH_AES_256_CBC_SHA         0x91
 
-#define TLS_RSA_PSK_WITH_RC4_128_SHA             0x92
 #define TLS_RSA_PSK_WITH_3DES_EDE_CBC_SHA        0x93
 #define TLS_RSA_PSK_WITH_AES_128_CBC_SHA         0x94
 #define TLS_RSA_PSK_WITH_AES_256_CBC_SHA         0x95
@@ -94,22 +91,18 @@
 #define TLS_RSA_WITH_CAMELLIA_256_CBC_SHA256     0xC0   /**< TLS 1.2 */
 #define TLS_DHE_RSA_WITH_CAMELLIA_256_CBC_SHA256 0xC4   /**< TLS 1.2 */
 
-#define TLS_ECDH_ECDSA_WITH_RC4_128_SHA          0xC002 /**< Not in SSL3! */
 #define TLS_ECDH_ECDSA_WITH_3DES_EDE_CBC_SHA     0xC003 /**< Not in SSL3! */
 #define TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA      0xC004 /**< Not in SSL3! */
 #define TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA      0xC005 /**< Not in SSL3! */
 
-#define TLS_ECDHE_ECDSA_WITH_RC4_128_SHA         0xC007 /**< Not in SSL3! */
 #define TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA    0xC008 /**< Not in SSL3! */
 #define TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA     0xC009 /**< Not in SSL3! */
 #define TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA     0xC00A /**< Not in SSL3! */
 
-#define TLS_ECDH_RSA_WITH_RC4_128_SHA            0xC00C /**< Not in SSL3! */
 #define TLS_ECDH_RSA_WITH_3DES_EDE_CBC_SHA       0xC00D /**< Not in SSL3! */
 #define TLS_ECDH_RSA_WITH_AES_128_CBC_SHA        0xC00E /**< Not in SSL3! */
 #define TLS_ECDH_RSA_WITH_AES_256_CBC_SHA        0xC00F /**< Not in SSL3! */
 
-#define TLS_ECDHE_RSA_WITH_RC4_128_SHA           0xC011 /**< Not in SSL3! */
 #define TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA      0xC012 /**< Not in SSL3! */
 #define TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA       0xC013 /**< Not in SSL3! */
 #define TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA       0xC014 /**< Not in SSL3! */
@@ -132,7 +125,6 @@
 #define TLS_ECDH_RSA_WITH_AES_128_GCM_SHA256     0xC031 /**< TLS 1.2 */
 #define TLS_ECDH_RSA_WITH_AES_256_GCM_SHA384     0xC032 /**< TLS 1.2 */
 
-#define TLS_ECDHE_PSK_WITH_RC4_128_SHA           0xC033 /**< Not in SSL3! */
 #define TLS_ECDHE_PSK_WITH_3DES_EDE_CBC_SHA      0xC034 /**< Not in SSL3! */
 #define TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA       0xC035 /**< Not in SSL3! */
 #define TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA       0xC036 /**< Not in SSL3! */
@@ -201,23 +193,23 @@
 #define TLS_ECDHE_ECDSA_WITH_AES_256_CCM_8      0xC0AF  /**< TLS 1.2 */
 
 struct _ntbtls_ciphersuite_s;
-typedef struct _ntbtls_ciphersuite_s  *ciphersuite_t;
+typedef const struct _ntbtls_ciphersuite_s *ciphersuite_t;
 
-#define POLARSSL_CIPHERSUITE_WEAK       0x01    /**< Weak ciphersuite flag  */
-#define POLARSSL_CIPHERSUITE_SHORT_TAG  0x02    /**< Short authentication tag,
-                                                   eg for CCM_8 */
+#define CIPHERSUITE_FLAG_SHORT_TAG  0x01   /* Short authentication tag.  */
 
-const int *ssl_list_ciphersuites (void);
+const int *_ntbtls_ciphersuite_list (void);
+ciphersuite_t _ntbtls_ciphersuite_from_id (int suite_id);
 
-const ciphersuite_t ssl_ciphersuite_from_string (const char *name);
-const ciphersuite_t ssl_ciphersuite_from_id (int ciphersuite_id);
+const char *_ntbtls_ciphersuite_get_name (int suite_id);
 
-#if defined(POLARSSL_PK_C)
-pk_type_t ssl_get_ciphersuite_sig_pk_alg (const ciphersuite_t info);
-#endif
+md_algo_t _ntbtls_ciphersuite_get_mac (ciphersuite_t suite);
+key_exchange_type_t _ntbtls_ciphersuite_get_kex (ciphersuite_t suite);
+pk_algo_t _ntbtls_ciphersuite_get_sig_pk_alg (ciphersuite_t suite);
+int _ntbtls_ciphersuite_version_ok (ciphersuite_t suite,
+                                    int min_minor_ver, int max_minor_ver);
 
-int ssl_ciphersuite_uses_ec (const ciphersuite_t info);
-int ssl_ciphersuite_uses_psk (const ciphersuite_t info);
+int _ntbtls_ciphersuite_uses_ec (ciphersuite_t suite);
+int _ntbtls_ciphersuite_uses_psk (ciphersuite_t suite);
 
 
 #endif /*NTBTLS_CIPHERSUITES_H*/

@@ -22,7 +22,7 @@
 NTBTLS_1.0 {
   global:
     ntbtls_new;
-    ntbtls_relase;
+    ntbtls_release;
     ntbtls_set_transport;
     ntbtls_get_stream;
     ntbtls_handshake;

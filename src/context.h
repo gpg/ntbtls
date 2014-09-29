@@ -22,13 +22,13 @@
 #define NTBTLS_CONTEXT_H
 
 #include <gcrypt.h>
-#include <ksba.h>
 #include <zlib.h>
 
 
 typedef enum gcry_md_algos md_algo_t;
 typedef enum gcry_cipher_algos cipher_algo_t;
-typedef enum gcry_pk_algos pk_type_t;
+typedef enum gcry_cipher_modes cipher_mode_t;
+typedef enum gcry_pk_algos pk_algo_t;
 
 /*
  * TLS states  (note that the order of the states is important)
@@ -93,6 +93,25 @@ typedef enum
   } key_exchange_type_t;
 
 
+/*
+ * Object to hold X.509 certifciates.
+ */
+struct x509_cert_s;
+typedef struct x509_cert_s *x509_cert_t;
+
+/*
+ * Object to hold an X.509 private key.
+ */
+struct x509_privkey_s;
+typedef struct x509_privkey_s *x509_privkey_t;
+
+
+/*
+ * Object to hold an X.509 CRL.
+ */
+struct x509_crl_s;
+typedef struct x509_crl_s *x509_crl_t;
+
 
 /*
  * This structure is used for storing current session data.
@@ -106,7 +125,7 @@ struct _ntbtls_session_s
   unsigned char id[32];         /*!< session identifier */
   unsigned char master[48];     /*!< the master secret  */
 
-  ksba_cert_t peer_cert;        /*!< peer X.509 cert chain */
+  x509_cert_t peer_chain;       /*!< peer X.509 cert chain */
   int verify_result;            /*!<  verification result     */
 
   unsigned char *ticket;        /*!< RFC 5077 session ticket */
@@ -115,7 +134,7 @@ struct _ntbtls_session_s
 
   unsigned char mfl_code;       /*!< MaxFragmentLength negotiated by peer */
 
-  int trunc_hmac;               /*!< flag for truncated hmac activation   */
+  int use_trunc_hmac;           /* Flag for truncated hmac activation.   */
 };
 
 typedef struct _ntbtls_session_s *session_t;
@@ -124,23 +143,8 @@ typedef struct _ntbtls_session_s *session_t;
 /*
  * This structure is used for storing ciphersuite information
  */
-struct _ntbtls_ciphersuite_s
-{
-  int id;
-  const char *name;
-
-  cipher_algo_t cipher;
-  md_algo_t mac;
-  key_exchange_type_t key_exchange;
-
-  int min_major_ver;
-  int min_minor_ver;
-  int max_major_ver;
-  int max_minor_ver;
-
-  unsigned char flags;
-};
-typedef struct _ntbtls_ciphersuite_s *ciphersuite_t;
+struct _ntbtls_ciphersuite_s;
+typedef const struct _ntbtls_ciphersuite_s *ciphersuite_t;
 
 
 /*
@@ -152,8 +156,7 @@ struct _ntbtls_transform_s
   /*
    * Session specific crypto layer
    */
-  const ciphersuite_t ciphersuite_info;
-  /*!<  Chosen cipersuite_info  */
+  ciphersuite_t ciphersuite;    /*!<  Chosen cipersuite_info  */
   unsigned int keylen;          /*!<  symmetric key length    */
   size_t minlen;                /*!<  min. ciphertext length  */
   size_t ivlen;                 /*!<  IV length               */
@@ -185,9 +188,8 @@ typedef struct _ntbtls_transform_s *transform_t;
 struct _ntbtls_key_cert_s
 {
   struct _ntbtls_key_cert_s *next;
-  ksba_cert_t cert;             /*!< cert                       */
-  /*FIXME*/void *key;              /*!< private key                */
-  int key_own_alloc;            /*!< did we allocate key?       */
+  x509_cert_t  cert;
+  x509_privkey_t key;
 };
 
 typedef struct _ntbtls_key_cert_s *key_cert_t;
@@ -208,6 +210,7 @@ struct _ntbtls_handshake_params_s
   /*ecdh_context*/void* ecdh_ctx;        /*!<  ECDH key exchange       */
   const /*ecp_curve_info*/void **curves;/*!<  Supported elliptic curves */
   /**
+   * //FIXME: Better explain this
    * Current key/cert or key/cert list.
    * On client: pointer to ssl->key_cert, only the first entry used.
    * On server: starts as a pointer to ssl->key_cert, then becomes
@@ -250,7 +253,7 @@ typedef struct _ntbtls_handshake_params_s *handshake_params_t;
 struct _ntbtls_ticket_keys_s
 {
   unsigned char key_name[16];   /*!< name to quickly discard bad tickets */
-  gcry_cipher_hd_t enc;          /*!< encryption context                  */
+  gcry_cipher_hd_t enc;         /*!< encryption context                  */
   gcry_cipher_hd_t dec;         /*!< decryption context                  */
   unsigned char mac_key[16];    /*!< authentication key                  */
 };
@@ -299,7 +302,7 @@ struct _ntbtls_context_s
   int (*f_sni) (void *, ntbtls_t, const unsigned char *, size_t);
   void *p_sni;                  /*!< context for SNI extension        */
 
-  int (*f_vrfy) (void *, ksba_cert_t, int, int *);
+  int (*f_vrfy) (void *, x509_cert_t, int, int *);
   void *p_vrfy;                 /*!< context for verification         */
 
   int (*f_psk) (void *, ntbtls_t, const unsigned char *, size_t);
@@ -364,8 +367,8 @@ struct _ntbtls_context_s
    */
   key_cert_t key_cert;          /*!<  own certificate(s)/key(s) */
 
-  ksba_cert_t ca_chain;         /*!<  own trusted CA chain      */
-  ksba_crl_t  ca_crl;           /*!<  trusted CA CRLs           */
+  x509_cert_t ca_chain;         /*!<  own trusted CA chain      */
+  x509_crl_t  ca_crl;           /*!<  trusted CA CRLs           */
   const char *peer_cn;          /*!<  expected peer CN          */
 
   /*
@@ -386,8 +389,8 @@ struct _ntbtls_context_s
   int renego_max_records;       /*!<  grace period for renegotiation */
   const int *ciphersuite_list[4];       /*!<  allowed ciphersuites / version */
   const /*ecp_group_id*/ void *curve_list;   /*!<  allowed curves        */
-  int trunc_hmac;               /*!<  negotiate truncated hmac?      */
-  int session_tickets;          /*!<  use session tickets?    */
+  int use_trunc_hmac;           /* Use truncated HMAC flag.   */
+  int use_session_tickets;      /* Use session tickets flag.  */
   int ticket_lifetime;          /*!<  session ticket lifetime */
 
   gcry_mpi_t dhm_P;             /*!<  prime modulus for DHM   */

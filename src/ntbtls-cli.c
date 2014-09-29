@@ -20,6 +20,7 @@
 #include <config.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <stdarg.h>
 
 #include "ntbtls.h"
@@ -106,18 +107,17 @@ info (const char *format, ...)
 static void
 simple_client (void)
 {
-  ggp_error_t err;
+  gpg_error_t err;
   ntbtls_t tls;
 
-
-  err = ntbtls_new (&tls);
+  err = ntbtls_new (&tls, NTBTLS_CLIENT);
   if (err)
-    die ("ntbtls_init failed: %s %s\n",
+    die ("ntbtls_init failed: %s <%s>\n",
          gpg_strerror (err), gpg_strsource (err));
 
-  err = ntbtls_set_transport (tls, instream, outstream);
+  err = ntbtls_set_transport (tls, es_stdin, es_stdout);
   if (err)
-    die ("ntbtls_set_transport failed: %s <%s>\n"
+    die ("ntbtls_set_transport failed: %s <%s>\n",
          gpg_strerror (err), gpg_strsource (err));
 
   info ("starting handshake");
@@ -126,6 +126,8 @@ simple_client (void)
       info ("handshake error: %s <%s>", gpg_strerror (err),gpg_strsource (err));
       switch (gpg_err_code (err))
         {
+        default:
+          break;
         }
       die ("handshake failed");
     }
@@ -161,4 +163,5 @@ main (int argc, char **argv)
     }
 
   simple_client ();
+  return 0;
 }

@@ -56,9 +56,23 @@
 #define TLS_COMPRESS_NULL               0
 #define TLS_COMPRESS_DEFLATE            1
 
+#define TLS_VERIFY_NONE                 0
+#define TLS_VERIFY_OPTIONAL             1
+#define TLS_VERIFY_REQUIRED             2
+
+#define TLS_LEGACY_RENEGOTIATION        0
+#define TLS_SECURE_RENEGOTIATION        1
+
+#define TLS_LEGACY_NO_RENEGOTIATION     0
+#define TLS_LEGACY_ALLOW_RENEGOTIATION  1
+#define TLS_LEGACY_BREAK_HANDSHAKE      2
+
+#define TLS_TRUNCATED_HMAC_LEN          10 /* 80 bits, rfc 6066 section 7 */
+
 
 /* Lifetime of session tickets in seconds.  */
 #define TLS_DEFAULT_TICKET_LIFETIME  86400
+
 
 
 /*
@@ -82,10 +96,10 @@
 #define TLS_MAC_ADD           48  /* SHA-384 used for HMAC */
 #define TLS_PADDING_ADD      256
 #define TLS_BUFFER_LEN  (TLS_MAX_CONTENT_LEN                    \
-                         + SSL_COMPRESSION_ADD                  \
+                         + TLS_COMPRESSION_ADD                  \
                          + 29 /* counter + header + IV */       \
-                         + SSL_MAC_ADD                          \
-                         + SSL_PADDING_ADD                      \
+                         + TLS_MAC_ADD                          \
+                         + TLS_PADDING_ADD                      \
                          )
 
 /*
@@ -123,7 +137,6 @@ union premaster_secret_u
 #define TLS_MAX_FRAG_LEN_1024           2  /*!< MaxFragmentLength 2^10     */
 #define TLS_MAX_FRAG_LEN_2048           3  /*!< MaxFragmentLength 2^11     */
 #define TLS_MAX_FRAG_LEN_4096           4  /*!< MaxFragmentLength 2^12     */
-#define TLS_MAX_FRAG_LEN_INVALID        5  /*!< first invalid value        */
 
 
 /*
@@ -220,12 +233,41 @@ union premaster_secret_u
 #define TLS_EXT_SUPPORTED_POINT_FORMATS_PRESENT (1 << 0)
 
 
+/*
+ * Signaling ciphersuite values (SCSV)
+ */
+#define TLS_EMPTY_RENEGOTIATION_INFO    0xFF
+
+
 
 /*
  * The structure definitions are in a separate file.
  */
 
 #include "context.h"
+
+/*
+ *  Inline functions etc.
+ */
+
+/* Return the private key object from the context object or NULL if
+   there is none.  */
+static inline x509_privkey_t
+tls_own_key (ntbtls_t tls)
+{
+  return tls->handshake->key_cert? tls->handshake->key_cert->key : NULL;
+}
+
+
+/* Return the certifciate key object from the context object or NULL
+   if there is none.  */
+static inline x509_cert_t
+tls_own_cert (ntbtls_t tls)
+{
+  return tls->handshake->key_cert? tls->handshake->key_cert->cert : NULL;
+}
+
+
 
 
 /*
@@ -236,10 +278,27 @@ union premaster_secret_u
 gpg_error_t _ntbtls_fetch_input (ntbtls_t tls, size_t nb_want);
 gpg_error_t _ntbtls_flush_output (ntbtls_t tls);
 
-pk_type_t _ntbtls_pk_alg_from_sig (unsigned char sig);
+gpg_error_t _ntbtls_write_record (ntbtls_t tls);
+gpg_error_t _ntbtls_read_record (ntbtls_t tls);
+gpg_error_t _ntbtls_send_fatal_handshake_failure (ntbtls_t tls);
+gpg_error_t _ntbtls_send_alert_message (ntbtls_t tls, unsigned char level,
+                                        unsigned char message);
+
+pk_algo_t _ntbtls_pk_alg_from_sig (unsigned char sig);
 md_algo_t _ntbtls_md_alg_from_hash (unsigned char hash);
 
 gpg_error_t _ntbtls_derive_keys (ntbtls_t tls);
+
+void _ntbtls_optimize_checksum (ntbtls_t tls,
+                                const ciphersuite_t ciphersuite_info);
+
+gpg_error_t _ntbtls_psk_derive_premaster (ntbtls_t tls,
+                                          key_exchange_type_t kex);
+gpg_error_t _ntbtls_write_change_cipher_spec (ntbtls_t tls);
+gpg_error_t _ntbtls_parse_change_cipher_spec (ntbtls_t tls);
+gpg_error_t _ntbtls_write_finished (ntbtls_t tls);
+gpg_error_t _ntbtls_parse_finished (ntbtls_t tls);
+void _ntbtls_handshake_wrapup (ntbtls_t tls);
 
 
 /* Functions directly used by the public API.  */
@@ -261,6 +320,38 @@ gpg_error_t _ntbtls_handshake_server_step (ntbtls_t tls);
 
 /*-- protocol-cli.c --*/
 gpg_error_t _ntbtls_handshake_client_step (ntbtls_t tls);
+
+/*-- x509.c --*/
+
+/*
+ *X509 Verify codes  - FIXME: Replace them by ksba stuff.
+ */
+#define BADCERT_EXPIRED             0x01  /* The certificate validity has expired. */
+#define BADCERT_REVOKED             0x02  /* The certificate has been revoked (is on a CRL). */
+#define BADCERT_CN_MISMATCH         0x04  /* The certificate Common Name (CN) does not match with the expected CN. */
+#define BADCERT_NOT_TRUSTED         0x08  /* The certificate is not correctly signed by the trusted CA. */
+#define BADCRL_NOT_TRUSTED          0x10  /* CRL is not correctly signed by the trusted CA. */
+#define BADCRL_EXPIRED              0x20  /* CRL is expired. */
+#define BADCERT_MISSING             0x40  /* Certificate was missing. */
+#define BADCERT_SKIP_VERIFY         0x80  /* Certificate verification was skipped. */
+#define BADCERT_OTHER             0x0100  /* Other reason (can be used by verify callback) */
+#define BADCERT_FUTURE            0x0200  /* The certificate validity starts in the future. */
+#define BADCRL_FUTURE             0x0400  /* The CRL is from the future */
+
+
+gpg_error_t _ntbtls_x509_new (x509_cert_t *r_cert);
+void _ntbtls_x509_release (x509_cert_t crt);
+gpg_error_t _ntbtls_x509_append_cert (x509_cert_t cert,
+                                      const void *der, size_t derlen);
+const unsigned char *_ntbtls_x509_get_cert (x509_cert_t cert, int idx,
+                                            size_t *r_derlen);
+
+
+gpg_error_t _ntbtls_x509_verify (x509_cert_t cert, x509_cert_t trust_ca,
+                                 x509_crl_t ca_crl,
+                                 const char *cn, int *r_flags);
+
+int _ntbtls_x509_can_do (x509_privkey_t privkey, pk_algo_t pkalgo);
 
 
 
