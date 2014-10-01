@@ -4050,7 +4050,7 @@ cookie_write (void *cookie, const void *buffer_arg, size_t size)
   ntbtls_t tls = cookie;
   const char *buffer = buffer_arg;
   gpg_error_t err;
-  int nwritten = 0;
+  size_t nwritten = 0;
   int nleft = size;
 
  again:

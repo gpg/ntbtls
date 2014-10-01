@@ -1,0 +1,33 @@
+; libtnbtls.def - List of symbols to export.
+; Copyright (C) 2014 g10 Code GmbH
+;
+; This file is part of NTBTLS
+;
+; NTBTLS is free software; you can redistribute it and/or modify
+; it under the terms of the GNU General Public License as published by
+; the Free Software Foundation; either version 3 of the License, or
+; (at your option) any later version.
+;
+; NTBTLS is distributed in the hope that it will be useful,
+; but WITHOUT ANY WARRANTY; without even the implied warranty of
+; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+; GNU General Public License for more details.
+;
+; You should have received a copy of the GNU General Public License
+; along with this program; if not, see <http://www.gnu.org/licenses/>.
+;
+; NOTE: When adding new functions, please make sure to add them also
+;       to visibility.{c,h} and libntbtls.vers.
+
+
+EXPORTS
+    ntbtls_check_version                  @1
+    ntbtls_set_debug                      @2
+
+    ntbtls_new                            @3
+    ntbtls_release                        @4
+    ntbtls_set_transport                  @5
+    ntbtls_get_stream                     @6
+    ntbtls_handshake                      @7
+
+; END
