@@ -21,5 +21,10 @@
 /doc/version.texi
 /m4/Makefile.in
 /src/Makefile.in
+/src/ntbtls-cli
 /doc/Makefile.in
 /tests/Makefile.in
+/tests/x509-ca-key.pem
+/tests/x509-ca.pem
+/tests/x509-server-key.pem
+/tests/x509-server.pem
