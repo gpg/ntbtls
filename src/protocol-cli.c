@@ -502,7 +502,9 @@ write_client_hello (ntbtls_t tls)
                                            tls->max_minor_ver))
         continue;
 
-      debug_msg (3, "client hello, add ciphersuite: %2d", ciphersuites[i]);
+      debug_msg (3, "client hello, add ciphersuite: %5d %s",
+                 ciphersuites[i],
+                 _ntbtls_ciphersuite_get_name (ciphersuites[i]));
 
       n++;
       *p++ = (unsigned char) (ciphersuites[i] >> 8);
@@ -1360,7 +1362,7 @@ parse_server_key_exchange (ntbtls_t tls)
 
   if (tls->in_msgtype != TLS_MSG_HANDSHAKE)
     {
-      debug_msg (1, "bad server key exchange message");
+      debug_msg (1, "bad server key exchange message (%d)", __LINE__);
       return gpg_error (GPG_ERR_UNEXPECTED_MSG);
     }
 
@@ -1376,7 +1378,7 @@ parse_server_key_exchange (ntbtls_t tls)
           goto leave;
         }
 
-      debug_msg (1, "bad server key exchange message");
+      debug_msg (1, "bad server key exchange message (%d)", __LINE__);
       return gpg_error (GPG_ERR_UNEXPECTED_MSG);
     }
 
@@ -1392,7 +1394,7 @@ parse_server_key_exchange (ntbtls_t tls)
       err = parse_server_psk_hint (tls, &p, end);
       if (err)
         {
-          debug_msg (1, "bad server key exchange message");
+          debug_msg (1, "bad server key exchange message (%d)", __LINE__);
           return err;
         }
     }
@@ -1406,7 +1408,7 @@ parse_server_key_exchange (ntbtls_t tls)
       err = parse_server_dh_params (tls, &p, end);
       if (err)
         {
-          debug_msg (1, "bad server key exchange message");
+          debug_msg (1, "bad server key exchange message (%d)", __LINE__);
           return err;
         }
     }
@@ -1417,7 +1419,7 @@ parse_server_key_exchange (ntbtls_t tls)
       err = parse_server_ecdh_params (tls, &p, end);
       if (err)
         {
-          debug_msg (1, "bad server key exchange message");
+          debug_msg (1, "bad server key exchange message (%d)", __LINE__);
           return err;
         }
     }
@@ -1442,13 +1444,13 @@ parse_server_key_exchange (ntbtls_t tls)
           err = parse_signature_algorithm (tls, &p, end, &md_alg, &pk_alg);
           if (err)
             {
-              debug_msg (1, "bad server key exchange message");
+              debug_msg (1, "bad server key exchange message (%d)", __LINE__);
               return err;
             }
 
           if (pk_alg != _ntbtls_ciphersuite_get_sig_pk_alg (suite))
             {
-              debug_msg (1, "bad server key exchange message");
+              debug_msg (1, "bad server key exchange message (%d)", __LINE__);
               return gpg_error (GPG_ERR_BAD_HS_SERVER_KEX);
             }
           //FIXME: Check that the ECC subtype matches.  */
@@ -1467,7 +1469,7 @@ parse_server_key_exchange (ntbtls_t tls)
 
       if (end != p + sig_len)
         {
-          debug_msg (1, "bad server key exchange message");
+          debug_msg (1, "bad server key exchange message (%d)", __LINE__);
           return gpg_error (GPG_ERR_BAD_HS_SERVER_KEX);
         }
 

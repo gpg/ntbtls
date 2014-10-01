@@ -25,6 +25,7 @@
 
 #include <config.h>
 #include <stdlib.h>
+#include <errno.h>
 
 #include "ntbtls-int.h"
 #include "ciphersuites.h"
@@ -1007,7 +1008,6 @@ decrypt_buf (ntbtls_t tls)
       size_t pad_count, real_count, padding_idx;
       size_t dec_msglen;
       size_t minlen = 0;
-      size_t olen = 0;
 
       /*
        * Check immediate ciphertext sanity
@@ -1127,7 +1127,7 @@ decrypt_buf (ntbtls_t tls)
   if (mode != GCRY_CIPHER_MODE_GCM && mode != GCRY_CIPHER_MODE_CCM)
     {
       unsigned char tmp[TLS_MAX_MAC_SIZE];
-      size_t j, extra_run;
+      size_t  extra_run;
 
       tls->in_msglen -= (tls->transform_in->maclen + padlen);
 
@@ -2849,8 +2849,8 @@ _ntbtls_set_transport (ntbtls_t tls, estream_t inbound, estream_t outbound)
   if (tls->inbound || tls->outbound)
     return gpg_error (GPG_ERR_CONFLICT);
 
-  /* fixme: Instead of calling a flush we set the stream to nowbug for
-     now.  This makes debugging easier.  */
+  /* We do our own buffering thus we disable buffer of the transport
+     streams.  */
   if (es_setvbuf (inbound, NULL, _IONBF, 0))
     return gpg_error_from_syserror ();
   if (es_setvbuf (outbound, NULL, _IONBF, 0))
@@ -2860,18 +2860,6 @@ _ntbtls_set_transport (ntbtls_t tls, estream_t inbound, estream_t outbound)
   tls->outbound = outbound;
   return 0;
 }
-
-
-/* Return the two streams used to read and write the plaintext.  the
-   streams are valid as along as TLS is valid and may thus not be used
-   after TLS has been destroyed.  */
-gpg_error_t
-_ntbtls_get_stream (ntbtls_t tls, estream_t *r_readfp, estream_t *r_writefp)
-{
-  //FIXME
-
-}
-
 
 
 /*
@@ -3626,203 +3614,6 @@ ssl_renegotiate (ntbtls_t ssl)
 
 
 /*
- * Receive application data decrypted from the SSL layer
- */
-int
-ssl_read (ntbtls_t ssl, unsigned char *buf, size_t len)
-{
-  int ret;
-  size_t n;
-
-  debug_msg (2, "=> read");
-
-  if (ssl->state != TLS_HANDSHAKE_OVER)
-    {
-      if ((ret = _ntbtls_handshake (ssl)) != 0)
-        {
-          debug_ret (1, "handshake", ret);
-          return (ret);
-        }
-    }
-
-  if (ssl->in_offt == NULL)
-    {
-      if ((ret = _ntbtls_read_record (ssl)) != 0)
-        {
-          if (gpg_err_code (ret) == GPG_ERR_EOF)
-            return 0;
-
-          debug_ret (1, "read_record", ret);
-          return ret;
-        }
-
-      if (ssl->in_msglen == 0 && ssl->in_msgtype == TLS_MSG_APPLICATION_DATA)
-        {
-          /*
-           * OpenSSL sends empty messages to randomize the IV
-           */
-          if ((ret = _ntbtls_read_record (ssl)) != 0)
-            {
-              if (gpg_err_code (ret) == GPG_ERR_EOF)
-                return (0);
-
-              debug_ret (1, "read_record", ret);
-              return (ret);
-            }
-        }
-
-      if (ssl->in_msgtype == TLS_MSG_HANDSHAKE)
-        {
-          debug_msg (1, "received handshake message");
-
-          if (ssl->is_client &&
-              (ssl->in_msg[0] != TLS_HS_HELLO_REQUEST || ssl->in_hslen != 4))
-            {
-              debug_msg (1, "handshake received (not HelloRequest)");
-              return gpg_error (GPG_ERR_UNEXPECTED_MSG);
-            }
-
-          if (ssl->disable_renegotiation == TLS_RENEGOTIATION_DISABLED ||
-              (ssl->secure_renegotiation == TLS_LEGACY_RENEGOTIATION &&
-               ssl->allow_legacy_renegotiation == TLS_LEGACY_NO_RENEGOTIATION))
-            {
-              debug_msg (3, "ignoring renegotiation, sending alert");
-
-              if (ssl->minor_ver >= TLS_MINOR_VERSION_1)
-                {
-                  if ((ret = _ntbtls_send_alert_message (ssl,
-                                                     TLS_ALERT_LEVEL_WARNING,
-                                                     TLS_ALERT_MSG_NO_RENEGOTIATION))
-                      != 0)
-                    {
-                      return (ret);
-                    }
-                }
-              else
-                {
-                  debug_bug ();
-                  return gpg_error (GPG_ERR_INTERNAL);
-                }
-            }
-          else
-            {
-              if ((ret = start_renegotiation (ssl)) != 0)
-                {
-                  debug_ret (1, "start_renegotiation", ret);
-                  return ret;
-                }
-
-              debug_msg (1, "used to be POLARSSL_ERR_NET_WANT_READ");
-              return gpg_error (GPG_ERR_BUG);
-            }
-        }
-      else if (ssl->renegotiation == TLS_RENEGOTIATION_PENDING)
-        {
-          ssl->renego_records_seen++;
-
-          if (ssl->renego_max_records >= 0 &&
-              ssl->renego_records_seen > ssl->renego_max_records)
-            {
-              debug_msg (1, "renegotiation requested, "
-                         "but not honored by client");
-              return gpg_error (GPG_ERR_UNEXPECTED_MSG);
-            }
-        }
-      else if (ssl->in_msgtype != TLS_MSG_APPLICATION_DATA)
-        {
-          debug_msg (1, "bad application data message");
-          return gpg_error (GPG_ERR_UNEXPECTED_MSG);
-        }
-
-      ssl->in_offt = ssl->in_msg;
-    }
-
-  n = (len < ssl->in_msglen) ? len : ssl->in_msglen;
-
-  memcpy (buf, ssl->in_offt, n);
-  ssl->in_msglen -= n;
-
-  if (ssl->in_msglen == 0)
-    /* all bytes consumed  */
-    ssl->in_offt = NULL;
-  else
-    /* more data available */
-    ssl->in_offt += n;
-
-  debug_msg (2, "<= read");
-
-  return ((int) n);
-}
-
-
-/*
- * Send application data to be encrypted by the SSL layer
- */
-int
-ssl_write (ntbtls_t ssl, const unsigned char *buf, size_t len)
-{
-  gpg_error_t err;
-  int ret;
-  size_t n;
-  unsigned int max_len = TLS_MAX_CONTENT_LEN;
-
-  debug_msg (2, "=> write");
-
-  if (ssl->state != TLS_HANDSHAKE_OVER)
-    {
-      if ((ret = _ntbtls_handshake (ssl)) != 0)
-        {
-          debug_ret (1, "handshake", ret);
-          return (ret);
-        }
-    }
-
-  /*
-   * Assume mfl_code is correct since it was checked when set
-   */
-  max_len = mfl_code_to_length[ssl->mfl_code];
-
-  /*
-   * Check if a smaller max length was negotiated
-   */
-  if (ssl->session_out != NULL &&
-      mfl_code_to_length[ssl->session_out->mfl_code] < max_len)
-    {
-      max_len = mfl_code_to_length[ssl->session_out->mfl_code];
-    }
-
-  n = (len < max_len) ? len : max_len;
-
-  if (ssl->out_left != 0)
-    {
-      err = _ntbtls_flush_output (ssl);
-      if (err)
-        {
-          debug_ret (1, "flush_output", err);
-          return err;
-        }
-    }
-  else
-    {
-      ssl->out_msglen = n;
-      ssl->out_msgtype = TLS_MSG_APPLICATION_DATA;
-      memcpy (ssl->out_msg, buf, n);
-
-      ret = _ntbtls_write_record (ssl);
-      if (ret)
-        {
-          debug_ret (1, "write_record", ret);
-          return (ret);
-        }
-    }
-
-  debug_msg (2, "<= write");
-
-  return ((int) n);
-}
-
-
-/*
  * Notify the peer that the connection is being closed
  */
 gpg_error_t
@@ -4008,3 +3799,333 @@ _ntbtls_md_alg_from_hash (unsigned char hash)
 
 /*   return (0); */
 /* } */
+
+
+/*
+ * Receive application data decrypted from the SSL layer
+ */
+static gpg_error_t
+tls_read (ntbtls_t tls, unsigned char *buf, size_t len, size_t *nread)
+{
+  gpg_error_t err;
+  size_t n;
+
+  *nread = 0;
+
+  debug_msg (2, "=> tls read");
+
+  if (tls->state != TLS_HANDSHAKE_OVER)
+    {
+      err = _ntbtls_handshake (tls);
+      if (err)
+        {
+          debug_ret (1, "handshake", err);
+          return err;
+        }
+    }
+
+  if (!tls->in_offt)
+    {
+      err = _ntbtls_read_record (tls);
+      if (err)
+        {
+          if (gpg_err_code (err) == GPG_ERR_EOF)
+            return 0;
+
+          debug_ret (1, "read_record", err);
+          return err;
+        }
+
+      if (!tls->in_msglen && tls->in_msgtype == TLS_MSG_APPLICATION_DATA)
+        {
+          /*
+           * OpenSSL sends empty messages to randomize the IV
+           */
+          err = _ntbtls_read_record (tls);
+          if (err)
+            {
+              if (gpg_err_code (err) == GPG_ERR_EOF)
+                return 0;
+
+              debug_ret (1, "read_record", err);
+              return err;
+            }
+        }
+
+      if (tls->in_msgtype == TLS_MSG_HANDSHAKE)
+        {
+          debug_msg (1, "received handshake message");
+
+          if (tls->is_client
+              && (tls->in_msg[0] != TLS_HS_HELLO_REQUEST || tls->in_hslen != 4))
+            {
+              debug_msg (1, "handshake received (not HelloRequest)");
+              return gpg_error (GPG_ERR_UNEXPECTED_MSG);
+            }
+
+          if (tls->disable_renegotiation == TLS_RENEGOTIATION_DISABLED
+              || (tls->secure_renegotiation == TLS_LEGACY_RENEGOTIATION
+                  && (tls->allow_legacy_renegotiation
+                      == TLS_LEGACY_NO_RENEGOTIATION)))
+            {
+              debug_msg (3, "ignoring renegotiation, sending alert");
+
+              if (tls->minor_ver >= TLS_MINOR_VERSION_1)
+                {
+                  err = _ntbtls_send_alert_message
+                    (tls, TLS_ALERT_LEVEL_WARNING,
+                     TLS_ALERT_MSG_NO_RENEGOTIATION);
+                  if (err)
+                    {
+                      return err;
+                    }
+                }
+              else
+                {
+                  debug_bug ();
+                  return gpg_error (GPG_ERR_INTERNAL);
+                }
+            }
+          else
+            {
+              err = start_renegotiation (tls);
+              if (err)
+                {
+                  debug_ret (1, "start_renegotiation", err);
+                  return err;
+                }
+
+              return gpg_error (GPG_ERR_EAGAIN);
+            }
+        }
+      else if (tls->renegotiation == TLS_RENEGOTIATION_PENDING)
+        {
+          tls->renego_records_seen++;
+
+          if (tls->renego_max_records >= 0
+              && tls->renego_records_seen > tls->renego_max_records)
+            {
+              debug_msg (1, "renegotiation requested, "
+                         "but not honored by client");
+              return gpg_error (GPG_ERR_UNEXPECTED_MSG);
+            }
+        }
+      else if (tls->in_msgtype != TLS_MSG_APPLICATION_DATA)
+        {
+          debug_msg (1, "bad application data message");
+          return gpg_error (GPG_ERR_UNEXPECTED_MSG);
+        }
+
+      tls->in_offt = tls->in_msg;
+    }
+
+  if (!len) /* Check only for pending bytes.  */
+    {
+      return tls->in_msglen? 0 : gpg_error (GPG_ERR_EOF);
+    }
+
+  n = (len < tls->in_msglen) ? len : tls->in_msglen;
+
+  memcpy (buf, tls->in_offt, n);
+  tls->in_msglen -= n;
+
+  if (!tls->in_msglen) /* All bytes consumed.  */
+    tls->in_offt = NULL;
+  else /* More data available.  */
+    tls->in_offt += n;
+
+  debug_msg (2, "<= tls read");
+
+  *nread = n;
+  return 0;
+}
+
+
+/*
+ * Send application data to be encrypted by the TLS layer.
+ */
+static gpg_error_t
+tls_write (ntbtls_t tls, const unsigned char *buf, size_t len, size_t *nwritten)
+{
+  gpg_error_t err;
+  size_t n;
+  unsigned int max_len = TLS_MAX_CONTENT_LEN;
+
+  *nwritten = 0;
+
+  debug_msg (2, "=> tls write");
+
+  if (tls->state != TLS_HANDSHAKE_OVER)
+    {
+      err = _ntbtls_handshake (tls);
+      if (err)
+        {
+          debug_ret (1, "handshake", err);
+          return err;
+        }
+    }
+
+  /*
+   * Assume mfl_code is correct since it was checked when set
+   */
+  max_len = mfl_code_to_length[tls->mfl_code];
+
+  /*
+   * Check if a smaller max length was negotiated
+   */
+  if (tls->session_out
+      && mfl_code_to_length[tls->session_out->mfl_code] < max_len)
+    {
+      max_len = mfl_code_to_length[tls->session_out->mfl_code];
+    }
+
+  n = (len < max_len) ? len : max_len;
+
+  if (tls->out_left)
+    {
+      err = _ntbtls_flush_output (tls);
+      if (err)
+        {
+          debug_ret (1, "flush_output", err);
+          return err;
+        }
+    }
+  else
+    {
+      tls->out_msglen = n;
+      tls->out_msgtype = TLS_MSG_APPLICATION_DATA;
+      memcpy (tls->out_msg, buf, n);
+
+      err = _ntbtls_write_record (tls);
+      if (err)
+        {
+          debug_ret (1, "write_record", err);
+          return err;
+        }
+    }
+
+  debug_msg (2, "<= tls write");
+
+  *nwritten = n;
+  return 0;
+}
+
+
+
+/* Read handler for estream.  */
+static ssize_t
+cookie_read (void *cookie, void *buffer, size_t size)
+{
+  ntbtls_t tls = cookie;
+  gpg_error_t err;
+  size_t nread;
+
+ again:
+  err = tls_read (tls, buffer, size, &nread);
+  if (err)
+    {
+      if (gpg_err_code (err) == GPG_ERR_EAGAIN
+          && gpg_err_source (err) == GPG_ERR_SOURCE_TLS)
+        goto again; /* I.e. renegotiation.  */
+      if (!size && gpg_err_code (err) == GPG_ERR_EOF)
+        return -1; /* Nope, no pending bytes.  */
+
+      debug_ret (1, "tls_read", err);
+      /* Fixme: We shoud extend estream to allow setting extended
+         errors.  */
+      gpg_err_set_errno (EIO);
+      return -1;
+    }
+  else if (!size)
+    nread = 0; /* Yep, there are pending bytes.  */
+
+  return nread;
+}
+
+
+/* Write handler for estream.  */
+static ssize_t
+cookie_write (void *cookie, const void *buffer_arg, size_t size)
+{
+  ntbtls_t tls = cookie;
+  const char *buffer = buffer_arg;
+  gpg_error_t err;
+  int nwritten = 0;
+  int nleft = size;
+
+ again:
+  while (nleft > 0)
+    {
+      err = tls_write (tls, buffer, nleft, &nwritten);
+      if (err)
+        {
+          if (gpg_err_code (err) == GPG_ERR_EAGAIN
+              && gpg_err_source (err) == GPG_ERR_SOURCE_TLS)
+            goto again; /* I.e. renegotiation.  */
+          debug_ret (1, "tls_write", err);
+          gpg_err_set_errno (EIO);
+          return -1;
+        }
+      nleft -= nwritten;
+      buffer += nwritten;
+    }
+
+  return nwritten;
+}
+
+
+static es_cookie_io_functions_t cookie_functions =
+  {
+    cookie_read,
+    cookie_write,
+    NULL,
+    NULL
+  };
+
+
+/* Return the two streams used to read and write the plaintext.  the
+   streams are valid as along as TLS is valid and may thus not be used
+   after TLS has been destroyed.  Note: After adding a "fullduplex"
+   feature to estream we will allow to pass NULL for r_writefp to
+   make use of that feature.  */
+gpg_error_t
+_ntbtls_get_stream (ntbtls_t tls, estream_t *r_readfp, estream_t *r_writefp)
+{
+  gpg_error_t err;
+
+  if (!tls || !r_readfp || !r_writefp)
+    return gpg_error (GPG_ERR_INV_ARG);
+
+  *r_readfp = NULL;
+  *r_writefp = NULL;
+
+  if ((!tls->readfp ^ !tls->writefp))
+    return gpg_error (GPG_ERR_INTERNAL);
+
+  if (!tls->readfp)
+    {
+      tls->readfp = es_fopencookie (tls, "r", cookie_functions);
+      if (!tls->readfp)
+        {
+          err = gpg_error_from_syserror ();
+          return err;
+        }
+    }
+
+  if (!tls->writefp)
+    {
+      tls->writefp = es_fopencookie (tls, "r", cookie_functions);
+      if (!tls->writefp)
+        {
+          err = gpg_error_from_syserror ();
+          es_fclose  (tls->readfp);
+          tls->readfp = NULL;
+          return err;
+        }
+    }
+
+  *r_readfp = tls->readfp;
+  *r_writefp = tls->writefp;
+
+  return 0;
+}

@@ -1304,7 +1304,11 @@ _ntbtls_ciphersuite_list (void)
             {
               /*FIXME: GCM and CCM are not yet ready for us - disable.  */
               if (suite->ciphermode != GCRY_CIPHER_MODE_GCM
-                 && suite->ciphermode != GCRY_CIPHER_MODE_CCM)
+                  && suite->ciphermode != GCRY_CIPHER_MODE_CCM
+                  && suite->key_exchange != KEY_EXCHANGE_ECDHE_RSA
+                  && suite->key_exchange != KEY_EXCHANGE_ECDH_RSA
+                  && suite->key_exchange != KEY_EXCHANGE_ECDHE_ECDSA
+                  && suite->key_exchange != KEY_EXCHANGE_ECDH_ECDSA)
                 supported_ciphersuites[j++] = ciphersuite_preference[i];
             }
         }

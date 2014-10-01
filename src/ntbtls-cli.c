@@ -146,20 +146,23 @@ connect_server (const char *server, unsigned short port)
       return -1;
     }
 
+  info ("connected to '%s' port %hu\n", server, port);
+
   return sock;
 }
 
 
 static int
-connect_estreams (const char *server, estream_t *r_in, estream_t *r_out)
+connect_estreams (const char *server, int port,
+                  estream_t *r_in, estream_t *r_out)
 {
   gpg_error_t err;
   int sock;
 
   *r_in = *r_out = NULL;
 
-  sock = connect_server (server, 8443);
-  if (!sock == -1)
+  sock = connect_server (server, port);
+  if (sock == -1)
     return gpg_error (GPG_ERR_GENERAL);
   *r_in = es_fdopen_nc (sock, "rb");
   if (!*r_in)
@@ -184,18 +187,20 @@ connect_estreams (const char *server, estream_t *r_in, estream_t *r_out)
 
 
 static void
-simple_client (const char *server)
+simple_client (const char *server, int port)
 {
   gpg_error_t err;
   ntbtls_t tls;
   estream_t inbound, outbound;
+  estream_t readfp, writefp;
+  int c;
 
   err = ntbtls_new (&tls, NTBTLS_CLIENT);
   if (err)
     die ("ntbtls_init failed: %s <%s>\n",
          gpg_strerror (err), gpg_strsource (err));
 
-  err = connect_estreams (server, &inbound, &outbound);
+  err = connect_estreams (server, port, &inbound, &outbound);
   if (err)
     die ("error connecting server: %s <%s>\n",
          gpg_strerror (err), gpg_strsource (err));
@@ -203,6 +208,11 @@ simple_client (const char *server)
   err = ntbtls_set_transport (tls, inbound, outbound);
   if (err)
     die ("ntbtls_set_transport failed: %s <%s>\n",
+         gpg_strerror (err), gpg_strsource (err));
+
+  err = ntbtls_get_stream (tls, &readfp, &writefp);
+  if (err)
+    die ("ntbtls_get_stream failed: %s <%s>\n",
          gpg_strerror (err), gpg_strsource (err));
 
   info ("starting handshake");
@@ -218,6 +228,15 @@ simple_client (const char *server)
     }
   info ("handshake done");
 
+  do
+    {
+      es_fputs ("GET / HTTP/1.0\r\n\r\n", writefp);
+      es_fflush (writefp);
+      while (/* es_pending (readfp) && */(c = es_fgetc (readfp)) != EOF)
+        putchar (c);
+    }
+  while (c != EOF);
+
   ntbtls_release (tls);
   es_fclose (inbound);
   es_fclose (outbound);
@@ -230,6 +249,7 @@ main (int argc, char **argv)
 {
   int last_argc = -1;
   int debug_level = 0;
+  int port = 443;
 
   if (argc)
     { argc--; argv++; }
@@ -265,6 +285,17 @@ main (int argc, char **argv)
           else
             debug_level = 1;
         }
+      else if (!strcmp (*argv, "--port"))
+        {
+          argc--; argv++;
+          if (argc)
+            {
+              port = atoi (*argv);
+              argc--; argv++;
+            }
+          else
+            port = 8443;
+        }
       else if (!strncmp (*argv, "--", 2) && (*argv)[2])
         die ("Invalid option '%s'\n", *argv);
     }
@@ -276,6 +307,6 @@ main (int argc, char **argv)
   if (debug_level)
     ntbtls_set_debug (debug_level, NULL, NULL);
 
-  simple_client (argc? *argv : "localhost");
+  simple_client (argc? *argv : "localhost", port);
   return 0;
 }

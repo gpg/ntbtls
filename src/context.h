@@ -373,6 +373,12 @@ struct _ntbtls_context_s
   unsigned char mfl_code;       /*!< MaxFragmentLength chosen by us   */
 
   /*
+   * Layer to the TLS encrypted data
+   */
+  estream_t readfp;             /* Estream to read from the peer.  */
+  estream_t writefp;            /* Estream to write to the peer.   */
+
+  /*
    * PKI layer
    */
   key_cert_t key_cert;          /*!<  own certificate(s)/key(s) */
