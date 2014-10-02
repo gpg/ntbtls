@@ -27,13 +27,26 @@ AC_DEFUN([AM_PATH_NTBTLS],
             AC_HELP_STRING([--with-ntbtls-prefix=PFX],
                            [prefix where NTBTLS is installed (optional)]),
      ntbtls_config_prefix="$withval", ntbtls_config_prefix="")
-  if test x$ntbtls_config_prefix != x ; then
-     if test x${NTBTLS_CONFIG+set} != xset ; then
-        NTBTLS_CONFIG=$ntbtls_config_prefix/bin/ntbtls-config
+  if test x"${NTBTLS_CONFIG}" = x ; then
+     if test x"${ntbtls_config_prefix}" != x ; then
+        NTBTLS_CONFIG="${ntbtls_config_prefix}/bin/ntbtls-config"
+     else
+       case "${SYSROOT}" in
+         /*)
+           if test -x "${SYSROOT}/bin/ntbtls-config" ; then
+             NTBTLS_CONFIG="${SYSROOT}/bin/ntbtls-config"
+           fi
+           ;;
+         '')
+           ;;
+          *)
+           AC_MSG_WARN([Ignoring \$SYSROOT as it is not an absolute path.])
+           ;;
+       esac
      fi
   fi
 
-  AC_PATH_TOOL(NTBTLS_CONFIG, ntbtls-config, no)
+  AC_PATH_PROG(NTBTLS_CONFIG, ntbtls-config, no)
   tmp=ifelse([$1], ,1:1.2.0,$1)
   if echo "$tmp" | grep ':' >/dev/null 2>/dev/null ; then
      req_ntbtls_api=`echo "$tmp"     | sed 's/\(.*\):\(.*\)/\1/'`
@@ -109,8 +122,9 @@ AC_DEFUN([AM_PATH_NTBTLS],
 *** built for $ntbtls_config_host and thus may not match the
 *** used host $host.
 *** You may want to use the configure option --with-ntbtls-prefix
-*** to specify a matching config script.
+*** to specify a matching config script or use \$SYSROOT.
 ***]])
+        gpg_config_script_warn="$gpg_config_script_warn ntbtls"
       fi
     fi
   else
