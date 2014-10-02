@@ -423,8 +423,7 @@ struct _ntbtls_context_s
   /*
    * SNI extension
    */
-  unsigned char *hostname;
-  size_t hostname_len;
+  char *hostname;
 
   /*
    * ALPN extension

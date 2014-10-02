@@ -36,6 +36,7 @@
 
 static int verbose;
 static int errorcount;
+static char *opt_hostname;
 
 
 /*
@@ -215,6 +216,14 @@ simple_client (const char *server, int port)
     die ("ntbtls_get_stream failed: %s <%s>\n",
          gpg_strerror (err), gpg_strsource (err));
 
+  if (opt_hostname)
+    {
+      err = ntbtls_set_hostname (tls, opt_hostname);
+      if (err)
+        die ("ntbtls_set_hostname failed: %s <%s>\n",
+             gpg_strerror (err), gpg_strsource (err));
+    }
+
   info ("starting handshake");
   while ((err = ntbtls_handshake (tls)))
     {
@@ -295,6 +304,14 @@ main (int argc, char **argv)
             }
           else
             port = 8443;
+        }
+      else if (!strcmp (*argv, "--hostname"))
+        {
+          if (argc < 2)
+            die ("argument missing for option '%s'\n", *argv);
+          argc--; argv++;
+          opt_hostname = *argv;
+          argc--; argv++;
         }
       else if (!strncmp (*argv, "--", 2) && (*argv)[2])
         die ("Invalid option '%s'\n", *argv);

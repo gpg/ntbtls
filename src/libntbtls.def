@@ -28,6 +28,8 @@ EXPORTS
     ntbtls_release                        @4
     ntbtls_set_transport                  @5
     ntbtls_get_stream                     @6
-    ntbtls_handshake                      @7
+    ntbtls_set_hostname                   @7
+
+    ntbtls_handshake                      @8
 
 ; END

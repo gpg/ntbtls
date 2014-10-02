@@ -31,17 +31,20 @@
 
 
 static void
-write_hostname_ext (ntbtls_t ssl, unsigned char *buf, size_t * olen)
+write_hostname_ext (ntbtls_t tls, unsigned char *buf, size_t * olen)
 {
   unsigned char *p = buf;
+  size_t len;
 
   *olen = 0;
 
-  if (ssl->hostname == NULL)
+  if (!tls->hostname)
     return;
 
-  debug_msg (3, "client hello, adding server name extension: %s",
-             ssl->hostname);
+  debug_msg (3, "client hello, adding server name extension: '%s'",
+             tls->hostname);
+
+  len = strlen (tls->hostname);
 
   /*
    * struct {
@@ -64,19 +67,19 @@ write_hostname_ext (ntbtls_t ssl, unsigned char *buf, size_t * olen)
   *p++ = (unsigned char) ((TLS_EXT_SERVERNAME >> 8) & 0xFF);
   *p++ = (unsigned char) ((TLS_EXT_SERVERNAME) & 0xFF);
 
-  *p++ = (unsigned char) (((ssl->hostname_len + 5) >> 8) & 0xFF);
-  *p++ = (unsigned char) (((ssl->hostname_len + 5)) & 0xFF);
+  *p++ = (unsigned char) (((len + 5) >> 8) & 0xFF);
+  *p++ = (unsigned char) (((len + 5)) & 0xFF);
 
-  *p++ = (unsigned char) (((ssl->hostname_len + 3) >> 8) & 0xFF);
-  *p++ = (unsigned char) (((ssl->hostname_len + 3)) & 0xFF);
+  *p++ = (unsigned char) (((len + 3) >> 8) & 0xFF);
+  *p++ = (unsigned char) (((len + 3)) & 0xFF);
 
   *p++ = (unsigned char) ((TLS_EXT_SERVERNAME) & 0xFF);
-  *p++ = (unsigned char) ((ssl->hostname_len >> 8) & 0xFF);
-  *p++ = (unsigned char) ((ssl->hostname_len) & 0xFF);
+  *p++ = (unsigned char) ((len >> 8) & 0xFF);
+  *p++ = (unsigned char) ((len) & 0xFF);
 
-  memcpy (p, ssl->hostname, ssl->hostname_len);
+  memcpy (p, tls->hostname, len);
 
-  *olen = ssl->hostname_len + 9;
+  *olen = len + 9;
 }
 
 

@@ -69,6 +69,12 @@ ntbtls_get_stream (ntbtls_t tls,
 
 
 gpg_error_t
+ntbtls_set_hostname (ntbtls_t tls, const char *hostname)
+{
+  return _ntbtls_set_hostname (tls, hostname);
+}
+
+gpg_error_t
 ntbtls_handshake (ntbtls_t tls)
 {
   return _ntbtls_handshake (tls);

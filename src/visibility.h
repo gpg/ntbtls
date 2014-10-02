@@ -47,6 +47,7 @@ MARK_VISIBLE (ntbtls_new)
 MARK_VISIBLE (ntbtls_release)
 MARK_VISIBLE (ntbtls_set_transport)
 MARK_VISIBLE (ntbtls_get_stream)
+MARK_VISIBLE (ntbtls_set_hostname)
 MARK_VISIBLE (ntbtls_handshake)
 
 
@@ -64,6 +65,7 @@ MARK_VISIBLE (ntbtls_handshake)
 #define ntbtls_released              _ntbtls_USE_THE_UNDERSCORED_FUNCTION
 #define ntbtls_set_transport         _ntbtls_USE_THE_UNDERSCORED_FUNCTION
 #define ntbtls_get_stream            _ntbtls_USE_THE_UNDERSCORED_FUNCTION
+#define ntbtls_set_hostname          _ntbtls_USE_THE_UNDERSCORED_FUNCTION
 #define ntbtls_handshake             _ntbtls_USE_THE_UNDERSCORED_FUNCTION
 
 

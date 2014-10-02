@@ -2803,12 +2803,7 @@ _ntbtls_release (ntbtls_t tls)
       free (tls->ticket_keys);
     }
 
-  if (tls->hostname)
-    {
-      wipememory (tls->hostname, tls->hostname_len);
-      free (tls->hostname);
-      tls->hostname_len = 0;
-    }
+  free (tls->hostname);
 
   if (tls->psk)
     {
@@ -3256,26 +3251,31 @@ _ntbtls_set_session (ntbtls_t tls, const session_t session)
 /* } */
 
 
-/* int */
-/* ssl_set_hostname (ntbtls_t ssl, const char *hostname) */
-/* { */
-/*   if (hostname == NULL) */
-/*     return gpg_error (GPG_ERR_INV_ARG); */
+gpg_error_t
+_ntbtls_set_hostname (ntbtls_t tls, const char *hostname)
+{
+  size_t len;
 
-/*   ssl->hostname_len = strlen (hostname); */
+  if (!tls)
+    return gpg_error (GPG_ERR_INV_ARG);
 
-/*   if (ssl->hostname_len + 1 == 0) */
-/*     return gpg_error (GPG_ERR_INV_ARG); */
+  if (!hostname)
+    {
+      free (tls->hostname);
+      tls->hostname = NULL;
+    }
 
-/*   ssl->hostname = malloc (ssl->hostname_len + 1); */
-/*   if (!ssl->hostname) */
-/*     return gpg_error_from_syserror (); */
+  len = strlen (hostname);
+  if ( len + 1 < len )
+    return gpg_error (GPG_ERR_EOVERFLOW);
 
-/*   memcpy (ssl->hostname, hostname, ssl->hostname_len); */
-/*   ssl->hostname[ssl->hostname_len] = '\0'; */
+  tls->hostname = malloc (len + 1);
+  if (!tls->hostname)
+    return gpg_error_from_syserror ();
+  strcpy (tls->hostname, hostname);
 
-/*   return 0; */
-/* } */
+  return 0;
+}
 
 
 /* void */

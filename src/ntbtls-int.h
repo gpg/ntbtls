@@ -318,6 +318,8 @@ gpg_error_t _ntbtls_set_transport (ntbtls_t tls,
 gpg_error_t _ntbtls_get_stream (ntbtls_t tls,
                                 gpgrt_stream_t *r_readfp,
                                 gpgrt_stream_t *r_writefp);
+gpg_error_t _ntbtls_set_hostname (ntbtls_t tls, const char *hostname);
+
 gpg_error_t _ntbtls_handshake (ntbtls_t tls);
 
 
