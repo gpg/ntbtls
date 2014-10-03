@@ -2652,7 +2652,7 @@ _ntbtls_new (ntbtls_t *r_tls, unsigned int flags)
   *r_tls = NULL;
 
   /* Note: NTBTLS_SERVER has value 0, thus we can't check for it. */
-  if ((flags & ~(NTBTLS_CLIENT)))
+  if ((flags & ~(NTBTLS_CLIENT|NTBTLS_SAMETRHEAD)))
     return gpg_error (GPG_ERR_EINVAL);
 
   tls = calloc (1, sizeof *tls);
@@ -2664,6 +2664,7 @@ _ntbtls_new (ntbtls_t *r_tls, unsigned int flags)
   tls->max_major_ver = TLS_MAX_MAJOR_VERSION;
   tls->max_minor_ver = TLS_MAX_MINOR_VERSION;
 
+  tls->flags = flags;
   if ((flags & NTBTLS_CLIENT))
     {
       tls->is_client = 1;
@@ -4104,7 +4105,10 @@ _ntbtls_get_stream (ntbtls_t tls, estream_t *r_readfp, estream_t *r_writefp)
 
   if (!tls->readfp)
     {
-      tls->readfp = es_fopencookie (tls, "r", cookie_functions);
+      if ((tls->flags & NTBTLS_SAMETRHEAD))
+        tls->readfp = es_fopencookie (tls, "r,samethread", cookie_functions);
+      else
+        tls->readfp = es_fopencookie (tls, "r", cookie_functions);
       if (!tls->readfp)
         {
           err = gpg_error_from_syserror ();
@@ -4114,7 +4118,10 @@ _ntbtls_get_stream (ntbtls_t tls, estream_t *r_readfp, estream_t *r_writefp)
 
   if (!tls->writefp)
     {
-      tls->writefp = es_fopencookie (tls, "r", cookie_functions);
+      if ((tls->flags & NTBTLS_SAMETRHEAD))
+        tls->writefp = es_fopencookie (tls, "w,samethread", cookie_functions);
+      else
+        tls->writefp = es_fopencookie (tls, "w", cookie_functions);
       if (!tls->writefp)
         {
           err = gpg_error_from_syserror ();

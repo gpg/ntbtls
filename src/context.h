@@ -396,6 +396,7 @@ struct _ntbtls_context_s
    * User settings
    */
   int is_client;                /* True if we are in client mode.  */
+  unsigned int flags;           /* All flags from ntbtls_new.  */
 
   int authmode;                 /*!<  verification mode       */
   int client_auth;              /*!<  flag for client auth.   */
