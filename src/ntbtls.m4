@@ -47,7 +47,7 @@ AC_DEFUN([AM_PATH_NTBTLS],
   fi
 
   AC_PATH_PROG(NTBTLS_CONFIG, ntbtls-config, no)
-  tmp=ifelse([$1], ,1:1.2.0,$1)
+  tmp=ifelse([$1], ,1:1.0.0,$1)
   if echo "$tmp" | grep ':' >/dev/null 2>/dev/null ; then
      req_ntbtls_api=`echo "$tmp"     | sed 's/\(.*\):\(.*\)/\1/'`
      min_ntbtls_version=`echo "$tmp" | sed 's/\(.*\):\(.*\)/\2/'`

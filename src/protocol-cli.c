@@ -25,6 +25,7 @@
 
 #include <config.h>
 #include <stdlib.h>
+#include <time.h>
 
 #include "ntbtls-int.h"
 #include "ciphersuites.h"
@@ -182,10 +183,10 @@ write_signature_algorithms_ext (ntbtls_t ssl,
 }
 
 
-static void
-write_supported_elliptic_curves_ext (ntbtls_t ssl,
-                                     unsigned char *buf, size_t * olen)
-{
+/* static void */
+/* write_supported_elliptic_curves_ext (ntbtls_t ssl, */
+/*                                      unsigned char *buf, size_t * olen) */
+/* { */
   //FIXME:
   /* unsigned char *p = buf; */
   /* unsigned char *elliptic_curve_list = p + 6; */
@@ -217,13 +218,13 @@ write_supported_elliptic_curves_ext (ntbtls_t ssl,
   /* *p++ = (unsigned char) (((elliptic_curve_len)) & 0xFF); */
 
   /* *olen = 6 + elliptic_curve_len; */
-}
+/* } */
 
 
-static void
-write_cli_supported_point_formats_ext (ntbtls_t ssl,
-                                       unsigned char *buf, size_t * olen)
-{
+/* static void */
+/* write_cli_supported_point_formats_ext (ntbtls_t ssl, */
+/*                                        unsigned char *buf, size_t * olen) */
+/* { */
   //FIXME:
   /* unsigned char *p = buf; */
   /* ((void) ssl); */
@@ -242,7 +243,7 @@ write_cli_supported_point_formats_ext (ntbtls_t ssl,
   /* *p++ = POLARSSL_ECP_PF_UNCOMPRESSED; */
 
   /* *olen = 6; */
-}
+/* } */
 
 
 static void
@@ -1097,9 +1098,9 @@ parse_server_dh_params (ntbtls_t tls, unsigned char **p, unsigned char *end)
 }
 
 
-static int
-ssl_check_server_ecdh_params (const ntbtls_t ssl)
-{
+/* static int */
+/* ssl_check_server_ecdh_params (const ntbtls_t ssl) */
+/* { */
   //FIXME:
   /* const ecp_curve_info *curve_info; */
 
@@ -1117,8 +1118,8 @@ ssl_check_server_ecdh_params (const ntbtls_t ssl)
 
   /* SSL_DEBUG_ECP (3, "ECDH: Qp", &ssl->handshake->ecdh_ctx.Qp); */
 
-  return (0);
-}
+/*   return (0); */
+/* } */
 
 
 static int
@@ -1961,7 +1962,7 @@ write_certificate_verify (ntbtls_t tls)
        *         in order to satisfy 'weird' needs from the server side.
        */
       if (_ntbtls_ciphersuite_get_mac
-          (tls->transform_negotiate->ciphersuite) == GCRY_MD_SHA384)
+          (tls->transform_negotiate->ciphersuite) == GCRY_MAC_HMAC_SHA384)
         {
           md_alg = GCRY_MD_SHA384;
           tls->out_msg[4] = TLS_HASH_SHA384;
