@@ -1087,7 +1087,10 @@ decrypt_buf (ntbtls_t tls)
        *
        * We use ( ( Lx + 8 ) / 64 ) to handle 'negative Lx' values
        * correctly. (We round down instead of up, so -56 is the correct
-       * value for our calculations instead of -55)
+       * value for our calculations instead of -55).
+       *
+       * Fixme: Get the transform block size from Libgcrypt instead of
+       * assuming 64.
        */
       extra_run = ((13 + tls->in_msglen + padlen + 8) / 64
                    - (13 + tls->in_msglen + 8) / 64);
@@ -1100,13 +1103,15 @@ decrypt_buf (ntbtls_t tls)
       tmplen = tls->transform_in->maclen;
       gcry_mac_read (tls->transform_in->mac_ctx_dec,
                      tls->in_msg + tls->in_msglen, &tmplen);
-      //FIXME:
-      //FIXME:  We need to implement our own version of this
-      //FIXME:  Maybe we can use gcry_mac_write after the read but that
-      //        Needs to be checked and a comment must be added to
-      //        Libgcrypt so that we do not accidently optimize this away.
-      /* for (j = 0; j < extra_run; j++) */
-      /*   md_process (&tls->transform_in->md_ctx_dec, tls->in_msg); */
+      /* Keep on hashing dummy blocks if needed. */
+      if (extra_run)
+        {
+          int j;
+
+          for (j = 0; j < extra_run; j++)
+            gcry_mac_write (tls->transform_in->mac_ctx_dec, tls->in_msg, 64);
+          gcry_mac_write (tls->transform_in->mac_ctx_dec, NULL, 0);
+        }
 
       gcry_mac_reset (tls->transform_in->mac_ctx_dec);
 
