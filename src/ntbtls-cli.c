@@ -270,6 +270,19 @@ main (int argc, char **argv)
           argc--; argv++;
           break;
         }
+      else if (!strcmp (*argv, "--help"))
+        {
+          fputs ("Usage: " PGMNAME " [OPTIONS] HOST\n"
+                 "Connect via TLS to HOST\n"
+                 "Options:\n"
+                 "  --version       print the library version\n"
+                 "  --verbose       show more diagnostics\n"
+                 "  --debug LEVEL   enable debugging at LEVEL\n"
+                 "  --port N        connect to port N (default is 443)\n"
+                 "  --hostname NAME use NAME for SNI\n"
+                 "\n", stdout);
+          return 0;
+        }
       else if (!strcmp (*argv, "--version"))
         {
           printf ("%s\n", ntbtls_check_version (NULL));

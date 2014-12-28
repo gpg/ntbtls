@@ -60,18 +60,24 @@ const char *ntbtls_check_version (const char *req_version);
 /* Create a new TLS context.  */
 gpg_error_t ntbtls_new (ntbtls_t *r_tls, unsigned int flags);
 
+/* Destroy an TLS context.  */
 void        ntbtls_release (ntbtls_t tls);
 
+/* Setup the transport streams (usually connected to one socket).  */
 gpg_error_t ntbtls_set_transport (ntbtls_t tls,
                                   gpgrt_stream_t inbound,
                                   gpgrt_stream_t outbound);
 
+/* Get the read and write stream for the plaintext.  */
 gpg_error_t ntbtls_get_stream (ntbtls_t tls,
                                gpgrt_stream_t *r_readfp,
                                gpgrt_stream_t *r_writefp);
 
+/* Set the hostname for SNI.  */
 gpg_error_t ntbtls_set_hostname (ntbtls_t tls, const char *hostname);
 
+/* Perform the handshake with the peer.  The transport streams must be
+   connected before starting this handshake.  */
 gpg_error_t ntbtls_handshake (ntbtls_t tls);
 
 
