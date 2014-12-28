@@ -475,7 +475,7 @@ write_client_hello (ntbtls_t tls)
   debug_msg (3, "client hello, session id len.: %d", n);
   debug_buf (3, "client hello, session id", buf + 39, n);
 
-  //FIXME: We do not have a way to set the ciphersuites.  Thus
+  // Fixme: We do not have a way to set the ciphersuites.  Thus
   // consider to replace this with simpler code.
   ciphersuites = tls->ciphersuite_list[tls->minor_ver];
   n = 0;
@@ -763,12 +763,13 @@ static gpg_error_t
 parse_server_hello (ntbtls_t tls)
 {
   gpg_error_t err;
-  int i, comp;
+  int i, suite_id, comp;
   size_t n;
   size_t ext_len = 0;
   unsigned char *buf, *ext;
   int renegotiation_info_seen = 0;
   int handshake_failure = 0;
+  const int *ciphersuites;
   uint32_t t;
 
   debug_msg (2, "=> parse server hello");
@@ -863,17 +864,17 @@ parse_server_hello (ntbtls_t tls)
         }
     }
 
-  /* FIXME: Use a different name for I.  */
-  i = (buf[39 + n] << 8) | buf[40 + n];
+  suite_id = (buf[39 + n] << 8) | buf[40 + n];
   comp = buf[41 + n];
 
   /*
    * Initialize update checksum functions
    */
-  tls->transform_negotiate->ciphersuite = _ntbtls_ciphersuite_from_id (i);
+  tls->transform_negotiate->ciphersuite
+    = _ntbtls_ciphersuite_from_id (suite_id);
   if (!tls->transform_negotiate->ciphersuite)
     {
-      debug_msg (1, "ciphersuite info for %04x not found", i);
+      debug_msg (1, "ciphersuite info for %04x not found", suite_id);
       return gpg_error (GPG_ERR_INV_ARG);
     }
 
@@ -888,7 +889,7 @@ parse_server_hello (ntbtls_t tls)
   if (tls->renegotiation != TLS_INITIAL_HANDSHAKE
       || !tls->handshake->resume
       || !n
-      || tls->session_negotiate->ciphersuite != i
+      || tls->session_negotiate->ciphersuite != suite_id
       || tls->session_negotiate->compression != comp
       || tls->session_negotiate->length != n
       || memcmp (tls->session_negotiate->id, buf + 39, n))
@@ -896,7 +897,7 @@ parse_server_hello (ntbtls_t tls)
       tls->state++;
       tls->handshake->resume = 0;
       tls->session_negotiate->start = time (NULL);
-      tls->session_negotiate->ciphersuite = i;
+      tls->session_negotiate->ciphersuite = suite_id;
       tls->session_negotiate->compression = comp;
       tls->session_negotiate->length = n;
       memcpy (tls->session_negotiate->id, buf + 39, n);
@@ -916,25 +917,23 @@ parse_server_hello (ntbtls_t tls)
   debug_msg (3, "%s session has been resumed",
              tls->handshake->resume ? "a" : "no");
 
-  debug_msg (3, "server hello, chosen ciphersuite: %d", i);
+  debug_msg (3, "server hello, chosen ciphersuite: %d", suite_id);
   debug_msg (3, "server hello, compress alg.: %d", buf[41 + n]);
 
-  //FIXME: Strange code.
-  i = 0;
-  for (;;)
+  /* Check that we support the cipher suite.  */
+  ciphersuites = tls->ciphersuite_list[tls->minor_ver];
+  if (ciphersuites)
     {
-      if (!tls->ciphersuite_list[tls->minor_ver][i])
-        {
-          debug_msg (1, "bad server hello message");
-          return gpg_error (GPG_ERR_BAD_HS_SERVER_HELLO);
-        }
-
-      if (tls->ciphersuite_list[tls->minor_ver][i++]
-          == tls->session_negotiate->ciphersuite)
-        {
+      for (i=0; ciphersuites[i]; i++)
+        if (ciphersuites[i] == tls->session_negotiate->ciphersuite)
           break;
-        }
     }
+  if (!ciphersuites || !ciphersuites[i])
+    {
+      debug_msg (1, "bad server hello message");
+      return gpg_error (GPG_ERR_BAD_HS_SERVER_HELLO);
+    }
+
 
   if (comp != TLS_COMPRESS_NULL && comp != TLS_COMPRESS_DEFLATE)
     {
