@@ -378,21 +378,12 @@ _ntbtls_derive_keys (ntbtls_t tls)
          the block length of the IV length.  */
       transform->ivlen = blklen;
 
-      /* Minimum length */
-      if (ciphermode == GCRY_CIPHER_MODE_STREAM)
-        transform->minlen = transform->maclen;
-      else
-        {
-          /*
-           * GenericBlockCipher:
-           * First multiple of blocklen greater than maclen
-           * + IV.
-           */
-          transform->minlen = (transform->maclen
-                               + blklen
-                               - (transform->maclen % blklen)
-                               + transform->ivlen);
-        }
+      /* Minimum length for GenericBlockCipher:
+       * First multiple of blocklen greater than maclen + IV.  */
+      transform->minlen = (transform->maclen
+                           + blklen
+                           - (transform->maclen % blklen)
+                           + transform->ivlen);
     }
 
   debug_msg (3, "keylen: %d, minlen: %d, ivlen: %d, maclen: %d",
@@ -695,34 +686,7 @@ encrypt_buf (ntbtls_t tls)
   /*
    * Encrypt
    */
-  if (mode == GCRY_CIPHER_MODE_STREAM)
-    {
-      size_t olen = 0;
-
-      debug_msg (3, "before encrypt: msglen = %d,"
-                 " including %d bytes of padding", tls->out_msglen, 0);
-      debug_buf (4, "before encrypt: output payload",
-                 tls->out_msg, tls->out_msglen);
-
-      /* err = cipher_crypt (&tls->transform_out->cipher_ctx_enc, */
-      /*                     tls->transform_out->iv_enc, */
-      /*                     tls->transform_out->ivlen, */
-      /*                     tls->out_msg, tls->out_msglen, */
-      /*                     tls->out_msg, &olen); */
-      err = gpg_error (GPG_ERR_NOT_IMPLEMENTED);
-      if (err)
-        {
-          debug_ret (1, "cipher_crypt", err);
-          return err;
-        }
-
-      if (tls->out_msglen != olen)
-        {
-          debug_bug ();
-          return gpg_error (GPG_ERR_INTERNAL);
-        }
-    }
-  else if (mode == GCRY_CIPHER_MODE_GCM || mode == GCRY_CIPHER_MODE_CCM)
+  if (mode == GCRY_CIPHER_MODE_GCM || mode == GCRY_CIPHER_MODE_CCM)
     {
       size_t enc_msglen, olen;
       unsigned char *enc_msg;
@@ -907,31 +871,7 @@ decrypt_buf (ntbtls_t tls)
       return gpg_error (GPG_ERR_INV_MAC);
     }
 
-  if (mode == GCRY_CIPHER_MODE_STREAM)
-    {
-      size_t olen = 0;
-
-      padlen = 0;
-
-      /* err = cipher_crypt (tls->transform_in->cipher_ctx_dec, */
-      /*                     tls->transform_in->iv_dec, */
-      /*                     tls->transform_in->ivlen, */
-      /*                     tls->in_msg, tls->in_msglen, */
-      /*                     tls->in_msg, &olen); */
-      err = gpg_error (GPG_ERR_NOT_IMPLEMENTED);
-      if (err)
-        {
-          debug_ret (1, "cipher_crypt", err);
-          return err;
-        }
-
-      if (tls->in_msglen != olen)
-        {
-          debug_bug ();
-          return gpg_error (GPG_ERR_INTERNAL);
-        }
-    }
-  else if (mode == GCRY_CIPHER_MODE_GCM || mode == GCRY_CIPHER_MODE_CCM)
+  if (mode == GCRY_CIPHER_MODE_GCM || mode == GCRY_CIPHER_MODE_CCM)
     {
       size_t dec_msglen, olen;
       unsigned char *dec_msg;
