@@ -80,6 +80,13 @@ void _ntbtls_debug_sxp (int level, const char *text, gcry_sexp_t a);
 
 
 
+/* These error codes are used but not defined in the required
+   libgpg-error version.  Define them here. */
+#if GPG_ERROR_VERSION_NUMBER < 0x011200  /* 1.18 */
+# define GPG_ERR_REQUEST_TOO_SHORT 223
+# define GPG_ERR_REQUEST_TOO_LONG  224
+#endif
+
 
 
 

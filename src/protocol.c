@@ -1276,8 +1276,7 @@ _ntbtls_fetch_input (ntbtls_t tls, size_t nb_want)
   if (nb_want > TLS_BUFFER_LEN - 8)
     {
       debug_msg (1, "requesting more data than fits");
-      // FIXME; New code for "request too long for buffer"?
-      return gpg_error (GPG_ERR_BUFFER_TOO_SHORT);
+      return gpg_error (GPG_ERR_REQUEST_TOO_LONG);
     }
 
   err = 0;
