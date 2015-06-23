@@ -1,0 +1,22 @@
+# HACKING                                                       -*- org -*-
+#+TITLE: Hacking on NTBTLS
+#+TEXT: Some notes on NTBTLS internals
+#+STARTUP: showall
+#+OPTIONS: ^:{}
+
+
+
+** How to start a GNUTLS test server
+
+   To test the client it is best to test against a different
+   implementation.  GNUTLS is one of the major TLS implementations;
+   testing against OpenSSL would be useful too - see below.
+
+#+begin_example
+  cd ntbls/tests
+  gnutls-serv  --http --x509cafile x509-ca.pem \
+    --x509keyfile x509-server-key.pem --x509certfile x509-server.pem \
+    --port 8443
+#+end_example
+
+** How to start an OpenSSL test server
