@@ -94,7 +94,7 @@ ssl_load_session (session_t session, const unsigned char *buf, size_t len)
   if (p + 3 > end)
     return gpg_error (GPG_ERR_INV_ARG);
 
-  cert_len = (p[0] << 16) | (p[1] << 8) | p[2];
+  cert_len = buf24_to_size_t (p);
   p += 3;
 
   if (cert_len == 0)
@@ -236,7 +236,7 @@ ssl_parse_ticket (ntbtls_t ssl, unsigned char *buf, size_t len)
   if (len < 34 || ssl->ticket_keys == NULL)
     return gpg_error (GPG_ERR_INV_ARG);
 
-  enc_len = (enc_len_p[0] << 8) | enc_len_p[1];
+  enc_len = buf16_to_size_t (enc_len_p);
   mac = ticket + enc_len;
 
   if (len != enc_len + 66)
@@ -344,7 +344,7 @@ ssl_parse_servername_ext (ntbtls_t ssl,
 
   debug_msg (3, "parse ServerName extension");
 
-  servername_list_size = ((buf[0] << 8) | (buf[1]));
+  servername_list_size = buf16_to_size_t (buf);
   if (servername_list_size + 2 != len)
     {
       debug_msg (1, "bad client hello message");
@@ -354,7 +354,7 @@ ssl_parse_servername_ext (ntbtls_t ssl,
   p = buf + 2;
   while (servername_list_size > 0)
     {
-      hostname_len = ((p[1] << 8) | p[2]);
+      hostname_len = buf16_to_size_t (p + 1);
       if (hostname_len + 3 > servername_list_size)
         {
           debug_msg (1, "bad client hello message");
@@ -438,7 +438,7 @@ ssl_parse_signature_algorithms_ext (ntbtls_t ssl,
   const md_algo_t *md_cur;
 
 
-  sig_alg_list_size = ((buf[0] << 8) | (buf[1]));
+  sig_alg_list_size = buf16_to_size_t (buf);
   if (sig_alg_list_size + 2 != len || sig_alg_list_size % 2 != 0)
     {
       debug_msg (1, "bad client hello message");
@@ -479,7 +479,7 @@ ssl_parse_supported_elliptic_curves (ntbtls_t ssl,
   const unsigned char *p;
   const ecp_curve_info *curve_info, **curves;
 
-  list_size = ((buf[0] << 8) | (buf[1]));
+  list_size = buf16_to_size_t (buf);
   if (list_size + 2 != len || list_size % 2 != 0)
     {
       debug_msg (1, "bad client hello message");
@@ -649,7 +649,7 @@ ssl_parse_alpn_ext (ntbtls_t ssl, const unsigned char *buf, size_t len)
   if (len < 4)
     return gpg_error (GPG_ERR_BAD_HS_CLIENT_HELLO);
 
-  list_len = (buf[0] << 8) | buf[1];
+  list_len = buf16_to_size_t (buf);
   if (list_len != len - 2)
     return gpg_error (GPG_ERR_BAD_HS_CLIENT_HELLO);
 
@@ -865,7 +865,7 @@ parse_client_hello (ntbtls_t ssl)
       return gpg_error (GPG_ERR_BAD_HS_CLIENT_HELLO);
     }
 
-  n = (buf[3] << 8) | buf[4];
+  n = buf16_to_size_t (buf + 3);
 
   if (n < 45 || n > SSL_MAX_CONTENT_LEN)
     {
@@ -952,7 +952,7 @@ parse_client_hello (ntbtls_t ssl)
   /*
    * Check the handshake message length
    */
-  if (buf[1] != 0 || n != (unsigned int) 4 + ((buf[2] << 8) | buf[3]))
+  if (buf[1] != 0 || n != (unsigned int) 4 + buf16_to_uint (buf+2))
     {
       debug_msg (1, "bad client hello message");
       return gpg_error (GPG_ERR_BAD_HS_CLIENT_HELLO);
@@ -977,7 +977,7 @@ parse_client_hello (ntbtls_t ssl)
   /*
    * Check the ciphersuitelist length
    */
-  ciph_len = (buf[39 + sess_len] << 8) | (buf[40 + sess_len]);
+  ciph_len = buf16_to_uint (buf + 39);
 
   if (ciph_len < 2 || (ciph_len % 2) != 0 || ciph_len > n - 42 - sess_len)
     {
@@ -1002,11 +1002,9 @@ parse_client_hello (ntbtls_t ssl)
    */
   if (n > 42 + sess_len + ciph_len + comp_len)
     {
-      ext_len = (buf[42 + sess_len + ciph_len + comp_len] << 8)
-        | (buf[43 + sess_len + ciph_len + comp_len]);
-
-      if ((ext_len > 0 && ext_len < 4) ||
-          n != 44 + sess_len + ciph_len + comp_len + ext_len)
+      ext_len = buf16_to_uint (buf + 42 + sess_len + ciph_len + comp_len);
+      if ((ext_len > 0 && ext_len < 4)
+          || n != 44 + sess_len + ciph_len + comp_len + ext_len)
         {
           debug_msg (1, "bad client hello message");
           debug_buf (3, "Ext",
@@ -1057,8 +1055,8 @@ parse_client_hello (ntbtls_t ssl)
 
   while (ext_len)
     {
-      unsigned int ext_id = ((ext[0] << 8) | (ext[1]));
-      unsigned int ext_size = ((ext[2] << 8) | (ext[3]));
+      unsigned int ext_id = buf16_to_uint (ext);
+      unsigned int ext_size = buf16_to_uint (ext + 2);
 
       if (ext_size + 4 > ext_len)
         {
@@ -2034,7 +2032,7 @@ ssl_parse_client_dh_public (ntbtls_t ssl, unsigned char **p,
       return gpg_error (GPG_ERR_BAD_HS_CLIENT_KEX);
     }
 
-  n = ((*p)[0] << 8) | (*p)[1];
+  n = buf16_to_size_t (*p);
   *p += 2;
 
   if (*p + n > end)
@@ -2142,7 +2140,7 @@ ssl_parse_client_psk_identity (ntbtls_t ssl, unsigned char **p,
       return gpg_error (GPG_ERR_BAD_HS_CLIENT_KEX);
     }
 
-  n = ((*p)[0] << 8) | (*p)[1];
+  n = buf16_to_size_t (*p);
   *p += 2;
 
   if (n < 1 || n > 65535 || *p + n > end)
@@ -2517,7 +2515,7 @@ parse_certificate_verify (ntbtls_t ssl)
       return gpg_error (GPG_ERR_INTERNAL);
     }
 
-  sig_len = (ssl->in_msg[4 + sa_len] << 8) | ssl->in_msg[5 + sa_len];
+  sig_len = buf16_to_size_t (ssl->in_msg + 4 + sa_len);
 
   if (sa_len + sig_len + 6 != ssl->in_hslen)
     {

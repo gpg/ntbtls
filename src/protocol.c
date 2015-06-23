@@ -64,6 +64,21 @@ static unsigned int mfl_code_to_length[] =
   };
 
 
+/* Return true is MODE is an AEAD mode.  */
+static int
+is_aead_mode (cipher_mode_t mode)
+{
+  switch (mode)
+    {
+    case GCRY_CIPHER_MODE_GCM:
+    case GCRY_CIPHER_MODE_CCM:
+      return 1;
+    default:
+      return 0;
+    }
+}
+
+
 static gpg_error_t
 session_copy (session_t dst, const session_t src)
 {
@@ -323,9 +338,10 @@ _ntbtls_derive_keys (ntbtls_t tls)
    */
 
   transform->keylen = gcry_cipher_get_algo_keylen (cipher);
-  /* FIXME: Check that KEYLEN has an upper bound.  */
+  /* FIXME: Check that KEYLEN has an upper bound.
+            2015-06-23 wk: Why? */
 
-  if (ciphermode == GCRY_CIPHER_MODE_GCM || ciphermode == GCRY_CIPHER_MODE_CCM)
+  if (is_aead_mode (ciphermode))
     {
       transform->maclen = 0;
 
@@ -429,7 +445,7 @@ _ntbtls_derive_keys (ntbtls_t tls)
     }
 
 
-  if (ciphermode != GCRY_CIPHER_MODE_GCM && ciphermode != GCRY_CIPHER_MODE_CCM)
+  if (!is_aead_mode (ciphermode))
     {
       err = gcry_mac_setkey (transform->mac_ctx_enc,
                              mac_enc, transform->maclen);
@@ -665,16 +681,26 @@ encrypt_buf (ntbtls_t tls)
   /*
    * Add MAC before encrypt, except for AEAD modes
    */
-  if (mode != GCRY_CIPHER_MODE_GCM && mode != GCRY_CIPHER_MODE_CCM)
+  if (!is_aead_mode (mode))
     {
-      /* fixme: Add error checking.  */
-      gcry_mac_write (tls->transform_out->mac_ctx_enc, tls->out_ctr, 13);
-      gcry_mac_write (tls->transform_out->mac_ctx_enc,
-                      tls->out_msg, tls->out_msglen);
+      err = gcry_mac_write (tls->transform_out->mac_ctx_enc,
+                            tls->out_ctr, 13);
+      if (!err)
+        err = gcry_mac_write (tls->transform_out->mac_ctx_enc,
+                              tls->out_msg, tls->out_msglen);
       tmplen = tls->transform_out->maclen;
-      gcry_mac_read (tls->transform_out->mac_ctx_enc,
-                     tls->out_msg + tls->out_msglen, &tmplen);
-      gcry_mac_reset (tls->transform_out->mac_ctx_enc);
+
+      if (!err)
+        err = gcry_mac_read (tls->transform_out->mac_ctx_enc,
+                             tls->out_msg + tls->out_msglen, &tmplen);
+      if (!err)
+        err = gcry_mac_reset (tls->transform_out->mac_ctx_enc);
+
+      if (err)
+        {
+          debug_ret (1, "encrypt_buf: MACing failed", err);
+          return err;
+        }
 
       debug_buf (4, "computed mac",
                  tls->out_msg + tls->out_msglen,
@@ -686,7 +712,7 @@ encrypt_buf (ntbtls_t tls)
   /*
    * Encrypt
    */
-  if (mode == GCRY_CIPHER_MODE_GCM || mode == GCRY_CIPHER_MODE_CCM)
+  if (is_aead_mode (mode))
     {
       size_t enc_msglen, olen;
       unsigned char *enc_msg;
@@ -871,7 +897,7 @@ decrypt_buf (ntbtls_t tls)
       return gpg_error (GPG_ERR_INV_MAC);
     }
 
-  if (mode == GCRY_CIPHER_MODE_GCM || mode == GCRY_CIPHER_MODE_CCM)
+  if (is_aead_mode (mode))
     {
       size_t dec_msglen, olen;
       unsigned char *dec_msg;
@@ -1064,7 +1090,7 @@ decrypt_buf (ntbtls_t tls)
   /*
    * Always compute the MAC (RFC4346, CBCTIME), except for AEAD of course
    */
-  if (mode != GCRY_CIPHER_MODE_GCM && mode != GCRY_CIPHER_MODE_CCM)
+  if (!is_aead_mode (mode))
     {
       unsigned char tmp[TLS_MAX_MAC_SIZE];
       size_t  extra_run;
@@ -1097,23 +1123,42 @@ decrypt_buf (ntbtls_t tls)
 
       extra_run &= correct * 0xFF;
 
-      gcry_mac_write (tls->transform_in->mac_ctx_dec, tls->in_ctr, 13);
-      gcry_mac_write (tls->transform_in->mac_ctx_dec, tls->in_msg,
-                      tls->in_msglen);
+      err = gcry_mac_write (tls->transform_in->mac_ctx_dec,
+                            tls->in_ctr, 13);
+      if (!err)
+        err = gcry_mac_write (tls->transform_in->mac_ctx_dec,
+                              tls->in_msg, tls->in_msglen);
       tmplen = tls->transform_in->maclen;
-      gcry_mac_read (tls->transform_in->mac_ctx_dec,
-                     tls->in_msg + tls->in_msglen, &tmplen);
-      /* Keep on hashing dummy blocks if needed. */
-      if (extra_run)
+      if (!err)
+        err = gcry_mac_read (tls->transform_in->mac_ctx_dec,
+                             tls->in_msg + tls->in_msglen, &tmplen);
+      /* Keep on hashing dummy blocks if needed.  gcry_mac_write
+         explictly declares this as a valid modus operandi. */
+      if (!err && extra_run)
         {
           int j;
 
-          for (j = 0; j < extra_run; j++)
-            gcry_mac_write (tls->transform_in->mac_ctx_dec, tls->in_msg, 64);
-          gcry_mac_write (tls->transform_in->mac_ctx_dec, NULL, 0);
+          for (j = 0; j < extra_run && !err; j++)
+            err = gcry_mac_write (tls->transform_in->mac_ctx_dec,
+                                  tls->in_msg, 64);
+          if (!err)
+            err = gcry_mac_write (tls->transform_in->mac_ctx_dec, NULL, 0);
         }
 
-      gcry_mac_reset (tls->transform_in->mac_ctx_dec);
+      if (!err)
+        err = gcry_mac_reset (tls->transform_in->mac_ctx_dec);
+
+      if (err)
+        {
+          /* Note that such an error is due to a bug in the code, a
+             missing algorithm, or an out of core case.  It is highly
+             unlikely that a side channel attack can be constructed
+             based on such an error.  In any case, with failing MAC
+             functions we are anyway not able to guarantee a constant
+             time behavior.  */
+          debug_ret (1, "decrypt_buf: MACing failed", err);
+          return err;
+        }
 
       debug_buf (4, "message  mac", tmp, tls->transform_in->maclen);
       debug_buf (4, "computed mac",
@@ -1405,9 +1450,9 @@ _ntbtls_write_record (ntbtls_t tls)
       tls->out_left = 5 + tls->out_msglen;
 
       debug_msg (3, "output record: msgtype = %d, "
-                 "version = [%d:%d], msglen = %d",
+                 "version = [%d:%d], msglen = %u",
                  tls->out_hdr[0], tls->out_hdr[1], tls->out_hdr[2],
-                 (tls->out_hdr[3] << 8) | tls->out_hdr[4]);
+                 buf16_to_uint (tls->out_hdr + 3));
 
       debug_buf (4, "output record sent to network",
                  tls->out_hdr, 5 + tls->out_msglen);
@@ -1444,7 +1489,7 @@ _ntbtls_read_record (ntbtls_t tls)
       memmove (tls->in_msg, tls->in_msg + tls->in_hslen, tls->in_msglen);
 
       tls->in_hslen = 4;
-      tls->in_hslen += (tls->in_msg[2] << 8) | tls->in_msg[3];
+      tls->in_hslen += buf16_to_size_t (tls->in_msg + 2);
 
       debug_msg (3, "handshake message: msglen ="
                  " %d, type = %d, hslen = %d",
@@ -1482,12 +1527,12 @@ _ntbtls_read_record (ntbtls_t tls)
   //FIXME: Handle EOF
 
   tls->in_msgtype = tls->in_hdr[0];
-  tls->in_msglen = (tls->in_hdr[3] << 8) | tls->in_hdr[4];
+  tls->in_msglen = buf16_to_size_t (tls->in_hdr + 3);
 
   debug_msg (3, "input record: msgtype = %d, "
-             "version = [%d:%d], msglen = %d",
+             "version = [%d:%d], msglen = %u",
              tls->in_hdr[0], tls->in_hdr[1], tls->in_hdr[2],
-             (tls->in_hdr[3] << 8) | tls->in_hdr[4]);
+             buf16_to_uint (tls->in_hdr + 3));
 
   if (tls->in_hdr[1] != tls->major_ver)
     {
@@ -1609,7 +1654,7 @@ _ntbtls_read_record (ntbtls_t tls)
   if (tls->in_msgtype == TLS_MSG_HANDSHAKE)
     {
       tls->in_hslen = 4;
-      tls->in_hslen += (tls->in_msg[2] << 8) | tls->in_msg[3];
+      tls->in_hslen += buf16_to_size_t (tls->in_msg + 2);
 
       debug_msg (3, "handshake message: msglen ="
                  " %d, type = %d, hslen = %d",
@@ -1872,7 +1917,7 @@ _ntbtls_parse_certificate (ntbtls_t tls)
   /*
    * Same message structure as in _ntbtls_write_certificate()
    */
-  n = (tls->in_msg[5] << 8) | tls->in_msg[6];
+  n = buf16_to_size_t (tls->in_msg + 5);
 
   if (tls->in_msg[4] != 0 || tls->in_hslen != 7 + n)
     {
@@ -1902,8 +1947,7 @@ _ntbtls_parse_certificate (ntbtls_t tls)
           return gpg_error (GPG_ERR_BAD_HS_CERT);
         }
 
-      n = (((unsigned int) tls->in_msg[i + 1] << 8)
-           | (unsigned int) tls->in_msg[i + 2]);
+      n = buf16_to_size_t (tls->in_msg + i + 1);
       i += 3;
 
       if (n < 128 || i + n > tls->in_hslen)

@@ -737,7 +737,7 @@ parse_alpn_ext (ntbtls_t tls, const unsigned char *buf, size_t len)
   if (len < 4)
     return gpg_error (GPG_ERR_BAD_HS_SERVER_HELLO);
 
-  list_len = (buf[0] << 8) | buf[1];
+  list_len = buf16_to_size_t (buf);
   if (list_len != len - 2)
     return gpg_error (GPG_ERR_BAD_HS_SERVER_HELLO);
 
@@ -826,11 +826,7 @@ parse_server_hello (ntbtls_t tls)
       return gpg_error (GPG_ERR_UNSUPPORTED_PROTOCOL);
     }
 
-  /*FIXME: Replace by an buftou32 macro.  */
-  t = ((  (uint32_t) buf[6] << 24)
-       | ((uint32_t) buf[7] << 16)
-       | ((uint32_t) buf[8] << 8)
-       | ((uint32_t) buf[9]       ));
+  t = buf32_to_u32 (buf+6);
   debug_msg (3, "server hello, current time: %lu", t);
 
   memcpy (tls->handshake->randbytes + 32, buf + 6, 32);
@@ -855,8 +851,7 @@ parse_server_hello (ntbtls_t tls)
    */
   if (tls->in_hslen > 42 + n)
     {
-      ext_len = ((buf[42 + n] << 8) | (buf[43 + n]));
-
+      ext_len = buf16_to_size_t (buf + 42 + n);
       if ((ext_len > 0 && ext_len < 4) || tls->in_hslen != 44 + n + ext_len)
         {
           debug_msg (1, "bad server hello message");
@@ -864,7 +859,7 @@ parse_server_hello (ntbtls_t tls)
         }
     }
 
-  suite_id = (buf[39 + n] << 8) | buf[40 + n];
+  suite_id = buf16_to_uint (buf + 39 + n);
   comp = buf[41 + n];
 
   /*
@@ -948,8 +943,8 @@ parse_server_hello (ntbtls_t tls)
 
   while (ext_len)
     {
-      unsigned int ext_id = ((ext[0] << 8) | (ext[1]));
-      unsigned int ext_size = ((ext[2] << 8) | (ext[3]));
+      unsigned int ext_id   = buf16_to_uint (ext);
+      unsigned int ext_size = buf16_to_uint (ext+2);
 
       if (ext_size + 4 > ext_len)
         {
@@ -1087,7 +1082,7 @@ parse_server_dh_params (ntbtls_t tls, unsigned char **p, unsigned char *end)
     }
   *p += n;
   nbits = _ntbtls_dhm_get_nbits (tls->handshake->dhm_ctx);
-  if (nbits < 512 || nbits > 4096)
+  if (nbits < 1024 || nbits > 4096)
     {
       debug_msg (1, "bad server key exchange message (DHM length: %u)", nbits);
       return gpg_error (GPG_ERR_BAD_HS_SERVER_KEX);
@@ -1164,14 +1159,19 @@ parse_server_psk_hint (ntbtls_t tls, unsigned char **p, unsigned char *end)
    *
    * opaque psk_identity_hint<0..2^16-1>;
    */
-  //FIXME: Check that *p is large enough for LEN.
-  len = (*p)[0] << 8 | (*p)[1];
+  if (*p + 1 < end)
+    {
+      debug_msg (1, "bad server key exchange message"
+                 " (psk_identity_hint too short)");
+      return gpg_error (GPG_ERR_BAD_HS_SERVER_KEX);
+    }
+  len = buf16_to_size_t (*p);
   *p += 2;
 
   if ((*p) + len > end)
     {
       debug_msg (1, "bad server key exchange message"
-                 " (psk_identity_hint length)");
+                 " (psk_identity_hint too long)");
       return gpg_error (GPG_ERR_BAD_HS_SERVER_KEX);
     }
 
@@ -1467,7 +1467,7 @@ parse_server_key_exchange (ntbtls_t tls)
       /*
        * Read signature
        */
-      sig_len = (p[0] << 8) | p[1];
+      sig_len = buf16_to_size_t (p);
       p += 2;
 
       if (end != p + sig_len)
@@ -1542,7 +1542,8 @@ parse_certificate_request (ntbtls_t tls)
   gpg_error_t err;
   unsigned char *buf, *p;
   size_t n = 0, m = 0;
-  size_t cert_type_len = 0, dn_len = 0;
+  size_t cert_type_len = 0;
+  size_t dn_len = 0;
   const ciphersuite_t suite = tls->transform_negotiate->ciphersuite;
   key_exchange_type_t kex = _ntbtls_ciphersuite_get_kex (suite);
 
@@ -1645,7 +1646,7 @@ parse_certificate_request (ntbtls_t tls)
     {
       /* Ignored, see comments about hash in write_certificate_verify */
       // TODO: should check the signature part against our pk_key though
-      size_t sig_alg_len = ((buf[5 + n] << 8) | (buf[6 + n]));
+      size_t sig_alg_len = buf16_to_size_t (buf + 5 + n);
 
       p = buf + 7 + n;
       m += 2;
@@ -1660,7 +1661,7 @@ parse_certificate_request (ntbtls_t tls)
 
   /* Ignore certificate_authorities, we only have one cert anyway */
   // TODO: should not send cert if no CA matches
-  dn_len = ((buf[5 + m + n] << 8) | (buf[6 + m + n]));
+  dn_len = buf16_to_size_t (buf + 5 + m + n);
 
   n += dn_len;
   if (tls->in_hslen != 7 + m + n)
@@ -2055,12 +2056,8 @@ parse_new_session_ticket (ntbtls_t tls)
       return gpg_error (GPG_ERR_BAD_TICKET);
     }
 
-  lifetime = ((tls->in_msg[4] << 24)
-              | (tls->in_msg[5] << 16)
-              | (tls->in_msg[6] << 8)
-              | (tls->in_msg[7]));
-
-  ticket_len = (tls->in_msg[8] << 8) | (tls->in_msg[9]);
+  lifetime   = buf32_to_u32 (tls->in_msg + 4);
+  ticket_len = buf16_to_size_t (tls->in_msg + 8);
 
   if (ticket_len + 10 != tls->in_hslen)
     {

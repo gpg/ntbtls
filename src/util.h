@@ -55,6 +55,42 @@ memcmpct (const void *_a, const void *_b, size_t len)
 }
 
 
+/* Buffer to integer functions.  */
+
+static inline unsigned int
+buf16_to_uint (const void *buffer)
+{
+  const unsigned char *p = buffer;
+
+  return (((unsigned int)p[0] << 8) | p[1]);
+}
+
+static inline size_t
+buf16_to_size_t (const void *buffer)
+{
+  const unsigned char *p = buffer;
+
+  return (((size_t)p[0] << 8) | p[1]);
+}
+
+static inline size_t
+buf24_to_size_t (const void *buffer)
+{
+  const unsigned char *p = buffer;
+
+  return (((size_t)p[0] << 16) | (p[1] << 8) | p[1]);
+}
+
+static inline uint32_t
+buf32_to_u32 (const void *buffer)
+{
+  const unsigned char *p = buffer;
+
+  return (((uint32_t)p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3]);
+}
+
+
+
 
 /*-- debug.c --*/
 void _ntbtls_set_debug (int level, const char *prefix, gpgrt_stream_t stream);
