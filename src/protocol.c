@@ -1843,7 +1843,7 @@ _ntbtls_write_certificate (ntbtls_t tls)
 
 
 gpg_error_t
-_ntbtls_parse_certificate (ntbtls_t tls)
+_ntbtls_read_certificate (ntbtls_t tls)
 {
   gpg_error_t err;
   size_t i, n;
@@ -2064,7 +2064,7 @@ _ntbtls_write_change_cipher_spec (ntbtls_t tls)
 
 
 gpg_error_t
-_ntbtls_parse_change_cipher_spec (ntbtls_t tls)
+_ntbtls_read_change_cipher_spec (ntbtls_t tls)
 {
   gpg_error_t err;
 
@@ -2323,7 +2323,7 @@ _ntbtls_write_finished (ntbtls_t tls)
 
 
 gpg_error_t
-_ntbtls_parse_finished (ntbtls_t tls)
+_ntbtls_read_finished (ntbtls_t tls)
 {
   gpg_error_t err;
   unsigned int hashlen;

@@ -304,11 +304,11 @@ void _ntbtls_optimize_checksum (ntbtls_t tls,
 gpg_error_t _ntbtls_psk_derive_premaster (ntbtls_t tls,
                                           key_exchange_type_t kex);
 gpg_error_t _ntbtls_write_certificate (ntbtls_t tls);
-gpg_error_t _ntbtls_parse_certificate (ntbtls_t tls);
+gpg_error_t _ntbtls_read_certificate (ntbtls_t tls);
 gpg_error_t _ntbtls_write_change_cipher_spec (ntbtls_t tls);
-gpg_error_t _ntbtls_parse_change_cipher_spec (ntbtls_t tls);
+gpg_error_t _ntbtls_read_change_cipher_spec (ntbtls_t tls);
 gpg_error_t _ntbtls_write_finished (ntbtls_t tls);
-gpg_error_t _ntbtls_parse_finished (ntbtls_t tls);
+gpg_error_t _ntbtls_read_finished (ntbtls_t tls);
 
 void _ntbtls_handshake_wrapup (ntbtls_t tls);
 

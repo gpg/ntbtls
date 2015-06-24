@@ -758,7 +758,7 @@ parse_alpn_ext (ntbtls_t tls, const unsigned char *buf, size_t len)
 
 
 static gpg_error_t
-parse_server_hello (ntbtls_t tls)
+read_server_hello (ntbtls_t tls)
 {
   gpg_error_t err;
   int i, suite_id, comp;
@@ -1316,7 +1316,7 @@ get_ecdh_params_from_cert (ntbtls_t tls)
 
 
 static gpg_error_t
-parse_server_key_exchange (ntbtls_t tls)
+read_server_key_exchange (ntbtls_t tls)
 {
   gpg_error_t err;
   const ciphersuite_t suite = tls->transform_negotiate->ciphersuite;
@@ -1531,7 +1531,7 @@ parse_server_key_exchange (ntbtls_t tls)
 
 
 static gpg_error_t
-parse_certificate_request (ntbtls_t tls)
+read_certificate_request (ntbtls_t tls)
 {
   gpg_error_t err;
   unsigned char *buf, *p;
@@ -1671,7 +1671,7 @@ parse_certificate_request (ntbtls_t tls)
 
 
 static gpg_error_t
-parse_server_hello_done (ntbtls_t tls)
+read_server_hello_done (ntbtls_t tls)
 {
   gpg_error_t err;
 
@@ -2130,23 +2130,23 @@ _ntbtls_handshake_client_step (ntbtls_t tls)
        *        ServerHelloDone
        */
     case TLS_SERVER_HELLO:
-      err = parse_server_hello (tls);
+      err = read_server_hello (tls);
       break;
 
     case TLS_SERVER_CERTIFICATE:
-      err = _ntbtls_parse_certificate (tls);
+      err = _ntbtls_read_certificate (tls);
       break;
 
     case TLS_SERVER_KEY_EXCHANGE:
-      err = parse_server_key_exchange (tls);
+      err = read_server_key_exchange (tls);
       break;
 
     case TLS_CERTIFICATE_REQUEST:
-      err = parse_certificate_request (tls);
+      err = read_certificate_request (tls);
       break;
 
     case TLS_SERVER_HELLO_DONE:
-      err = parse_server_hello_done (tls);
+      err = read_server_hello_done (tls);
       break;
 
       /*
@@ -2185,11 +2185,11 @@ _ntbtls_handshake_client_step (ntbtls_t tls)
       if (tls->handshake->new_session_ticket)
         err = parse_new_session_ticket (tls);
       else
-        err = _ntbtls_parse_change_cipher_spec (tls);
+        err = _ntbtls_read_change_cipher_spec (tls);
       break;
 
     case TLS_SERVER_FINISHED:
-      err = _ntbtls_parse_finished (tls);
+      err = _ntbtls_read_finished (tls);
       break;
 
     case TLS_FLUSH_BUFFERS:

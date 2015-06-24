@@ -814,8 +814,8 @@ ssl_ciphersuite_match (ntbtls_t ssl, int suite_id,
 }
 
 
-int
-parse_client_hello (ntbtls_t ssl)
+static int
+read_client_hello (ntbtls_t ssl)
 {
   int ret;
   unsigned int i, j;
@@ -2186,7 +2186,7 @@ ssl_parse_client_psk_identity (ntbtls_t ssl, unsigned char **p,
 
 
 static int
-parse_client_key_exchange (ntbtls_t ssl)
+read_client_key_exchange (ntbtls_t ssl)
 {
   int ret;
   const ssl_ciphersuite_t *suite;
@@ -2409,7 +2409,7 @@ parse_client_key_exchange (ntbtls_t ssl)
 
 
 static int
-parse_certificate_verify (ntbtls_t ssl)
+read_certificate_verify (ntbtls_t ssl)
 {
   int ret = gpg_error (GPG_ERR_NOT_IMPLEMENTED);
   size_t sa_len, sig_len;
@@ -2622,7 +2622,7 @@ _ntbtls_handshake_server_step (ntbtls_t tls)
        *  <==   ClientHello
        */
     case TLS_CLIENT_HELLO:
-      err = parse_client_hello (tls);
+      err = read_client_hello (tls);
       break;
 
       /*
@@ -2660,23 +2660,23 @@ _ntbtls_handshake_server_step (ntbtls_t tls)
        *        Finished
        */
     case TLS_CLIENT_CERTIFICATE:
-      err = _ntbtls_parse_certificate (tls);
+      err = _ntbtls_read_certificate (tls);
       break;
 
     case TLS_CLIENT_KEY_EXCHANGE:
-      err = parse_client_key_exchange (tls);
+      err = read_client_key_exchange (tls);
       break;
 
     case TLS_CERTIFICATE_VERIFY:
-      err = parse_certificate_verify (tls);
+      err = read_certificate_verify (tls);
       break;
 
     case TLS_CLIENT_CHANGE_CIPHER_SPEC:
-      err = _ntbtls_parse_change_cipher_spec (tls);
+      err = _ntbtls_read_change_cipher_spec (tls);
       break;
 
     case TLS_CLIENT_FINISHED:
-      err = _ntbtls_parse_finished (tls);
+      err = _ntbtls_read_finished (tls);
       break;
 
       /*
