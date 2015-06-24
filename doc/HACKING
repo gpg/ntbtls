@@ -20,3 +20,30 @@
 #+end_example
 
 ** How to start an OpenSSL test server
+
+
+* Specs
+** RFC Notes
+
+*** 5246 - The Transport Layer Security (TLS) Protocol Version 1.2.
+    T. Dierks, E. Rescorla. August 2008. (Format: TXT=222395 bytes)
+    (Obsoletes RFC3268, RFC4346, RFC4366) (Updates RFC4492) (Updated
+    by RFC5746, RFC5878, RFC6176) (Status: PROPOSED STANDARD)
+
+*** 5746 Transport Layer Security (TLS) Renegotiation Indication Extension.
+    E. Rescorla, M. Ray, S. Dispensa, N. Oskov. February 2010.
+    (Format: TXT=33790 bytes) (Updates RFC5246, RFC4366, RFC4347,
+    RFC4346, RFC2246) (Status: PROPOSED STANDARD)
+
+*** 5878 Transport Layer Security (TLS) Authorization Extensions.
+    M. Brown, R. Housley. May 2010. (Format: TXT=44594 bytes) (Updates
+    RFC5246) (Status: EXPERIMENTAL)
+
+*** 6176 Prohibiting Secure Sockets Layer (SSL) Version 2.0.
+    S. Turner, T. Polk. March 2011. (Format: TXT=7642 bytes) (Updates
+    RFC2246, RFC4346, RFC5246) (Status: PROPOSED STANDARD)
+
+*** 5077 Transport Layer Security (TLS) Session Resumption without
+    Server-Side State. J. Salowey, H. Zhou, P. Eronen, H. Tschofenig.
+    January 2008. (Format: TXT=41989 bytes) (Obsoletes RFC4507)
+    (Status: PROPOSED STANDARD)

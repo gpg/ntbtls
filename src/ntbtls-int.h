@@ -282,6 +282,8 @@ tls_own_cert (ntbtls_t tls)
 const char *_ntbtls_check_version (const char *req_version);
 
 /*-- protocol.c --*/
+const char *_ntbtls_state2str (tls_state_t state);
+
 gpg_error_t _ntbtls_fetch_input (ntbtls_t tls, size_t nb_want);
 gpg_error_t _ntbtls_flush_output (ntbtls_t tls);
 

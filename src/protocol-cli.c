@@ -42,7 +42,7 @@ write_hostname_ext (ntbtls_t tls, unsigned char *buf, size_t * olen)
   if (!tls->hostname)
     return;
 
-  debug_msg (3, "client hello, adding server name extension: '%s'",
+  debug_msg (3, "client_hello, adding server name extension: '%s'",
              tls->hostname);
 
   len = strlen (tls->hostname);
@@ -95,7 +95,7 @@ write_cli_renegotiation_ext (ntbtls_t ssl,
   if (ssl->renegotiation != TLS_RENEGOTIATION)
     return;
 
-  debug_msg (3, "client hello, adding renegotiation extension");
+  debug_msg (3, "client_hello, adding renegotiation extension");
 
   /*
    * Secure renegotiation
@@ -126,7 +126,7 @@ write_signature_algorithms_ext (ntbtls_t ssl,
   if (ssl->max_minor_ver != TLS_MINOR_VERSION_3)
     return;
 
-  debug_msg (3, "client hello, adding signature_algorithms extension");
+  debug_msg (3, "client_hello, adding signature_algorithms extension");
 
   /*
    * Prepare signature_algorithms extension (TLS 1.2)
@@ -258,7 +258,7 @@ write_cli_max_fragment_length_ext (ntbtls_t tls,
       return;
     }
 
-  debug_msg (3, "client hello, adding max_fragment_length extension");
+  debug_msg (3, "client_hello, adding max_fragment_length extension");
 
   *p++ = (unsigned char) ((TLS_EXT_MAX_FRAGMENT_LENGTH >> 8) & 0xFF);
   *p++ = (unsigned char) ((TLS_EXT_MAX_FRAGMENT_LENGTH) & 0xFF);
@@ -284,7 +284,7 @@ write_cli_truncated_hmac_ext (ntbtls_t tls,
       return;
     }
 
-  debug_msg (3, "client hello, adding truncated_hmac extension");
+  debug_msg (3, "client_hello, adding truncated_hmac extension");
 
   *p++ = (unsigned char) ((TLS_EXT_TRUNCATED_HMAC >> 8) & 0xFF);
   *p++ = (unsigned char) ((TLS_EXT_TRUNCATED_HMAC) & 0xFF);
@@ -309,7 +309,7 @@ write_cli_session_ticket_ext (ntbtls_t ssl,
       return;
     }
 
-  debug_msg (3, "client hello, adding session ticket extension");
+  debug_msg (3, "client_hello, adding session ticket extension");
 
   *p++ = (unsigned char) ((TLS_EXT_SESSION_TICKET >> 8) & 0xFF);
   *p++ = (unsigned char) ((TLS_EXT_SESSION_TICKET) & 0xFF);
@@ -325,7 +325,7 @@ write_cli_session_ticket_ext (ntbtls_t ssl,
       return;
     }
 
-  debug_msg (3, "sending session ticket of length %d", tlen);
+  debug_msg (3, "sending session_ticket of length %d", tlen);
 
   memcpy (p, ssl->session_negotiate->ticket, tlen);
 
@@ -392,7 +392,7 @@ write_client_hello (ntbtls_t tls)
   const int *ciphersuites;
   ciphersuite_t suite;
 
-  debug_msg (2, "=> write client hello");
+  debug_msg (2, "write client_hello");
 
   if (tls->renegotiation == TLS_INITIAL_HANDSHAKE)
     {
@@ -419,7 +419,7 @@ write_client_hello (ntbtls_t tls)
   *p++ = (unsigned char) tls->max_major_ver;
   *p++ = (unsigned char) tls->max_minor_ver;
 
-  debug_msg (3, "client hello, max version: [%d:%d]", buf[4], buf[5]);
+  debug_msg (3, "client_hello, max version: [%d:%d]", buf[4], buf[5]);
 
   t = time (NULL);
   *p++ = (unsigned char) (t >> 24);
@@ -427,7 +427,7 @@ write_client_hello (ntbtls_t tls)
   *p++ = (unsigned char) (t >> 8);
   *p++ = (unsigned char) (t);
 
-  debug_msg (3, "client hello, current time: %lu", t);
+  debug_msg (3, "client_hello, current time: %lu", t);
 
   //FIXME: Check RNG requirements.
   gcry_create_nonce (p, 28);
@@ -435,7 +435,7 @@ write_client_hello (ntbtls_t tls)
 
   memcpy (tls->handshake->randbytes, buf + 6, 32);
 
-  debug_buf (3, "client hello, random bytes", buf + 6, 32);
+  debug_buf (3, "client_hello, random bytes", buf + 6, 32);
 
   /*
    *    38  .  38   session id length
@@ -472,8 +472,8 @@ write_client_hello (ntbtls_t tls)
   for (i = 0; i < n; i++)
     *p++ = tls->session_negotiate->id[i];
 
-  debug_msg (3, "client hello, session id len.: %d", n);
-  debug_buf (3, "client hello, session id", buf + 39, n);
+  debug_msg (3, "client_hello, session id len.: %d", n);
+  debug_buf (3, "client_hello, session id", buf + 39, n);
 
   // Fixme: We do not have a way to set the ciphersuites.  Thus
   // consider to replace this with simpler code.
@@ -506,7 +506,7 @@ write_client_hello (ntbtls_t tls)
                                            tls->max_minor_ver))
         continue;
 
-      debug_msg (3, "client hello, add ciphersuite: %5d %s",
+      debug_msg (3, "client_hello, add ciphersuite: %5d %s",
                  ciphersuites[i],
                  _ntbtls_ciphersuite_get_name (ciphersuites[i]));
 
@@ -519,10 +519,10 @@ write_client_hello (ntbtls_t tls)
   *q++ = (unsigned char) (n >> 7);
   *q++ = (unsigned char) (n << 1);
 
-  debug_msg (3, "client hello, got %d ciphersuites", n);
+  debug_msg (3, "client_hello, got %d ciphersuites", n);
 
-  debug_msg (3, "client hello, compress len.: %d", 2);
-  debug_msg (3, "client hello, compress alg.: %d %d",
+  debug_msg (3, "client_hello, compress len.: %d", 2);
+  debug_msg (3, "client_hello, compress alg.: %d %d",
              TLS_COMPRESS_DEFLATE, TLS_COMPRESS_NULL);
 
   *p++ = 2;
@@ -557,7 +557,7 @@ write_client_hello (ntbtls_t tls)
   write_cli_alpn_ext (tls, p + 2 + ext_len, &olen);
   ext_len += olen;
 
-  debug_msg (3, "client hello, total extension length: %d", ext_len);
+  debug_msg (3, "client_hello, total extension length: %d", ext_len);
 
   if (ext_len > 0)
     {
@@ -579,9 +579,7 @@ write_client_hello (ntbtls_t tls)
       return err;
     }
 
-  debug_msg (2, "<= write client hello");
-
-  return (0);
+  return 0;
 }
 
 
@@ -772,7 +770,7 @@ parse_server_hello (ntbtls_t tls)
   const int *ciphersuites;
   uint32_t t;
 
-  debug_msg (2, "=> parse server hello");
+  debug_msg (2, "read server_hello");
 
   /*
    *     0  .   0   handshake type
@@ -792,23 +790,23 @@ parse_server_hello (ntbtls_t tls)
 
   if (tls->in_msgtype != TLS_MSG_HANDSHAKE)
     {
-      debug_msg (1, "bad server hello message");
+      debug_msg (1, "bad server_hello message");
       return gpg_error (GPG_ERR_UNEXPECTED_MSG);
     }
 
-  debug_msg (3, "server hello, chosen version: [%d:%d]",  buf[4], buf[5]);
+  debug_msg (3, "server_hello, chosen version: [%d:%d]",  buf[4], buf[5]);
 
   if (tls->in_hslen < 42
       || buf[0] != TLS_HS_SERVER_HELLO
       || buf[4] != TLS_MAJOR_VERSION_3)
     {
-      debug_msg (1, "bad server hello message");
+      debug_msg (1, "bad server_hello message");
       return gpg_error (GPG_ERR_BAD_HS_SERVER_HELLO);
     }
 
   if (buf[5] > tls->max_minor_ver)
     {
-      debug_msg (1, "bad server hello message");
+      debug_msg (1, "bad server_hello message");
       return gpg_error (GPG_ERR_BAD_HS_SERVER_HELLO);
     }
 
@@ -827,17 +825,17 @@ parse_server_hello (ntbtls_t tls)
     }
 
   t = buf32_to_u32 (buf+6);
-  debug_msg (3, "server hello, current time: %lu", t);
+  debug_msg (3, "server_hello, current time: %lu", t);
 
   memcpy (tls->handshake->randbytes + 32, buf + 6, 32);
 
   n = buf[38];
 
-  debug_buf (3, "server hello, random bytes", buf + 6, 32);
+  debug_buf (3, "server_hello, random bytes", buf + 6, 32);
 
   if (n > 32)
     {
-      debug_msg (1, "bad server hello message");
+      debug_msg (1, "bad server_hello message");
       return gpg_error (GPG_ERR_BAD_HS_SERVER_HELLO);
     }
 
@@ -854,7 +852,7 @@ parse_server_hello (ntbtls_t tls)
       ext_len = buf16_to_size_t (buf + 42 + n);
       if ((ext_len > 0 && ext_len < 4) || tls->in_hslen != 44 + n + ext_len)
         {
-          debug_msg (1, "bad server hello message");
+          debug_msg (1, "bad server_hello message");
           return gpg_error (GPG_ERR_BAD_HS_SERVER_HELLO);
         }
     }
@@ -875,8 +873,8 @@ parse_server_hello (ntbtls_t tls)
 
   _ntbtls_optimize_checksum (tls, tls->transform_negotiate->ciphersuite);
 
-  debug_msg (3, "server hello, session id len.: %d", n);
-  debug_buf (3, "server hello, session id", buf + 39, n);
+  debug_msg (3, "server_hello, session id len.: %d", n);
+  debug_buf (3, "server_hello, session id", buf + 39, n);
 
   /*
    * Check if the session can be resumed
@@ -912,8 +910,8 @@ parse_server_hello (ntbtls_t tls)
   debug_msg (3, "%s session has been resumed",
              tls->handshake->resume ? "a" : "no");
 
-  debug_msg (3, "server hello, chosen ciphersuite: %d", suite_id);
-  debug_msg (3, "server hello, compress alg.: %d", buf[41 + n]);
+  debug_msg (3, "server_hello, chosen ciphersuite: %d", suite_id);
+  debug_msg (3, "server_hello, compress alg.: %d", buf[41 + n]);
 
   /* Check that we support the cipher suite.  */
   ciphersuites = tls->ciphersuite_list[tls->minor_ver];
@@ -925,21 +923,21 @@ parse_server_hello (ntbtls_t tls)
     }
   if (!ciphersuites || !ciphersuites[i])
     {
-      debug_msg (1, "bad server hello message");
+      debug_msg (1, "bad server_hello message");
       return gpg_error (GPG_ERR_BAD_HS_SERVER_HELLO);
     }
 
 
   if (comp != TLS_COMPRESS_NULL && comp != TLS_COMPRESS_DEFLATE)
     {
-      debug_msg (1, "bad server hello message");
+      debug_msg (1, "bad server_hello message");
       return gpg_error (GPG_ERR_BAD_HS_SERVER_HELLO);
     }
   tls->session_negotiate->compression = comp;
 
   ext = buf + 44 + n;
 
-  debug_msg (2, "server hello, total extension length: %d", ext_len);
+  debug_msg (2, "server_hello, total extension length: %d", ext_len);
 
   while (ext_len)
     {
@@ -948,7 +946,7 @@ parse_server_hello (ntbtls_t tls)
 
       if (ext_size + 4 > ext_len)
         {
-          debug_msg (1, "bad server hello message");
+          debug_msg (1, "bad server_hello message");
           return gpg_error (GPG_ERR_BAD_HS_SERVER_HELLO);
         }
 
@@ -1007,7 +1005,7 @@ parse_server_hello (ntbtls_t tls)
 
       if (ext_len > 0 && ext_len < 4)
         {
-          debug_msg (1, "bad server hello message");
+          debug_msg (1, "bad server_hello message");
           return gpg_error (GPG_ERR_BAD_HS_SERVER_HELLO);
         }
     }
@@ -1050,8 +1048,6 @@ parse_server_hello (ntbtls_t tls)
         err = gpg_error (GPG_ERR_BAD_HS_SERVER_HELLO);
       return err;
     }
-
-  debug_msg (2, "<= parse server hello");
 
   return 0;
 }
@@ -1333,11 +1329,9 @@ parse_server_key_exchange (ntbtls_t tls)
   pk_algo_t pk_alg = 0;
 
 
-  debug_msg (2, "=> parse server key exchange");
-
   if (kex == KEY_EXCHANGE_RSA)
     {
-      debug_msg (2, "<= skip parse server key exchange");
+      debug_msg (2, "skipping read server_key_exchange");
       tls->state++;
       return 0;
     }
@@ -1351,10 +1345,12 @@ parse_server_key_exchange (ntbtls_t tls)
           return err;
         }
 
-      debug_msg (2, "<= skip parse server key exchange");
+      debug_msg (2, "skipping read server_key_exchange");
       tls->state++;
       return 0;
     }
+
+  debug_msg (2, "read server_key_exchange");
 
   err = _ntbtls_read_record (tls);
   if (err)
@@ -1365,7 +1361,7 @@ parse_server_key_exchange (ntbtls_t tls)
 
   if (tls->in_msgtype != TLS_MSG_HANDSHAKE)
     {
-      debug_msg (1, "bad server key exchange message (%d)", __LINE__);
+      debug_msg (1, "bad server_key_exchange message (%d)", __LINE__);
       return gpg_error (GPG_ERR_UNEXPECTED_MSG);
     }
 
@@ -1381,13 +1377,13 @@ parse_server_key_exchange (ntbtls_t tls)
           goto leave;
         }
 
-      debug_msg (1, "bad server key exchange message (%d)", __LINE__);
+      debug_msg (1, "bad server_key_exchange message (%d)", __LINE__);
       return gpg_error (GPG_ERR_UNEXPECTED_MSG);
     }
 
   p = tls->in_msg + 4;
   end = tls->in_msg + tls->in_hslen;
-  debug_buf (3, "server key exchange", p, tls->in_hslen - 4);
+  debug_buf (3, "server_key_exchange", p, tls->in_hslen - 4);
 
   if (kex == KEY_EXCHANGE_PSK
       || kex == KEY_EXCHANGE_RSA_PSK
@@ -1397,7 +1393,7 @@ parse_server_key_exchange (ntbtls_t tls)
       err = parse_server_psk_hint (tls, &p, end);
       if (err)
         {
-          debug_msg (1, "bad server key exchange message (%d)", __LINE__);
+          debug_msg (1, "bad server_key_exchange message (%d)", __LINE__);
           return err;
         }
     }
@@ -1411,7 +1407,7 @@ parse_server_key_exchange (ntbtls_t tls)
       err = parse_server_dh_params (tls, &p, end);
       if (err)
         {
-          debug_msg (1, "bad server key exchange message (%d)", __LINE__);
+          debug_msg (1, "bad server_key_exchange message (%d)", __LINE__);
           return err;
         }
     }
@@ -1422,7 +1418,7 @@ parse_server_key_exchange (ntbtls_t tls)
       err = parse_server_ecdh_params (tls, &p, end);
       if (err)
         {
-          debug_msg (1, "bad server key exchange message (%d)", __LINE__);
+          debug_msg (1, "bad server_key_exchange message (%d)", __LINE__);
           return err;
         }
     }
@@ -1447,13 +1443,13 @@ parse_server_key_exchange (ntbtls_t tls)
           err = parse_signature_algorithm (tls, &p, end, &md_alg, &pk_alg);
           if (err)
             {
-              debug_msg (1, "bad server key exchange message (%d)", __LINE__);
+              debug_msg (1, "bad server_key_exchange message (%d)", __LINE__);
               return err;
             }
 
           if (pk_alg != _ntbtls_ciphersuite_get_sig_pk_alg (suite))
             {
-              debug_msg (1, "bad server key exchange message (%d)", __LINE__);
+              debug_msg (1, "bad server_key_exchange message (%d)", __LINE__);
               return gpg_error (GPG_ERR_BAD_HS_SERVER_KEX);
             }
           //FIXME: Check that the ECC subtype matches.  */
@@ -1472,7 +1468,7 @@ parse_server_key_exchange (ntbtls_t tls)
 
       if (end != p + sig_len)
         {
-          debug_msg (1, "bad server key exchange message (%d)", __LINE__);
+          debug_msg (1, "bad server_key_exchange message (%d)", __LINE__);
           return gpg_error (GPG_ERR_BAD_HS_SERVER_KEX);
         }
 
@@ -1530,8 +1526,6 @@ parse_server_key_exchange (ntbtls_t tls)
  leave:
   tls->state++;
 
-  debug_msg (2, "<= parse server key exchange");
-
   return 0;
 }
 
@@ -1547,17 +1541,17 @@ parse_certificate_request (ntbtls_t tls)
   const ciphersuite_t suite = tls->transform_negotiate->ciphersuite;
   key_exchange_type_t kex = _ntbtls_ciphersuite_get_kex (suite);
 
-  debug_msg (2, "=> parse certificate request");
-
   if (kex == KEY_EXCHANGE_PSK
       || kex == KEY_EXCHANGE_RSA_PSK
       || kex == KEY_EXCHANGE_DHE_PSK
       || kex == KEY_EXCHANGE_ECDHE_PSK)
     {
-      debug_msg (2, "<= skip parse certificate request");
+      debug_msg (2, "skipping read certificate_request");
       tls->state++;
       return 0;
     }
+
+  debug_msg (2, "read certificate_request");
 
   /*
    *     0  .   0   handshake type
@@ -1582,7 +1576,7 @@ parse_certificate_request (ntbtls_t tls)
 
       if (tls->in_msgtype != TLS_MSG_HANDSHAKE)
         {
-          debug_msg (1, "bad certificate request message");
+          debug_msg (1, "bad certificate_request message");
           return gpg_error (GPG_ERR_UNEXPECTED_MSG);
         }
 
@@ -1595,7 +1589,7 @@ parse_certificate_request (ntbtls_t tls)
   if (tls->in_msg[0] == TLS_HS_CERTIFICATE_REQUEST)
     tls->client_auth++;
 
-  debug_msg (3, "got %s certificate request", tls->client_auth ? "a" : "no");
+  debug_msg (3, "got %s certificate_request", tls->client_auth ? "a" : "no");
 
   if (!tls->client_auth)
     goto leave;
@@ -1614,7 +1608,7 @@ parse_certificate_request (ntbtls_t tls)
 
   if (tls->in_hslen < 6 + n)
     {
-      debug_msg (1, "bad certificate request message");
+      debug_msg (1, "bad certificate_request message");
       return gpg_error (GPG_ERR_BAD_HS_CERT_REQ);
     }
 
@@ -1654,7 +1648,7 @@ parse_certificate_request (ntbtls_t tls)
 
       if (tls->in_hslen < 6 + n)
         {
-          debug_msg (1, "bad certificate request message");
+          debug_msg (1, "bad certificate_request message");
           return gpg_error (GPG_ERR_BAD_HS_CERT_REQ);
         }
     }
@@ -1666,12 +1660,11 @@ parse_certificate_request (ntbtls_t tls)
   n += dn_len;
   if (tls->in_hslen != 7 + m + n)
     {
-      debug_msg (1, "bad certificate request message");
+      debug_msg (1, "bad certificate_request message");
       return gpg_error (GPG_ERR_BAD_HS_CERT_REQ);
     }
 
  leave:
-  debug_msg (2, "<= parse certificate request");
 
   return 0;
 }
@@ -1682,7 +1675,7 @@ parse_server_hello_done (ntbtls_t tls)
 {
   gpg_error_t err;
 
-  debug_msg (2, "=> parse server hello done");
+  debug_msg (2, "read server_hello_done");
 
   if (!tls->record_read)
     {
@@ -1695,7 +1688,7 @@ parse_server_hello_done (ntbtls_t tls)
 
       if (tls->in_msgtype != TLS_MSG_HANDSHAKE)
         {
-          debug_msg (1, "bad server hello done message");
+          debug_msg (1, "bad server_hello_done message");
           return gpg_error (GPG_ERR_UNEXPECTED_MSG);
         }
     }
@@ -1703,13 +1696,11 @@ parse_server_hello_done (ntbtls_t tls)
 
   if (tls->in_hslen != 4 || tls->in_msg[0] != TLS_HS_SERVER_HELLO_DONE)
     {
-      debug_msg (1, "bad server hello done message");
+      debug_msg (1, "bad server_hello_done message");
       return gpg_error (GPG_ERR_BAD_HS_SERVER_HELLO_DONE);
     }
 
   tls->state++;
-
-  debug_msg (2, "<= parse server hello done");
 
   return 0;
 }
@@ -1723,7 +1714,7 @@ write_client_key_exchange (ntbtls_t tls)
   const ciphersuite_t suite = tls->transform_negotiate->ciphersuite;
   key_exchange_type_t kex = _ntbtls_ciphersuite_get_kex (suite);
 
-  debug_msg (2, "=> write client key exchange");
+  debug_msg (2, "write client_key_exchange");
 
   if (kex == KEY_EXCHANGE_DHE_RSA)
     {
@@ -1895,8 +1886,6 @@ write_client_key_exchange (ntbtls_t tls)
       return err;
     }
 
-  debug_msg (2, "<= write client key exchange");
-
   return 0;
 }
 
@@ -1914,24 +1903,19 @@ write_certificate_verify (ntbtls_t tls)
   md_algo_t md_alg = 0;
   unsigned int hashlen;
 
-  debug_msg (2, "=> write certificate verify");
-
   if (kex == KEY_EXCHANGE_PSK
       || kex == KEY_EXCHANGE_RSA_PSK
       || kex == KEY_EXCHANGE_ECDHE_PSK
-      || kex == KEY_EXCHANGE_DHE_PSK)
+      || kex == KEY_EXCHANGE_DHE_PSK
+      || !tls->client_auth
+      || !tls_own_cert (tls))
     {
-      debug_msg (2, "<= skip write certificate verify");
-      tls->state++;
-      return (0);
-    }
-
-  if (!tls->client_auth  || !tls_own_cert (tls))
-    {
-      debug_msg (2, "<= skip write certificate verify");
+      debug_msg (2, "skipping write certificate_verify");
       tls->state++;
       return 0;
     }
+
+  debug_msg (2, "write certificate_verify");
 
   if (!tls_own_key (tls))
     {
@@ -2009,8 +1993,6 @@ write_certificate_verify (ntbtls_t tls)
       return err;
     }
 
-  debug_msg (2, "<= write certificate verify");
-
   return 0;
 }
 
@@ -2023,7 +2005,7 @@ parse_new_session_ticket (ntbtls_t tls)
   size_t ticket_len;
   unsigned char *ticket;
 
-  debug_msg (2, "=> parse new session ticket");
+  debug_msg (2, "read new_session_ticket");
 
   err = _ntbtls_read_record (tls);
   if (err)
@@ -2034,7 +2016,7 @@ parse_new_session_ticket (ntbtls_t tls)
 
   if (tls->in_msgtype != TLS_MSG_HANDSHAKE)
     {
-      debug_msg (1, "bad new session ticket message");
+      debug_msg (1, "bad new_session_ticket message");
       return gpg_error (GPG_ERR_UNEXPECTED_MSG);
     }
 
@@ -2052,7 +2034,7 @@ parse_new_session_ticket (ntbtls_t tls)
    */
   if (tls->in_msg[0] != TLS_HS_NEW_SESSION_TICKET || tls->in_hslen < 10)
     {
-      debug_msg (1, "bad new session ticket message");
+      debug_msg (1, "bad new_session_ticket message");
       return gpg_error (GPG_ERR_BAD_TICKET);
     }
 
@@ -2061,7 +2043,7 @@ parse_new_session_ticket (ntbtls_t tls)
 
   if (ticket_len + 10 != tls->in_hslen)
     {
-      debug_msg (1, "bad new session ticket message");
+      debug_msg (1, "bad new_session_ticket message");
       return gpg_error (GPG_ERR_BAD_TICKET);
     }
 
@@ -2105,8 +2087,6 @@ parse_new_session_ticket (ntbtls_t tls)
   debug_msg (3, "ticket in use, discarding session id");
   tls->session_negotiate->length = 0;
 
-  debug_msg (2, "<= parse new session ticket");
-
   return 0;
 }
 
@@ -2122,7 +2102,8 @@ _ntbtls_handshake_client_step (ntbtls_t tls)
   if (tls->state == TLS_HANDSHAKE_OVER)
     return gpg_error (GPG_ERR_INV_STATE);
 
-  debug_msg (2, "client state: %d", tls->state);
+  debug_msg (2, "client state: %d (%s)",
+             tls->state, _ntbtls_state2str (tls->state));
 
   err = _ntbtls_flush_output (tls);
   if (err)

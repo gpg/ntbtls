@@ -239,9 +239,14 @@ simple_client (const char *server, int port)
 
   do
     {
-      es_fputs ("GET / HTTP/1.0\r\n\r\n", writefp);
+      es_fputs ("GET / HTTP/1.0\r\n", writefp);
+      if (opt_hostname)
+        es_fprintf (writefp, "Host: %s\r\n", opt_hostname);
+      es_fprintf (writefp, "X-ntbtls: %s\r\n",
+                  ntbtls_check_version (PACKAGE_VERSION));
+      es_fputs ("\r\n", writefp);
       es_fflush (writefp);
-      while (/* es_pending (readfp) && */(c = es_fgetc (readfp)) != EOF)
+      while (/*es_pending (readfp) &&*/ (c = es_fgetc (readfp)) != EOF)
         putchar (c);
     }
   while (c != EOF);

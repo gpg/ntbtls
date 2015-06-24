@@ -79,6 +79,37 @@ is_aead_mode (cipher_mode_t mode)
 }
 
 
+const char *
+_ntbtls_state2str (tls_state_t state)
+{
+  const char *s = "?";
+
+  switch (state)
+    {
+    case TLS_HELLO_REQUEST:             s = "hello_request"; break;
+    case TLS_CLIENT_HELLO:              s = "client_hello"; break;
+    case TLS_SERVER_HELLO:              s = "server_hello"; break;
+    case TLS_SERVER_CERTIFICATE:        s = "server_certificate"; break;
+    case TLS_SERVER_KEY_EXCHANGE:       s = "server_key_exchange"; break;
+    case TLS_CERTIFICATE_REQUEST:       s = "certificate_request"; break;
+    case TLS_SERVER_HELLO_DONE:         s = "server_hello_done"; break;
+    case TLS_CLIENT_CERTIFICATE:        s = "client_certificate"; break;
+    case TLS_CLIENT_KEY_EXCHANGE:       s = "client_key_exchange"; break;
+    case TLS_CERTIFICATE_VERIFY:        s = "certificate_verify"; break;
+    case TLS_CLIENT_CHANGE_CIPHER_SPEC: s = "client_change_cipher_spec"; break;
+    case TLS_CLIENT_FINISHED:           s = "client_finished"; break;
+    case TLS_SERVER_CHANGE_CIPHER_SPEC: s = "server_change_cipher_spec"; break;
+    case TLS_SERVER_FINISHED:           s = "server_finished"; break;
+    case TLS_FLUSH_BUFFERS:             s = "flush_buffers"; break;
+    case TLS_HANDSHAKE_WRAPUP:          s = "handshake_wrapup"; break;
+    case TLS_HANDSHAKE_OVER:            s = "handshake_over"; break;
+    case TLS_SERVER_NEW_SESSION_TICKET: s = "server_new_session_tickets"; break;
+    }
+  return s;
+}
+
+
+
 static gpg_error_t
 session_copy (session_t dst, const session_t src)
 {
@@ -252,7 +283,7 @@ _ntbtls_derive_keys (ntbtls_t tls)
   transform_t transform = tls->transform_negotiate;
   handshake_params_t handshake = tls->handshake;
 
-  debug_msg (2, "=> derive keys");
+  debug_msg (2, "derive keys");
 
   if (tls->minor_ver != TLS_MINOR_VERSION_3)
     {
@@ -516,8 +547,6 @@ _ntbtls_derive_keys (ntbtls_t tls)
         }
     }
 
-  debug_msg (2, "<= derive keys");
-
   return 0;
 }
 
@@ -530,7 +559,7 @@ calc_verify_tls (gcry_md_hd_t md_input, md_algo_t md_alg,
   gcry_md_hd_t md;
   char *p;
 
-  debug_msg (2, "=> calc verify tls sha%d", hashlen*8);
+  debug_msg (2, "calc_verify_tls sha%d", hashlen*8);
 
   err = gcry_md_copy (&md, md_input);
   if (err)
@@ -551,7 +580,7 @@ calc_verify_tls (gcry_md_hd_t md_input, md_algo_t md_alg,
   gcry_md_close (md);
 
   debug_buf (3, "calculated verify result", hash, hashlen);
-  debug_msg (2, "<= calc verify tls sha%d", hashlen*8);
+  debug_msg (3, "calc_verify_tls sha%d", hashlen*8);
 }
 
 
@@ -669,7 +698,7 @@ encrypt_buf (ntbtls_t tls)
   size_t tmplen, i;
   cipher_mode_t mode = tls->transform_out->cipher_mode_enc;
 
-  debug_msg (2, "=> encrypt buf");
+  debug_msg (2, "encrypt buf");
 
   if (tls->minor_ver < TLS_MINOR_VERSION_3)
     {
@@ -867,8 +896,6 @@ encrypt_buf (ntbtls_t tls)
       return gpg_error (GPG_ERR_WOULD_WRAP);
     }
 
-  debug_msg (2, "<= encrypt buf");
-
   return 0;
 }
 
@@ -882,7 +909,7 @@ decrypt_buf (ntbtls_t tls)
   size_t correct = 1;
   size_t tmplen, i;
 
-  debug_msg (2, "=> decrypt buf");
+  debug_msg (2, "decrypt buf");
 
   if (tls->minor_ver < TLS_MINOR_VERSION_3)
     {
@@ -1207,8 +1234,6 @@ decrypt_buf (ntbtls_t tls)
       return gpg_error (GPG_ERR_WOULD_WRAP);
     }
 
-  debug_msg (2, "<= decrypt buf");
-
   return 0;
 }
 
@@ -1224,7 +1249,7 @@ ssl_compress_buf (ntbtls_t ssl)
   size_t len_pre = ssl->out_msglen;
   unsigned char *msg_pre = ssl->compress_buf;
 
-  debug_msg (2, "=> compress buf");
+  debug_msg (2, "compress buf");
 
   if (len_pre == 0)
     return (0);
@@ -1257,8 +1282,6 @@ ssl_compress_buf (ntbtls_t ssl)
   debug_buf (4, "after compression: output payload",
              ssl->out_msg, ssl->out_msglen);
 
-  debug_msg (2, "<= compress buf");
-
   return (0);
 }
 
@@ -1270,7 +1293,7 @@ ssl_decompress_buf (ntbtls_t ssl)
   size_t len_pre = ssl->in_msglen;
   unsigned char *msg_pre = ssl->compress_buf;
 
-  debug_msg (2, "=> decompress buf");
+  debug_msg (2, "decompress buf");
 
   if (len_pre == 0)
     return (0);
@@ -1303,8 +1326,6 @@ ssl_decompress_buf (ntbtls_t ssl)
   debug_buf (4, "after decompression: input payload",
              ssl->in_msg, ssl->in_msglen);
 
-  debug_msg (2, "<= decompress buf");
-
   return (0);
 }
 
@@ -1318,7 +1339,7 @@ _ntbtls_fetch_input (ntbtls_t tls, size_t nb_want)
   gpg_error_t err;
   size_t len, nread;
 
-  debug_msg (2, "=> fetch input");
+  debug_msg (3, "fetch input");
 
   if (!tls->inbound)
     return gpg_error (GPG_ERR_NOT_INITIALIZED);
@@ -1336,16 +1357,14 @@ _ntbtls_fetch_input (ntbtls_t tls, size_t nb_want)
       if (es_read (tls->inbound, tls->in_hdr + tls->in_left, len, &nread))
         err = gpg_error_from_syserror ();
 
-      debug_msg (2, "in_left: %d, nb_want: %d", tls->in_left, nb_want);
-      debug_ret (2, "es_read", err);
+      debug_msg (3, "in_left: %d, nb_want: %d", tls->in_left, nb_want);
+      debug_ret (3, "es_read", err);
 
       if (err || !nread /*ie. EOF*/)
         break;
 
       tls->in_left += nread;
     }
-
-  debug_msg (2, "<= fetch input");
 
   return err;
 }
@@ -1361,7 +1380,7 @@ _ntbtls_flush_output (ntbtls_t tls)
   unsigned char *buf;
   size_t nwritten;
 
-  debug_msg (2, "=> flush output");
+  debug_msg (3, "flush output");
 
   if (!tls->outbound)
     return gpg_error (GPG_ERR_NOT_INITIALIZED);
@@ -1369,22 +1388,20 @@ _ntbtls_flush_output (ntbtls_t tls)
   err = 0;
   while (tls->out_left > 0)
     {
-      debug_msg (2, "message length: %d, out_left: %d",
+      debug_msg (3, "message length: %d, out_left: %d",
                  5 + tls->out_msglen, tls->out_left);
 
       buf = tls->out_hdr + 5 + tls->out_msglen - tls->out_left;
       if (es_write (tls->outbound, buf, tls->out_left, &nwritten))
         err = gpg_error_from_syserror ();
 
-      debug_ret (2, "es_write", err);
+      debug_ret (3, "es_write", err);
 
       if (err)
         break;
 
       tls->out_left -= nwritten;
     }
-
-  debug_msg (2, "<= flush output");
 
   return err;
 }
@@ -1400,7 +1417,7 @@ _ntbtls_write_record (ntbtls_t tls)
   int done = 0;
   size_t len = tls->out_msglen;
 
-  debug_msg (2, "=> write record");
+  debug_msg (3, "write record");
 
   if (tls->out_msgtype == TLS_MSG_HANDSHAKE)
     {
@@ -1460,12 +1477,7 @@ _ntbtls_write_record (ntbtls_t tls)
 
   err = _ntbtls_flush_output (tls);
   if (err)
-    {
-      debug_ret (1, "_ntbtls_flush_output", err);
-      return err;
-    }
-
-  debug_msg (2, "<= write record");
+    debug_ret (1, "_ntbtls_flush_output", err);
 
   return err;
 }
@@ -1477,7 +1489,7 @@ _ntbtls_read_record (ntbtls_t tls)
   gpg_error_t err;
   int done = 0;
 
-  debug_msg (2, "=> read record");
+  debug_msg (3, "read record");
 
   if (tls->in_hslen != 0 && tls->in_hslen < tls->in_msglen)
     {
@@ -1708,8 +1720,6 @@ _ntbtls_read_record (ntbtls_t tls)
 
   tls->in_left = 0;
 
-  debug_msg (2, "<= read record");
-
   return (0);
 }
 
@@ -1728,7 +1738,7 @@ _ntbtls_send_alert_message (ntbtls_t tls,
 {
   gpg_error_t err;
 
-  debug_msg (2, "=> send alert message");
+  debug_msg (2, "send alert message");
 
   tls->out_msgtype = TLS_MSG_ALERT;
   tls->out_msglen = 2;
@@ -1741,8 +1751,6 @@ _ntbtls_send_alert_message (ntbtls_t tls,
       debug_ret (1, "write_record", err);
       return err;
     }
-
-  debug_msg (2, "<= send alert message");
 
   return 0;
 }
@@ -1765,34 +1773,22 @@ _ntbtls_write_certificate (ntbtls_t tls)
   size_t derlen;
   size_t i;
 
-  debug_msg (2, "=> write certificate");
-
   if (kex == KEY_EXCHANGE_PSK
       || kex == KEY_EXCHANGE_DHE_PSK
-      || kex == KEY_EXCHANGE_ECDHE_PSK)
+      || kex == KEY_EXCHANGE_ECDHE_PSK
+      || (tls->is_client && !tls->client_auth))
     {
-      debug_msg (2, "<= skip write certificate");
+      debug_msg (2, "skipping write certificate");
       tls->state++;
       return 0;
     }
 
-  if (tls->is_client)
-    {
-      if (!tls->client_auth)
-        {
-          debug_msg (2, "<= skip write certificate");
-          tls->state++;
-          return 0;
-        }
+  debug_msg (2, "write certificate");
 
-    }
-  else /* is_server */
+  if (!tls->is_client && !tls_own_cert (tls))
     {
-      if (!tls_own_cert (tls))
-        {
-          debug_msg (1, "got no certificate to send");
-          return gpg_error (GPG_ERR_MISSING_CERT);
-        }
+      debug_msg (1, "got no certificate to send");
+      return gpg_error (GPG_ERR_MISSING_CERT);
     }
 
   /* SSL_DEBUG_CRT (3, "own certificate", tls_own_cert (tls)); */
@@ -1842,8 +1838,6 @@ _ntbtls_write_certificate (ntbtls_t tls)
       return err;
     }
 
-  debug_msg (2, "<= write certificate");
-
   return err;
 }
 
@@ -1856,13 +1850,11 @@ _ntbtls_parse_certificate (ntbtls_t tls)
   const ciphersuite_t suite = tls->transform_negotiate->ciphersuite;
   key_exchange_type_t kex = _ntbtls_ciphersuite_get_kex (suite);
 
-  debug_msg (2, "=> parse certificate");
-
   if (kex == KEY_EXCHANGE_PSK
       || kex == KEY_EXCHANGE_DHE_PSK
       || kex == KEY_EXCHANGE_ECDHE_PSK)
     {
-      debug_msg (2, "<= skip parse certificate");
+      debug_msg (2, "skipping read certificate");
       tls->state++;
       return 0;
     }
@@ -1871,10 +1863,12 @@ _ntbtls_parse_certificate (ntbtls_t tls)
       && (tls->authmode == TLS_VERIFY_NONE || kex == KEY_EXCHANGE_RSA_PSK))
     {
       tls->session_negotiate->verify_result = BADCERT_SKIP_VERIFY;
-      debug_msg (2, "<= skip parse certificate");
+      debug_msg (2, "skipping read certificate");
       tls->state++;
       return 0;
     }
+
+  debug_msg (2, "read certificate");
 
   err = _ntbtls_read_record (tls);
   if (err)
@@ -2041,8 +2035,6 @@ _ntbtls_parse_certificate (ntbtls_t tls)
         err = 0;
     }
 
-  debug_msg (2, "<= parse certificate");
-
   return err;
 }
 
@@ -2052,7 +2044,7 @@ _ntbtls_write_change_cipher_spec (ntbtls_t tls)
 {
   gpg_error_t err;
 
-  debug_msg (2, "=> write change cipher spec");
+  debug_msg (2, "write change cipher spec");
 
   tls->out_msgtype = TLS_MSG_CHANGE_CIPHER_SPEC;
   tls->out_msglen = 1;
@@ -2067,8 +2059,6 @@ _ntbtls_write_change_cipher_spec (ntbtls_t tls)
       return err;
     }
 
-  debug_msg (2, "<= write change cipher spec");
-
   return 0;
 }
 
@@ -2078,7 +2068,7 @@ _ntbtls_parse_change_cipher_spec (ntbtls_t tls)
 {
   gpg_error_t err;
 
-  debug_msg (2, "=> parse change cipher spec");
+  debug_msg (2, "read change_cipher_spec");
 
   err = _ntbtls_read_record (tls);
   if (err)
@@ -2089,19 +2079,17 @@ _ntbtls_parse_change_cipher_spec (ntbtls_t tls)
 
   if (tls->in_msgtype != TLS_MSG_CHANGE_CIPHER_SPEC)
     {
-      debug_msg (1, "bad change cipher spec message");
+      debug_msg (1, "bad change_cipher_spec message");
       return gpg_error (GPG_ERR_UNEXPECTED_MSG);
     }
 
   if (tls->in_msglen != 1 || tls->in_msg[0] != 1)
     {
-      debug_msg (1, "bad change cipher spec message");
+      debug_msg (1, "bad change_cipher_spec message");
       return gpg_error (GPG_ERR_BAD_HS_CHANGE_CIPHER);
     }
 
   tls->state++;
-
-  debug_msg (2, "<= parse change cipher spec");
 
   return 0;
 }
@@ -2162,7 +2150,7 @@ calc_finished_tls (ntbtls_t tls, int is_sha384,
   if (!session)
     session = tls->session;
 
-  debug_msg (2, "=> calc finished tls sha%d", is_sha384? 384 : 256);
+  debug_msg (2, "calc finished tls sha%d", is_sha384? 384 : 256);
 
   err = gcry_md_copy (&md, (is_sha384 ? tls->handshake->fin_sha512
                             /*     */ : tls->handshake->fin_sha256));
@@ -2197,8 +2185,6 @@ calc_finished_tls (ntbtls_t tls, int is_sha384,
   debug_buf (3, "calc finished result", buf, len);
 
   wipememory (padbuf, hashlen);
-
-  debug_msg (2, "<= calc finished tls sha%d", is_sha384? 384 : 256);
 }
 
 
@@ -2220,7 +2206,7 @@ _ntbtls_handshake_wrapup (ntbtls_t tls)
 {
   int resume = tls->handshake->resume;
 
-  debug_msg (3, "=> handshake wrapup");
+  debug_msg (3, "handshake wrapup");
 
   /*
    * Free our handshake params
@@ -2265,7 +2251,7 @@ _ntbtls_handshake_wrapup (ntbtls_t tls)
 
   tls->state++;
 
-  debug_msg (3, "<= handshake wrapup");
+  debug_msg (3, "handshake wrapup ready ");
 }
 
 
@@ -2275,7 +2261,7 @@ _ntbtls_write_finished (ntbtls_t tls)
   gpg_error_t err;
   int hashlen;
 
-  debug_msg (2, "=> write finished");
+  debug_msg (2, "write finished");
 
   /*
    * Set the out_msg pointer to the correct location based on IV length
@@ -2332,8 +2318,6 @@ _ntbtls_write_finished (ntbtls_t tls)
       return err;
     }
 
-  debug_msg (2, "<= write finished");
-
   return 0;
 }
 
@@ -2345,7 +2329,7 @@ _ntbtls_parse_finished (ntbtls_t tls)
   unsigned int hashlen;
   unsigned char buf[36];
 
-  debug_msg (2, "=> parse finished");
+  debug_msg (2, "read finished");
 
   tls->handshake->calc_finished (tls, buf, !tls->is_client);
 
@@ -2412,8 +2396,6 @@ _ntbtls_parse_finished (ntbtls_t tls)
     }
   else
     tls->state++;
-
-  debug_msg (2, "<= parse finished");
 
   return 0;
 }
@@ -2738,7 +2720,7 @@ _ntbtls_release (ntbtls_t tls)
   if (!tls)
     return;
 
-  debug_msg (2, "=> release");
+  debug_msg (2, "release");
 
   if (tls->out_ctr)
     {
@@ -2806,8 +2788,6 @@ _ntbtls_release (ntbtls_t tls)
 
   //FIXME:
   /* ssl_key_cert_free (tls->key_cert); */
-
-  debug_msg (2, "<= release");
 
   /* Actually clear after last debug message */
   wipememory (tls, sizeof *tls);
@@ -3476,7 +3456,7 @@ _ntbtls_handshake (ntbtls_t tls)
 {
   gpg_error_t err = 0;
 
-  debug_msg (2, "=> handshake");
+  debug_msg (2, "handshake");
 
   while (tls->state != TLS_HANDSHAKE_OVER)
     {
@@ -3485,7 +3465,7 @@ _ntbtls_handshake (ntbtls_t tls)
         break;
     }
 
-  debug_msg (2, "<= handshake");
+  debug_msg (2, "handshake ready");
 
   return err;
 }
@@ -3499,7 +3479,7 @@ ssl_write_hello_request (ntbtls_t ssl)
 {
   int ret;
 
-  debug_msg (2, "=> write hello request");
+  debug_msg (2, "write hello_request");
 
   ssl->out_msglen = 4;
   ssl->out_msgtype = TLS_MSG_HANDSHAKE;
@@ -3513,8 +3493,6 @@ ssl_write_hello_request (ntbtls_t ssl)
     }
 
   ssl->renegotiation = TLS_RENEGOTIATION_PENDING;
-
-  debug_msg (2, "<= write hello request");
 
   return (0);
 }
@@ -3534,7 +3512,7 @@ start_renegotiation (ntbtls_t tls)
 {
   gpg_error_t err;
 
-  debug_msg (2, "=> renegotiate");
+  debug_msg (2, "renegotiate");
 
   err = handshake_init (tls);
   if (err)
@@ -3549,8 +3527,6 @@ start_renegotiation (ntbtls_t tls)
       debug_ret (1, "handshake", err);
       return err;
     }
-
-  debug_msg (2, "<= renegotiate");
 
   return 0;
 }
@@ -3610,7 +3586,7 @@ _ntbtls_close_notify (ntbtls_t tls)
 {
   gpg_error_t err;
 
-  debug_msg (2, "=> write close notify");
+  debug_msg (2, "write close_notify");
 
   err = _ntbtls_flush_output (tls);
   if (err)
@@ -3626,8 +3602,6 @@ _ntbtls_close_notify (ntbtls_t tls)
       if (err)
         return err;
     }
-
-  debug_msg (2, "<= write close notify");
 
   return err;
 }
@@ -3801,7 +3775,7 @@ tls_read (ntbtls_t tls, unsigned char *buf, size_t len, size_t *nread)
 
   *nread = 0;
 
-  debug_msg (2, "=> tls read");
+  debug_msg (2, "tls read");
 
   if (tls->state != TLS_HANDSHAKE_OVER)
     {
@@ -3923,7 +3897,7 @@ tls_read (ntbtls_t tls, unsigned char *buf, size_t len, size_t *nread)
   else /* More data available.  */
     tls->in_offt += n;
 
-  debug_msg (2, "<= tls read");
+  debug_msg (2, "tls read ready");
 
   *nread = n;
   return 0;
@@ -3942,7 +3916,7 @@ tls_write (ntbtls_t tls, const unsigned char *buf, size_t len, size_t *nwritten)
 
   *nwritten = 0;
 
-  debug_msg (2, "=> tls write");
+  debug_msg (2, "tls write");
 
   if (tls->state != TLS_HANDSHAKE_OVER)
     {
@@ -3993,7 +3967,7 @@ tls_write (ntbtls_t tls, const unsigned char *buf, size_t len, size_t *nwritten)
         }
     }
 
-  debug_msg (2, "<= tls write");
+  debug_msg (2, "tls write ready");
 
   *nwritten = n;
   return 0;
@@ -4072,8 +4046,8 @@ static es_cookie_io_functions_t cookie_functions =
   };
 
 
-/* Return the two streams used to read and write the plaintext.  the
-   streams are valid as along as TLS is valid and may thus not be used
+/* Return the two streams used to read and write the plaintext.  The
+   streams are valid as long as TLS is valid and may thus not be used
    after TLS has been destroyed.  Note: After adding a "fullduplex"
    feature to estream we will allow to pass NULL for r_writefp to
    make use of that feature.  */

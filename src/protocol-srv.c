@@ -2605,7 +2605,8 @@ _ntbtls_handshake_server_step (ntbtls_t tls)
   if (tls->state == TLS_HANDSHAKE_OVER)
     return gpg_error (GPG_ERR_INV_STATE)
 
-  debug_msg (2, "server state: %d", tls->state);
+  debug_msg (2, "server state: %d (%s)",
+             tls->state, _ntbtls_state2str (tls->state));
 
   err = _ntbtls_flush_output (tls);
   if (err)
