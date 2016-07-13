@@ -95,11 +95,8 @@ buf32_to_u32 (const void *buffer)
 /*-- debug.c --*/
 void _ntbtls_set_debug (int level, const char *prefix, gpgrt_stream_t stream);
 
-/* FIXME: Add a public version of _GPGRT_GCC_A_PRINTF to libgpg-error.
-   Use variadic macros is possibel to check the level before calling
-   the function.  */
 void _ntbtls_debug_msg (int level, const char *format,
-                        ...) _GPGRT_GCC_A_PRINTF(2,0);
+                        ...) GPGRT_ATTR_PRINTF(2,0);
 void _ntbtls_debug_buf (int level, const char *text,
                         const void *buf, size_t len);
 void _ntbtls_debug_bug (const char *file, int line);

@@ -1273,8 +1273,10 @@ parse_signature_algorithm (ntbtls_t tls, unsigned char **p, unsigned char *end,
       return gpg_error (GPG_ERR_BAD_HS_SERVER_KEX);
     }
 
-  debug_msg (2, "Server used SignatureAlgorithm %d", (*p)[1]);
-  debug_msg (2, "Server used HashAlgorithm %d", (*p)[0]);
+  debug_msg (2, "Server used SignatureAlgorithm %s",
+             gcry_pk_algo_name ((*p)[1]));
+  debug_msg (2, "Server used HashAlgorithm %s",
+             gcry_md_algo_name ((*p)[0]));
   *p += 2;
 
   return 0;
