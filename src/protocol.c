@@ -1356,11 +1356,13 @@ _ntbtls_fetch_input (ntbtls_t tls, size_t nb_want)
       len = nb_want - tls->in_left;
       if (es_read (tls->inbound, tls->in_hdr + tls->in_left, len, &nread))
         err = gpg_error_from_syserror ();
+      else if (!nread) /*ie. EOF*/
+        err = gpg_error (GPG_ERR_EOF);
 
       debug_msg (3, "in_left: %d, nb_want: %d", tls->in_left, nb_want);
       debug_ret (3, "es_read", err);
 
-      if (err || !nread /*ie. EOF*/)
+      if (err)
         break;
 
       tls->in_left += nread;
