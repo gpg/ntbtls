@@ -1529,6 +1529,7 @@ _ntbtls_read_record (ntbtls_t tls)
 
   tls->in_hslen = 0;
 
+read_record_header:
   /*
    * Read the record header and validate it
    */
@@ -1718,6 +1719,9 @@ _ntbtls_read_record (ntbtls_t tls)
           debug_msg (2, "is a close notify message");
           return gpg_error (GPG_ERR_CLOSE_NOTIFY);
         }
+
+      tls->in_left = 0;
+      goto read_record_header;
     }
 
   tls->in_left = 0;
