@@ -342,6 +342,9 @@ gpg_error_t _ntbtls_pk_verify (x509_cert_t chain,
                                const unsigned char *hash, size_t hashlen,
                                const unsigned char *sig, size_t siglen);
 
+gpg_error_t _ntbtls_pk_encrypt (x509_cert_t chain, const unsigned char *input,
+                                size_t ilen, unsigned char *output,
+                                size_t *olen, size_t osize);
 
 /*-- x509.c --*/
 
@@ -376,10 +379,6 @@ gpg_error_t _ntbtls_x509_verify (x509_cert_t cert, x509_cert_t trust_ca,
 
 int _ntbtls_x509_can_do (x509_privkey_t privkey, pk_algo_t pkalgo);
 
-gpg_error_t _ntbtls_x509_pk_encrypt (x509_cert_t cert,
-                                     const unsigned char *input, size_t ilen,
-                                     unsigned char *output, size_t *olen,
-                                     size_t osize);
 
 /*-- dhm.c --*/
 gpg_error_t _ntbtls_dhm_new (dhm_context_t *r_dhm);

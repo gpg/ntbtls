@@ -158,3 +158,53 @@ _ntbtls_pk_verify (x509_cert_t chain, pk_algo_t pk_alg, md_algo_t md_alg,
   gcry_sexp_release (s_sig);
   return err;
 }
+
+gpg_error_t
+_ntbtls_pk_encrypt (x509_cert_t chain,
+                    const unsigned char *input, size_t ilen,
+                    unsigned char *output, size_t *olen, size_t osize)
+{
+  gpg_error_t err;
+  gcry_sexp_t s_pk = NULL;
+  gcry_sexp_t s_data = NULL;
+  gcry_sexp_t s_ciph = NULL;
+  size_t len;
+  const char *data;
+
+  /* Get the public key from the first certificate.  */
+  err = _ntbtls_x509_get_pk (chain, 0, &s_pk);
+  if (err)
+    return err;
+
+  err = gcry_sexp_build (&s_data, NULL, "(data (flags pkcs1) (value %b))",
+                         (int)ilen, input);
+  if (err)
+    {
+      gcry_sexp_release (s_pk);
+      return err;
+    }
+
+  err = gcry_pk_encrypt (&s_ciph, s_data, s_pk);
+  gcry_sexp_release (s_data);
+  s_data = NULL;
+  gcry_sexp_release (s_pk);
+  s_pk = NULL;
+  if (err)
+    return err;
+
+  s_data = gcry_sexp_find_token (s_ciph, "a", 0);
+  data = gcry_sexp_nth_data (s_data, 1, &len);
+  if (data == NULL)
+    err = gpg_error (GPG_ERR_BAD_MPI);
+  else if (osize < len)
+    err = gpg_error (GPG_ERR_TOO_SHORT);
+  else
+    {
+      *olen = len;
+      memcpy (output, data, len);
+    }
+
+  gcry_sexp_release (s_data);
+  gcry_sexp_release (s_ciph);
+  return err;
+}

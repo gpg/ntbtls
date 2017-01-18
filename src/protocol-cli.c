@@ -1214,10 +1214,10 @@ write_encrypted_pms (ntbtls_t tls,
   /*     return gpg_error (GPG_ERR_WRONG_PUBKEY_ALGO); */
   /*   } */
 
-  err = _ntbtls_x509_pk_encrypt (tls->session_negotiate->peer_chain,
-                                 p, tls->handshake->pmslen,
-                                 tls->out_msg + offset + len_bytes, olen,
-                                 TLS_MAX_CONTENT_LEN - offset - len_bytes);
+  err = _ntbtls_pk_encrypt (tls->session_negotiate->peer_chain,
+                            p, tls->handshake->pmslen,
+                            tls->out_msg + offset + len_bytes, olen,
+                            TLS_MAX_CONTENT_LEN - offset - len_bytes);
   if (err)
     {
       debug_ret (1, "rsa_pkcs1_encrypt", err);
