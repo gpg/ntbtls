@@ -53,6 +53,18 @@ extern "C" {
 struct _ntbtls_context_s;
 typedef struct _ntbtls_context_s *ntbtls_t;
 
+/*
+ * Object to hold X.509 certifciates.
+ */
+struct x509_cert_s;
+typedef struct x509_cert_s *x509_cert_t;
+
+/*
+ * Object to hold an X.509 CRL.
+ */
+struct x509_crl_s;
+typedef struct x509_crl_s *x509_crl_t;
+
 
 /* Check that the library fulfills the version requirement.  */
 const char *ntbtls_check_version (const char *req_version);
@@ -60,8 +72,14 @@ const char *ntbtls_check_version (const char *req_version);
 /* Create a new TLS context.  */
 gpg_error_t ntbtls_new (ntbtls_t *r_tls, unsigned int flags);
 
-/* Destroy an TLS context.  */
+/* Destroy a TLS context.  */
 void        ntbtls_release (ntbtls_t tls);
+
+/* Create a new X509 certificate chain.  */
+gpg_error_t ntbtls_x509_cert_new (x509_cert_t *r_cert);
+
+/* Destroy a X509 certificate chain.  */
+gpg_error_t ntbtls_x509_cert_release (x509_cert_t cert);
 
 /* Setup the transport streams (usually connected to one socket).  */
 gpg_error_t ntbtls_set_transport (ntbtls_t tls,
@@ -72,6 +90,10 @@ gpg_error_t ntbtls_set_transport (ntbtls_t tls,
 gpg_error_t ntbtls_get_stream (ntbtls_t tls,
                                gpgrt_stream_t *r_readfp,
                                gpgrt_stream_t *r_writefp);
+
+/* Set the data required to verify peer certificate.  */
+gpg_error_t ntbtls_set_ca_chain (ntbtls_t tls, x509_cert_t ca_chain,
+                                 x509_crl_t ca_crl);
 
 /* Set the hostname to check against the received server certificate.
    It is used for SNI, too.  */

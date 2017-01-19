@@ -69,6 +69,13 @@ ntbtls_get_stream (ntbtls_t tls,
 
 
 gpg_error_t
+ntbtls_set_ca_chain (ntbtls_t tls, x509_cert_t ca_chain, x509_crl_t ca_crl)
+{
+  return _ntbtls_set_ca_chain (tls, ca_chain, ca_crl);
+}
+
+
+gpg_error_t
 ntbtls_set_hostname (ntbtls_t tls, const char *hostname)
 {
   return _ntbtls_set_hostname (tls, hostname);

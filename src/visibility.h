@@ -47,6 +47,7 @@ MARK_VISIBLE (ntbtls_new)
 MARK_VISIBLE (ntbtls_release)
 MARK_VISIBLE (ntbtls_set_transport)
 MARK_VISIBLE (ntbtls_get_stream)
+MARK_VISIBLE (ntbtls_set_ca_chain)
 MARK_VISIBLE (ntbtls_set_hostname)
 MARK_VISIBLE (ntbtls_handshake)
 

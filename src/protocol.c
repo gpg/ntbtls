@@ -3033,13 +3033,15 @@ _ntbtls_set_session (ntbtls_t tls, const session_t session)
 /* } */
 
 
-/* void */
-/* ssl_set_ca_chain (ntbtls_t ssl, x509_crt * ca_chain, */
-/*                   x509_crl_t ca_crl) */
-/* { */
-/*   ssl->ca_chain = ca_chain; */
-/*   ssl->ca_crl = ca_crl; */
-/* } */
+gpg_error_t
+_ntbtls_set_ca_chain (ntbtls_t tls, x509_cert_t ca_chain, x509_crl_t ca_crl)
+{
+  if (!tls)
+    return gpg_error (GPG_ERR_INV_ARG);
+
+  tls->ca_chain = ca_chain;
+  tls->ca_crl = ca_crl;
+}
 
 
 /* int */
