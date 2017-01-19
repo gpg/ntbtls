@@ -1409,8 +1409,8 @@ _ntbtls_ciphersuite_version_ok (ciphersuite_t suite,
   if (!suite)
     return 0;
 
-  return (suite->min_minor_ver >= min_minor_ver
-          && suite->max_minor_ver <= max_minor_ver);
+  return (suite->min_minor_ver <= max_minor_ver
+          && suite->max_minor_ver >= min_minor_ver);
 }
 
 
