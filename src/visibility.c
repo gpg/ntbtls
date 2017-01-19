@@ -69,6 +69,20 @@ ntbtls_get_stream (ntbtls_t tls,
 
 
 gpg_error_t
+ntbtls_set_hostname (ntbtls_t tls, const char *hostname)
+{
+  return _ntbtls_set_hostname (tls, hostname);
+}
+
+
+gpg_error_t
+ntbtls_handshake (ntbtls_t tls)
+{
+  return _ntbtls_handshake (tls);
+}
+
+
+gpg_error_t
 ntbtls_set_ca_chain (ntbtls_t tls, x509_cert_t ca_chain, x509_crl_t ca_crl)
 {
   return _ntbtls_set_ca_chain (tls, ca_chain, ca_crl);
@@ -76,13 +90,21 @@ ntbtls_set_ca_chain (ntbtls_t tls, x509_cert_t ca_chain, x509_crl_t ca_crl)
 
 
 gpg_error_t
-ntbtls_set_hostname (ntbtls_t tls, const char *hostname)
+ntbtls_x509_new (x509_cert_t *r_cert)
 {
-  return _ntbtls_set_hostname (tls, hostname);
+  return _ntbtls_x509_new (r_cert);
 }
 
-gpg_error_t
-ntbtls_handshake (ntbtls_t tls)
+
+void
+ntbtls_x509_release (x509_cert_t cert)
 {
-  return _ntbtls_handshake (tls);
+  _ntbtls_x509_release (cert);
+}
+
+
+gpg_error_t
+ntbtls_x509_append_cert (x509_cert_t cert, const void *der, size_t derlen)
+{
+  return _ntbtls_x509_append_cert (cert, der, derlen);
 }

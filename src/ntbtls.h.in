@@ -81,6 +81,10 @@ gpg_error_t ntbtls_x509_cert_new (x509_cert_t *r_cert);
 /* Destroy a X509 certificate chain.  */
 gpg_error_t ntbtls_x509_cert_release (x509_cert_t cert);
 
+/* Parse a single DER formatted certificate and add it to the chained list.  */
+gpg_error_t ntbtls_x509_append_cert (x509_cert_t cert, const void *der,
+                                     size_t derlen);
+
 /* Setup the transport streams (usually connected to one socket).  */
 gpg_error_t ntbtls_set_transport (ntbtls_t tls,
                                   gpgrt_stream_t inbound,
