@@ -50,7 +50,7 @@ struct x509_privkey_s
 /* Create a new X.509 certificate chain object and store it at R_CERT.
    Returns an error code and stores NULL at R_CERT on error. */
 gpg_error_t
-_ntbtls_x509_new (x509_cert_t *r_cert)
+_ntbtls_x509_cert_new (x509_cert_t *r_cert)
 {
   x509_cert_t cert;
 
@@ -68,7 +68,7 @@ _ntbtls_x509_new (x509_cert_t *r_cert)
 
 /* Release an X.509 certificate chain.  */
 void
-_ntbtls_x509_release (x509_cert_t cert)
+_ntbtls_x509_cert_release (x509_cert_t cert)
 {
   while (cert)
     {
@@ -100,7 +100,7 @@ _ntbtls_x509_append_cert (x509_cert_t cert, const void *der, size_t derlen)
     {
       x509_cert_t ncert;
 
-      err = _ntbtls_x509_new (&ncert);
+      err = _ntbtls_x509_cert_new (&ncert);
       if (err)
         return err;
       cert->next = ncert;

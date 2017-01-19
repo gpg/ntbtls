@@ -1928,11 +1928,11 @@ _ntbtls_read_certificate (ntbtls_t tls)
   /* In case we tried to reuse a session but it failed. */
   if (tls->session_negotiate->peer_chain)
     {
-      _ntbtls_x509_release (tls->session_negotiate->peer_chain);
+      _ntbtls_x509_cert_release (tls->session_negotiate->peer_chain);
       tls->session_negotiate->peer_chain = NULL;
     }
 
-  err = _ntbtls_x509_new (&tls->session_negotiate->peer_chain);
+  err = _ntbtls_x509_cert_new (&tls->session_negotiate->peer_chain);
   if (err)
     {
       debug_msg (1, "allocating X.509 cert object failed");
@@ -2456,7 +2456,7 @@ session_deinit (session_t session)
     return;
 
   if (session->peer_chain)
-    _ntbtls_x509_release (session->peer_chain);
+    _ntbtls_x509_cert_release (session->peer_chain);
 
   free (session->ticket);
   wipememory (session, sizeof *session);

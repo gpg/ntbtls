@@ -90,16 +90,16 @@ ntbtls_set_ca_chain (ntbtls_t tls, x509_cert_t ca_chain, x509_crl_t ca_crl)
 
 
 gpg_error_t
-ntbtls_x509_new (x509_cert_t *r_cert)
+ntbtls_x509_cert_new (x509_cert_t *r_cert)
 {
-  return _ntbtls_x509_new (r_cert);
+  return _ntbtls_x509_cert_new (r_cert);
 }
 
 
 void
-ntbtls_x509_release (x509_cert_t cert)
+ntbtls_x509_cert_release (x509_cert_t cert)
 {
-  _ntbtls_x509_release (cert);
+  _ntbtls_x509_cert_release (cert);
 }
 
 

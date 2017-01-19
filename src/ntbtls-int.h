@@ -368,8 +368,8 @@ gpg_error_t _ntbtls_pk_encrypt (x509_cert_t chain, const unsigned char *input,
 #define BADCRL_FUTURE             0x0400  /* The CRL is from the future */
 
 
-gpg_error_t _ntbtls_x509_new (x509_cert_t *r_cert);
-void _ntbtls_x509_release (x509_cert_t crt);
+gpg_error_t _ntbtls_x509_cert_new (x509_cert_t *r_cert);
+void _ntbtls_x509_cert_release (x509_cert_t crt);
 gpg_error_t _ntbtls_x509_append_cert (x509_cert_t cert,
                                       const void *der, size_t derlen);
 const unsigned char *_ntbtls_x509_get_cert (x509_cert_t cert, int idx,
