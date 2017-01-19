@@ -2792,6 +2792,11 @@ _ntbtls_release (ntbtls_t tls)
       tls->psk_identity_len = 0;
     }
 
+  if (tls->ca_chain)
+    {
+      _ntbtls_x509_cert_release (tls->ca_chain);
+    }
+
   //FIXME:
   /* ssl_key_cert_free (tls->key_cert); */
 
