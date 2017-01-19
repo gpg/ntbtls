@@ -2005,7 +2005,7 @@ _ntbtls_read_certificate (ntbtls_t tls)
        */
       err = _ntbtls_x509_verify (tls->session_negotiate->peer_chain,
                                  tls->ca_chain, tls->ca_crl,
-                                 tls->peer_cn,
+                                 tls->hostname,
                                  &tls->session_negotiate->verify_result);
       if (err)
         {
@@ -3035,11 +3035,10 @@ _ntbtls_set_session (ntbtls_t tls, const session_t session)
 
 /* void */
 /* ssl_set_ca_chain (ntbtls_t ssl, x509_crt * ca_chain, */
-/*                   x509_crl_t ca_crl, const char *peer_cn) */
+/*                   x509_crl_t ca_crl) */
 /* { */
 /*   ssl->ca_chain = ca_chain; */
 /*   ssl->ca_crl = ca_crl; */
-/*   ssl->peer_cn = peer_cn; */
 /* } */
 
 

@@ -73,7 +73,8 @@ gpg_error_t ntbtls_get_stream (ntbtls_t tls,
                                gpgrt_stream_t *r_readfp,
                                gpgrt_stream_t *r_writefp);
 
-/* Set the hostname for SNI.  */
+/* Set the hostname to check against the received server certificate.
+   It is used for SNI, too.  */
 gpg_error_t ntbtls_set_hostname (ntbtls_t tls, const char *hostname);
 
 /* Perform the handshake with the peer.  The transport streams must be

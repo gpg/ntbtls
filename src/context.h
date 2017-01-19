@@ -385,7 +385,6 @@ struct _ntbtls_context_s
 
   x509_cert_t ca_chain;         /*!<  own trusted CA chain      */
   x509_crl_t  ca_crl;           /*!<  trusted CA CRLs           */
-  const char *peer_cn;          /*!<  expected peer CN          */
 
   /*
    * Support for generating and checking session tickets
@@ -413,6 +412,9 @@ struct _ntbtls_context_s
   gcry_mpi_t dhm_P;             /*!<  prime modulus for DHM   */
   gcry_mpi_t dhm_G;             /*!<  generator for DHM       */
 
+  char *hostname;               /*!< expected peer CN for verification
+                                    and SNI                            */
+
   /*
    * PSK values
    */
@@ -420,11 +422,6 @@ struct _ntbtls_context_s
   size_t psk_len;
   unsigned char *psk_identity;
   size_t psk_identity_len;
-
-  /*
-   * SNI extension
-   */
-  char *hostname;
 
   /*
    * ALPN extension
