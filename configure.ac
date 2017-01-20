@@ -677,6 +677,7 @@ m4/Makefile
 src/Makefile
 src/ntbtls.h
 src/ntbtls-config
+src/versioninfo.rc
 ])
 AC_CONFIG_COMMANDS([ntbtls-conf],[[
 chmod +x src/ntbtls-config

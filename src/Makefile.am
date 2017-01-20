@@ -18,7 +18,8 @@
 
 ## Process this file with automake to produce Makefile.in
 
-EXTRA_DIST = ntbtls.h.in ntbtls.m4 libntbtls.vers libntbtls.def
+EXTRA_DIST = ntbtls.h.in ntbtls.m4 libntbtls.vers libntbtls.def \
+             versioninfo.rc.in
 bin_SCRIPTS = ntbtls-config
 include_HEADERS = ntbtls.h
 lib_LTLIBRARIES = libntbtls.la
