@@ -321,6 +321,8 @@ AC_TYPE_MODE_T
 AC_TYPE_SIGNAL
 AC_DECL_SYS_SIGLIST
 
+gl_HEADER_SYS_SOCKET
+
 # For some systems we know that we have ld_version scripts.
 # Use it then as default.
 have_ld_version_script=no

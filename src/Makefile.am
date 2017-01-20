@@ -75,7 +75,7 @@ libntbtls_la_LDFLAGS = $(no_undefined) $(export_symbols) \
       @LIBNTBTLS_LT_CURRENT@:@LIBNTBTLS_LT_REVISION@:@LIBNTBTLS_LT_AGE@
 libntbtls_la_INCLUDES = -I$(top_srcdir)/lib
 libntbtls_la_DEPENDENCIES = $(srcdir)/libntbtls.vers $(ntbtls_deps)
-libntbtls_la_LIBADD = $(ntbtls_res) @LTLIBOBJS@ @GPG_ERROR_LIBS@
+libntbtls_la_LIBADD = $(ntbtls_res) @LTLIBOBJS@ @LIBGCRYPT_LIBS@ @KSBA_LIBS@ @GPG_ERROR_LIBS@ @NETLIBS@
 
 
 libntbtls_la_SOURCES = \
@@ -100,4 +100,4 @@ uninstall-local: uninstall-def-file
 
 ntbtls_cli_CFLAGS = @LIBGCRYPT_CFLAGS@ @KSBA_CFLAGS@ @GPG_ERROR_CFLAGS@
 ntbtls_cli_LDFLAGS = -no-install
-ntbtls_cli_LDADD = libntbtls.la @LIBGCRYPT_LIBS@ @KSBA_LIBS@ @GPG_ERROR_LIBS@
+ntbtls_cli_LDADD = libntbtls.la @LIBGCRYPT_LIBS@ @KSBA_LIBS@ @GPG_ERROR_LIBS@ @NETLIBS@
