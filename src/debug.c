@@ -50,24 +50,32 @@ _ntbtls_set_debug (int level, const char *prefix, gpgrt_stream_t stream)
 
 
 
-/* FIXME: For now we print to stderr.  */
+/* FIXME: For now we print to stderr.  Note that a LEVEL of -1 will
+ * always print even when debugging has not been enabled.  */
 void
 _ntbtls_debug_msg (int level, const char *format, ...)
 {
   va_list arg_ptr;
   int saved_errno;
+  int no_lf;
 
-  if (!debug_level || level > debug_level)
+  if (level != -1 && (!debug_level || level > debug_level))
     return;
+
+  if ((no_lf = (*format == '\b')))
+    format++;
 
   saved_errno = errno;
   va_start (arg_ptr, format);
   gpgrt_fputs ("ntbtls: ", es_stderr);
   gpgrt_vfprintf (es_stderr, format, arg_ptr);
-  if (*format && format[strlen(format)-1] != '\n')
+  if (no_lf)
+    gpgrt_fflush (es_stderr); /* To sync with stderr.  */
+  else if (*format && format[strlen(format)-1] != '\n')
     gpgrt_fputc ('\n', es_stderr);
   va_end (arg_ptr);
   gpg_err_set_errno (saved_errno);
+
 }
 
 
@@ -127,4 +135,14 @@ _ntbtls_debug_sxp (int level, const char *text, gcry_sexp_t a)
     return;
 
   gcry_log_debugsxp (text, a);
+}
+
+
+void
+_ntbtls_debug_crt (int level, const char *text, x509_cert_t chain)
+{
+  if (!debug_level || level > debug_level)
+    return;
+
+  _ntbtls_x509_log_cert (text, chain, (debug_level > 1));
 }

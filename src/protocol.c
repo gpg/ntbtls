@@ -1874,7 +1874,7 @@ _ntbtls_read_certificate (ntbtls_t tls)
       return 0;
     }
 
-  debug_msg (2, "read certificate");
+  debug_msg (3, "read certificate");
 
   err = _ntbtls_read_record (tls);
   if (err)
@@ -1966,7 +1966,7 @@ _ntbtls_read_certificate (ntbtls_t tls)
       i += n;
     }
 
-  //FIXME: debug_crt (3, "peer certificate", tls->session_negotiate->peer_chain);
+  debug_crt (1, "peer certificate", tls->session_negotiate->peer_chain);
 
   /*
    * On client, make sure the server cert doesn't change during renego to

@@ -103,6 +103,7 @@ void _ntbtls_debug_bug (const char *file, int line);
 void _ntbtls_debug_ret (int level, const char *name, gpg_error_t err);
 void _ntbtls_debug_mpi (int level, const char *text, gcry_mpi_t a);
 void _ntbtls_debug_sxp (int level, const char *text, gcry_sexp_t a);
+void _ntbtls_debug_crt (int level, const char *text, x509_cert_t chain);
 
 #define debug_msg          _ntbtls_debug_msg
 #define debug_buf(a,b,c,d) _ntbtls_debug_buf ((a),(b),(c),(d))
@@ -110,6 +111,7 @@ void _ntbtls_debug_sxp (int level, const char *text, gcry_sexp_t a);
 #define debug_ret(l,n,e)   _ntbtls_debug_ret ((l),(n),(e))
 #define debug_mpi(l,t,a)   _ntbtls_debug_mpi ((l),(t),(a))
 #define debug_sxp(l,t,a)   _ntbtls_debug_sxp ((l),(t),(a))
+#define debug_crt(l,t,a)   _ntbtls_debug_crt ((l),(t),(a))
 
 
 

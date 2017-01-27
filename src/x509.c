@@ -126,6 +126,98 @@ _ntbtls_x509_append_cert (x509_cert_t cert, const void *der, size_t derlen)
 }
 
 
+static void
+x509_log_serial (const char *text, ksba_sexp_t sn)
+{
+  const char *p = (const char *)sn;
+  unsigned long n;
+  char *endp;
+
+  if (!p)
+    _ntbtls_debug_msg (-1, "%s: none", text);
+  else if (*p != '(')
+    _ntbtls_debug_msg (-1, "%s: [Internal error - not an S-expression]", text);
+  else
+    {
+      p++;
+      n = strtoul (p, &endp, 10);
+      p = endp;
+      if (*p++ != ':')
+        _ntbtls_debug_msg (-1, "%s: [Internal error - invalid S-expression]",
+                           text);
+      else
+        {
+          _ntbtls_debug_msg (-1, "\b%s: ", text);
+          gcry_log_debughex ("", p, n);
+        }
+    }
+}
+
+
+static void
+x509_log_time (const char *text, ksba_isotime_t t)
+{
+  if (!t || !*t)
+    _ntbtls_debug_msg (-1, "%s: none", text);
+  else
+    _ntbtls_debug_msg (-1, "%s: %.4s-%.2s-%.2s %.2s:%.2s:%s",
+                       text, t, t+4, t+6, t+9, t+11, t+13);
+}
+
+
+void
+_ntbtls_x509_log_cert (const char *text, x509_cert_t chain_arg, int full)
+{
+  gpg_error_t err;
+  x509_cert_t chain;
+  ksba_cert_t cert;
+  ksba_sexp_t sexp;
+  int idx;
+  char *dn;
+  ksba_isotime_t t;
+  const char *oid;
+
+  for (idx=0, chain= chain_arg; chain && (cert = chain->crt);
+       chain = chain->next)
+    idx++;
+
+  _ntbtls_debug_msg (-1, "%s: chain length=%d", text, idx);
+  for (chain = chain_arg; full && chain && (cert = chain->crt);
+       chain = chain->next)
+    {
+      sexp = ksba_cert_get_serial (cert);
+      x509_log_serial ("     serial", sexp);
+      ksba_free (sexp);
+
+      for (idx = 0; (dn = ksba_cert_get_issuer (cert, idx)); idx++)
+        {
+          if (!idx)
+            _ntbtls_debug_msg (-1, "     issuer: %s\n", dn);
+          else
+            _ntbtls_debug_msg (-1, "        aka: %s\n", dn);
+          ksba_free (dn);
+        }
+
+      for (idx = 0; (dn = ksba_cert_get_subject (cert, idx)); idx++)
+        {
+          if (!idx)
+            _ntbtls_debug_msg (-1, "    subject: %s\n", dn);
+          else
+            _ntbtls_debug_msg (-1, "        aka: %s\n", dn);
+          ksba_free (dn);
+        }
+
+      ksba_cert_get_validity (cert, 0, t);
+      x509_log_time ("  notBefore", t);
+      ksba_cert_get_validity (cert, 1, t);
+      x509_log_time ("   notAfter", t);
+
+      oid = ksba_cert_get_digest_algo (cert);
+      _ntbtls_debug_msg (-1, "  hashAlgo: %s", oid);
+    }
+}
+
+
 /* Return a pointer to the DER encoding of the certificate and store
    its length at R_DERLEN.  IDX is the requested number of the
    certificate; ie.  IDX of 0 return the first certificate stored

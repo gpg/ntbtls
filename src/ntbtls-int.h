@@ -372,6 +372,7 @@ gpg_error_t _ntbtls_x509_cert_new (x509_cert_t *r_cert);
 void _ntbtls_x509_cert_release (x509_cert_t crt);
 gpg_error_t _ntbtls_x509_append_cert (x509_cert_t cert,
                                       const void *der, size_t derlen);
+void _ntbtls_x509_log_cert (const char *text, x509_cert_t chain, int full);
 const unsigned char *_ntbtls_x509_get_cert (x509_cert_t cert, int idx,
                                             size_t *r_derlen);
 gpg_error_t _ntbtls_x509_get_pk (x509_cert_t cert, int idx, gcry_sexp_t *r_pk);

@@ -794,7 +794,7 @@ read_server_hello (ntbtls_t tls)
       return gpg_error (GPG_ERR_UNEXPECTED_MSG);
     }
 
-  debug_msg (3, "server_hello, chosen version: [%d:%d]",  buf[4], buf[5]);
+  debug_msg (1, "server_hello, chosen version: [%d:%d]",  buf[4], buf[5]);
 
   if (tls->in_hslen < 42
       || buf[0] != TLS_HS_SERVER_HELLO
@@ -910,7 +910,8 @@ read_server_hello (ntbtls_t tls)
   debug_msg (3, "%s session has been resumed",
              tls->handshake->resume ? "a" : "no");
 
-  debug_msg (3, "server_hello, chosen ciphersuite: %d", suite_id);
+  debug_msg (1, "server_hello, chosen ciphersuite: %d (%s)",
+             suite_id, _ntbtls_ciphersuite_get_name (suite_id));
   debug_msg (3, "server_hello, compress alg.: %d", buf[41 + n]);
 
   /* Check that we support the cipher suite.  */
@@ -953,7 +954,7 @@ read_server_hello (ntbtls_t tls)
       switch (ext_id)
         {
         case TLS_EXT_RENEGOTIATION_INFO:
-          debug_msg (3, "found renegotiation extension");
+          debug_msg (2, "found renegotiation extension");
           renegotiation_info_seen = 1;
           err = parse_renegotiation_info (tls, ext + 4, ext_size);
           if (err)
@@ -961,42 +962,42 @@ read_server_hello (ntbtls_t tls)
           break;
 
         case TLS_EXT_MAX_FRAGMENT_LENGTH:
-          debug_msg (3, "found max_fragment_length extension");
+          debug_msg (2, "found max_fragment_length extension");
           err = parse_max_fragment_length_ext (tls, ext + 4, ext_size);
           if (err)
             return err;
           break;
 
         case TLS_EXT_TRUNCATED_HMAC:
-          debug_msg (3, "found truncated_hmac extension");
+          debug_msg (2, "found truncated_hmac extension");
           err = parse_truncated_hmac_ext (tls, ext + 4, ext_size);
           if (err)
             return err;
           break;
 
         case TLS_EXT_SESSION_TICKET:
-          debug_msg (3, "found session_ticket extension");
+          debug_msg (2, "found session_ticket extension");
           err = parse_session_ticket_ext (tls, ext + 4, ext_size);
           if (err)
             return err;
           break;
 
         case TLS_EXT_SUPPORTED_POINT_FORMATS:
-          debug_msg (3, "found supported_point_formats extension");
+          debug_msg (2, "found supported_point_formats extension");
           err = parse_supported_point_formats_ext (tls, ext + 4, ext_size);
           if (err)
             return err;
           break;
 
         case TLS_EXT_ALPN:
-          debug_msg (3, "found alpn extension");
+          debug_msg (2, "found alpn extension");
           err = parse_alpn_ext (tls, ext + 4, ext_size);
           if (err)
             return err;
           break;
 
         default:
-          debug_msg (3, "unknown extension found: %d (ignoring)", ext_id);
+          debug_msg (2, "unknown extension found: %d (ignoring)", ext_id);
           break;
         }
 
