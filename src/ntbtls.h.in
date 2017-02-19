@@ -23,6 +23,7 @@
 #define _NTBTLS_H
 
 #include <gpg-error.h>
+#include <ksba.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -54,7 +55,7 @@ struct _ntbtls_context_s;
 typedef struct _ntbtls_context_s *ntbtls_t;
 
 /*
- * Object to hold X.509 certifciates.
+ * Object to hold X.509 certificates.
  */
 struct x509_cert_s;
 typedef struct x509_cert_s *x509_cert_t;
@@ -64,6 +65,17 @@ typedef struct x509_cert_s *x509_cert_t;
  */
 struct x509_crl_s;
 typedef struct x509_crl_s *x509_crl_t;
+
+/*
+ * The type of the verification callback.  This must be registered
+ * prior to the handshake and will be called by ntbltls when a peer's
+ * certificate needs to be verified.  OPAQUE is the vale set when the
+ * callback has been set.  TLS is the respective TLS context.
+ * VERIFY_FLAGS are not yet defined flags.
+ */
+typedef gpg_error_t (*ntbtls_verify_cb_t) (void *opaque,
+                                           ntbtls_t tls,
+                                           unsigned int verify_flags);
 
 
 /* Check that the library fulfills the version requirement.  */
@@ -96,8 +108,8 @@ gpg_error_t ntbtls_get_stream (ntbtls_t tls,
                                gpgrt_stream_t *r_writefp);
 
 /* Set the data required to verify peer certificate.  */
-gpg_error_t ntbtls_set_ca_chain (ntbtls_t tls, x509_cert_t ca_chain,
-                                 x509_crl_t ca_crl);
+gpg_error_t ntbtls_set_verify_cb (ntbtls_t tls,
+                                  ntbtls_verify_cb_t cb, void *cb_value);
 
 /* Set the hostname to check against the received server certificate.
    It is used for SNI, too.  */
@@ -107,6 +119,8 @@ gpg_error_t ntbtls_set_hostname (ntbtls_t tls, const char *hostname);
    connected before starting this handshake.  */
 gpg_error_t ntbtls_handshake (ntbtls_t tls);
 
+/* Return the peer's certificate.  */
+ksba_cert_t ntbtls_x509_get_peer_cert (ntbtls_t tls, int idx);
 
 
 /*

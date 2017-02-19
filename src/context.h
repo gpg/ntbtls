@@ -370,8 +370,8 @@ struct _ntbtls_context_s
    */
   key_cert_t key_cert;          /*!<  own certificate(s)/key(s) */
 
-  x509_cert_t ca_chain;         /*!<  own trusted CA chain      */
-  x509_crl_t  ca_crl;           /*!<  trusted CA CRLs           */
+  ntbtls_verify_cb_t verify_cb; /*!<  the verify callback              */
+  void *verify_cb_value;;       /*!<  the first arg passed to this cb  */
 
   /*
    * Support for generating and checking session tickets

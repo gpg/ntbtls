@@ -32,10 +32,12 @@ NTBTLS_1.0 {
 
     ntbtls_handshake;
 
-    ntbtls_set_ca_chain;
+    ntbtls_set_verify_cb;
+
     ntbtls_x509_cert_new;
     ntbtls_x509_cert_release;
     ntbtls_x509_append_cert;
+    ntbtls_x509_get_peer_cert;
 
   local:
     *;

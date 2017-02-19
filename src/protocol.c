@@ -1994,22 +1994,18 @@ _ntbtls_read_certificate (ntbtls_t tls)
 
   if (tls->authmode != TLS_VERIFY_NONE)
     {
-      if (!tls->ca_chain)
-        {
-          debug_msg (1, "got no CA chain");
-          return gpg_error (GPG_ERR_NO_CERT_CHAIN);
-        }
-
       /*
        * Main check: verify certificate
        */
-      err = _ntbtls_x509_verify (tls->session_negotiate->peer_chain,
-                                 tls->ca_chain, tls->ca_crl,
-                                 tls->hostname,
-                                 &tls->session_negotiate->verify_result);
+      if (!tls->verify_cb)
+        {
+          debug_msg (1, "verify callback not set");
+          return gpg_error (GPG_ERR_NOT_INITIALIZED);
+        }
+      err = tls->verify_cb (tls->verify_cb_value, tls, 0);
       if (err)
         {
-          debug_ret (1, "x509_verify", err);
+          debug_ret (1, "error from the verify callback", err);
         }
 
       /*
@@ -2455,8 +2451,7 @@ session_deinit (session_t session)
   if (!session)
     return;
 
-  if (session->peer_chain)
-    _ntbtls_x509_cert_release (session->peer_chain);
+  _ntbtls_x509_cert_release (session->peer_chain);
 
   free (session->ticket);
   wipememory (session, sizeof *session);
@@ -2792,10 +2787,6 @@ _ntbtls_release (ntbtls_t tls)
       tls->psk_identity_len = 0;
     }
 
-  if (tls->ca_chain)
-    {
-      _ntbtls_x509_cert_release (tls->ca_chain);
-    }
 
   //FIXME:
   /* ssl_key_cert_free (tls->key_cert); */
@@ -3038,14 +3029,20 @@ _ntbtls_set_session (ntbtls_t tls, const session_t session)
 /* } */
 
 
+/* Set a certificate verify callback for the session TLS.  */
 gpg_error_t
-_ntbtls_set_ca_chain (ntbtls_t tls, x509_cert_t ca_chain, x509_crl_t ca_crl)
+_ntbtls_set_verify_cb (ntbtls_t tls, ntbtls_verify_cb_t cb, void *cb_value)
 {
   if (!tls)
     return gpg_error (GPG_ERR_INV_ARG);
 
-  tls->ca_chain = ca_chain;
-  tls->ca_crl = ca_crl;
+  tls->verify_cb = cb;
+  tls->verify_cb_value = cb_value;
+
+  /* Make sure we have an authmode set.  Right now, there is no API to
+   * change thye authmode.  */
+  tls->authmode = cb ? TLS_VERIFY_REQUIRED : TLS_VERIFY_NONE;
+
   return 0;
 }
 

@@ -33,9 +33,6 @@ struct x509_cert_s
 {
   x509_cert_t next;
   ksba_cert_t crt;       /* The actual certificate object.  */
-  unsigned char fpr[20]; /* Fingerprint of the certificate.  */
-  int is_self_signed:1;  /* This certificate is self-signed.  */
-  int is_valid:1;        /* The certifiate is valid except for revocations.  */
 };
 
 
@@ -90,7 +87,7 @@ _ntbtls_x509_append_cert (x509_cert_t cert, const void *der, size_t derlen)
   if (!cert)
     return gpg_error (GPG_ERR_INV_ARG);
 
-  /* Walk to the last certifciate of the chain.  */
+  /* Walk to the last certificate of the chain.  */
   while (cert->next)
     cert = cert->next;
 
@@ -227,12 +224,40 @@ _ntbtls_x509_log_cert (const char *text, x509_cert_t chain_arg, int full)
 const unsigned char *
 _ntbtls_x509_get_cert (x509_cert_t cert, int idx, size_t *r_derlen)
 {
-  for (; cert && idx >= 0; cert = cert->next, idx--)
+  if (idx < 0)
+    return NULL;
+  for (; cert && idx; cert = cert->next, idx--)
     ;
   if (!cert)
     return NULL;
 
   return ksba_cert_get_image (cert->crt, r_derlen);
+}
+
+
+/* Return the peer's certificates.  A value of 0 for IDX returns the
+ * host's certificate.  To enumerate all other certificates IDX needs
+ * to be incremented until the function returns NULL.  The caller
+ * must release the returned certificate. */
+ksba_cert_t
+_ntbtls_x509_get_peer_cert (ntbtls_t tls, int idx)
+{
+  x509_cert_t cert;
+
+  debug_crt (1, "peer certs A", tls->session_negotiate->peer_chain);
+
+  if (!tls || !tls->session_negotiate || idx < 0)
+    return NULL;
+  for (cert = tls->session_negotiate->peer_chain;
+       cert && idx;
+       cert = cert->next, idx--)
+    ;
+  if (!cert || !cert->crt)
+    return NULL;
+
+  ksba_cert_ref (cert->crt);
+  debug_crt (1, "peer certs B", tls->session_negotiate->peer_chain);
+  return cert->crt;
 }
 
 
@@ -275,17 +300,6 @@ _ntbtls_x509_get_pk (x509_cert_t cert, int idx, gcry_sexp_t *r_pk)
       return err;
     }
   *r_pk = s_pk;
-  return 0;
-}
-
-
-
-gpg_error_t
-_ntbtls_x509_verify (x509_cert_t chain, x509_cert_t trust_ca, x509_crl_t ca_crl,
-                     const char *cn, int *r_flags)
-{
-  //FIXME:
-
   return 0;
 }
 

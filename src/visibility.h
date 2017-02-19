@@ -50,10 +50,12 @@ MARK_VISIBLE (ntbtls_get_stream)
 MARK_VISIBLE (ntbtls_set_hostname)
 MARK_VISIBLE (ntbtls_handshake)
 
-MARK_VISIBLE (ntbtls_set_ca_chain)
+MARK_VISIBLE (ntbtls_set_verify_cb)
+
 MARK_VISIBLE (ntbtls_x509_cert_new)
 MARK_VISIBLE (ntbtls_x509_cert_release)
 MARK_VISIBLE (ntbtls_x509_append_cert)
+MARK_VISIBLE (ntbtls_x509_get_peer_cert)
 
 
 #undef MARK_VISIBLE
@@ -72,10 +74,11 @@ MARK_VISIBLE (ntbtls_x509_append_cert)
 #define ntbtls_set_hostname          _ntbtls_USE_THE_UNDERSCORED_FUNCTION
 #define ntbtls_handshake             _ntbtls_USE_THE_UNDERSCORED_FUNCTION
 
-#define ntbtls_set_ca_chain          _ntbtls_USE_THE_UNDERSCORED_FUNCTION
+#define ntbtls_set_verify_cb         _ntbtls_USE_THE_UNDERSCORED_FUNCTION
 #define ntbtls_x509_cert_new         _ntbtls_USE_THE_UNDERSCORED_FUNCTION
 #define ntbtls_x509_cert_release     _ntbtls_USE_THE_UNDERSCORED_FUNCTION
 #define ntbtls_x509_append_cert      _ntbtls_USE_THE_UNDERSCORED_FUNCTION
+#define ntbtls_x509_get_peer_cert    _ntbtls_USE_THE_UNDERSCORED_FUNCTION
 
 #endif /*!_NTBTLS_INCLUDED_BY_VISIBILITY_C*/
 #endif /*NTBTLS_VISIBILITY_H*/

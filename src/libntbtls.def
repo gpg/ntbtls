@@ -32,8 +32,11 @@ EXPORTS
 
     ntbtls_handshake                      @8
 
-    ntbtls_set_ca_chain                   @9
+    ntbtls_set_verify_cb                  @9
+
     ntbtls_x509_cert_new                  @10
     ntbtls_x509_cert_release              @11
     ntbtls_x509_append_cert               @12
+
+    ntbtls_x509_get_peer_cert             @13
 ; END

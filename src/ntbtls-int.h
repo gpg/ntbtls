@@ -324,8 +324,8 @@ gpg_error_t _ntbtls_get_stream (ntbtls_t tls,
                                 gpgrt_stream_t *r_readfp,
                                 gpgrt_stream_t *r_writefp);
 
-gpg_error_t _ntbtls_set_ca_chain (ntbtls_t tls, x509_cert_t ca_chain,
-                                  x509_crl_t ca_crl);
+gpg_error_t _ntbtls_set_verify_cb (ntbtls_t tls,
+                                   ntbtls_verify_cb_t cb, void *cb_value);
 
 gpg_error_t _ntbtls_set_hostname (ntbtls_t tls, const char *hostname);
 
@@ -375,12 +375,9 @@ gpg_error_t _ntbtls_x509_append_cert (x509_cert_t cert,
 void _ntbtls_x509_log_cert (const char *text, x509_cert_t chain, int full);
 const unsigned char *_ntbtls_x509_get_cert (x509_cert_t cert, int idx,
                                             size_t *r_derlen);
+ksba_cert_t _ntbtls_x509_get_peer_cert (ntbtls_t tls, int idx);
 gpg_error_t _ntbtls_x509_get_pk (x509_cert_t cert, int idx, gcry_sexp_t *r_pk);
 
-
-gpg_error_t _ntbtls_x509_verify (x509_cert_t cert, x509_cert_t trust_ca,
-                                 x509_crl_t ca_crl,
-                                 const char *cn, int *r_flags);
 
 int _ntbtls_x509_can_do (x509_privkey_t privkey, pk_algo_t pkalgo);
 
