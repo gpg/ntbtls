@@ -45,6 +45,8 @@
 static int verbose;
 static int errorcount;
 static char *opt_hostname;
+static int opt_head;
+
 
 
 /*
@@ -247,7 +249,7 @@ simple_client (const char *server, int port)
 
   do
     {
-      es_fputs ("GET / HTTP/1.0\r\n", writefp);
+      es_fprintf (writefp, "%s / HTTP/1.0\r\n", opt_head? "HEAD":"GET");
       if (opt_hostname)
         es_fprintf (writefp, "Host: %s\r\n", opt_hostname);
       es_fprintf (writefp, "X-ntbtls: %s\r\n",
@@ -272,6 +274,7 @@ main (int argc, char **argv)
   int last_argc = -1;
   int debug_level = 0;
   int port = 443;
+  char *host;
 
   if (argc)
     { argc--; argv++; }
@@ -292,7 +295,8 @@ main (int argc, char **argv)
                  "  --verbose       show more diagnostics\n"
                  "  --debug LEVEL   enable debugging at LEVEL\n"
                  "  --port N        connect to port N (default is 443)\n"
-                 "  --hostname NAME use NAME for SNI\n"
+                 "  --hostname NAME use NAME instead of HOST for SNI\n"
+                 "  --head          send a HEAD and not a GET request\n"
                  "\n", stdout);
           return 0;
         }
@@ -339,9 +343,20 @@ main (int argc, char **argv)
           opt_hostname = *argv;
           argc--; argv++;
         }
+      else if (!strcmp (*argv, "--head"))
+        {
+          opt_head = 1;
+          argc--; argv++;
+        }
       else if (!strncmp (*argv, "--", 2) && (*argv)[2])
         die ("Invalid option '%s'\n", *argv);
     }
+
+  host = argc? *argv : "localhost";
+  if (!opt_hostname)
+    opt_hostname = host;
+  if (!*opt_hostname)
+    opt_hostname = NULL;
 
   if (!ntbtls_check_version (PACKAGE_VERSION))
     die ("NTBTLS library too old (need %s, have %s)\n",
@@ -350,6 +365,6 @@ main (int argc, char **argv)
   if (debug_level)
     ntbtls_set_debug (debug_level, NULL, NULL);
 
-  simple_client (argc? *argv : "localhost", port);
+  simple_client (host, port);
   return 0;
 }
