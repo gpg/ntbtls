@@ -383,6 +383,9 @@ gpg_error_t _ntbtls_x509_get_pk (x509_cert_t cert, int idx, gcry_sexp_t *r_pk);
 
 int _ntbtls_x509_can_do (x509_privkey_t privkey, pk_algo_t pkalgo);
 
+gpg_error_t _ntbtls_x509_check_hostname (x509_cert_t cert,
+                                         const char *hostname);
+
 
 /*-- dhm.c --*/
 gpg_error_t _ntbtls_dhm_new (dhm_context_t *r_dhm);

@@ -1,5 +1,5 @@
 /* x509.c - X.509 functions
- * Copyright (C) 2014 g10 Code GmbH
+ * Copyright (C) 2001-2010, 2014-2015  g10 Code GmbH
  *
  * This file is part of NTBTLS
  *
@@ -42,6 +42,224 @@ struct x509_privkey_s
   char dummy[32];
 };
 
+
+/* Object to hold a parsed DN. */
+struct dn_array_s
+{
+  char *key;
+  char *value;
+  int   multivalued;
+  int   done;
+};
+
+
+static void
+release_dn_array (struct dn_array_s *dnparts)
+{
+  int i;
+
+  if (!dnparts)
+    return;
+  for (i=0; dnparts[i].key; i++)
+    {
+      free (dnparts[i].key);
+      free (dnparts[i].value);
+    }
+  free (dnparts);
+}
+
+
+/* Helper for parse_dn.  */
+static const unsigned char *
+parse_dn_part (struct dn_array_s *array, const unsigned char *string)
+{
+  static struct {
+    const char *label;
+    const char *oid;
+  } label_map[] = {
+    /* Warning: When adding new labels, make sure that the buffer
+       below we be allocated large enough. */
+    {"EMail",        "1.2.840.113549.1.9.1" },
+    {"T",            "2.5.4.12" },
+    {"GN",           "2.5.4.42" },
+    {"SN",           "2.5.4.4" },
+    {"NameDistinguisher", "0.2.262.1.10.7.20"},
+    {"ADDR",         "2.5.4.16" },
+    {"BC",           "2.5.4.15" },
+    {"D",            "2.5.4.13" },
+    {"PostalCode",   "2.5.4.17" },
+    {"Pseudo",       "2.5.4.65" },
+    {"SerialNumber", "2.5.4.5" },
+    {NULL, NULL}
+  };
+  const unsigned char *s, *s1;
+  size_t n;
+  char *p;
+  int i;
+
+  /* Parse attributeType */
+  for (s = string+1; *s && *s != '='; s++)
+    ;
+  if (!*s)
+    return NULL; /* error */
+  n = s - string;
+  if (!n)
+    return NULL; /* empty key */
+
+  /* We need to allocate a few bytes more due to the possible mapping
+     from the shorter OID to the longer label. */
+  array->key = p = malloc (n+10);
+  if (!array->key)
+    return NULL;
+  memcpy (p, string, n);
+  p[n] = 0;
+  _ntbtls_trim_trailing_spaces (p);
+
+  if (digitp (p))
+    {
+      for (i=0; label_map[i].label; i++ )
+        if ( !strcmp (p, label_map[i].oid) )
+          {
+            strcpy (p, label_map[i].label);
+            break;
+          }
+    }
+  string = s + 1;
+
+  if (*string == '#')
+    { /* hexstring */
+      string++;
+      for (s=string; hexdigitp (s); s++)
+        s++;
+      n = s - string;
+      if (!n || (n & 1))
+        return NULL; /* Empty or odd number of digits. */
+      n /= 2;
+      array->value = p = malloc (n+1);
+      if (!p)
+        return NULL;
+      for (s1=string; n; s1 += 2, n--, p++)
+        {
+          *(unsigned char *)p = xtoi_2 (s1);
+          if (!*p)
+            *p = 0x01; /* Better print a wrong value than truncating
+                          the string. */
+        }
+      *p = 0;
+   }
+  else
+    { /* regular v3 quoted string */
+      for (n=0, s=string; *s; s++)
+        {
+          if (*s == '\\')
+            { /* pair */
+              s++;
+              if (*s == ',' || *s == '=' || *s == '+'
+                  || *s == '<' || *s == '>' || *s == '#' || *s == ';'
+                  || *s == '\\' || *s == '\"' || *s == ' ')
+                n++;
+              else if (hexdigitp (s) && hexdigitp (s+1))
+                {
+                  s++;
+                  n++;
+                }
+              else
+                return NULL; /* invalid escape sequence */
+            }
+          else if (*s == '\"')
+            return NULL; /* invalid encoding */
+          else if (*s == ',' || *s == '=' || *s == '+'
+                   || *s == '<' || *s == '>' || *s == ';' )
+            break;
+          else
+            n++;
+        }
+
+      array->value = p = malloc (n+1);
+      if (!p)
+        return NULL;
+      for (s=string; n; s++, n--)
+        {
+          if (*s == '\\')
+            {
+              s++;
+              if (hexdigitp (s))
+                {
+                  *(unsigned char *)p++ = xtoi_2 (s);
+                  s++;
+                }
+              else
+                *p++ = *s;
+            }
+          else
+            *p++ = *s;
+        }
+      *p = 0;
+    }
+  return s;
+}
+
+
+/* Parse a DN and return an array-ized one.  This is not a validating
+ * parser and it does not support any old-stylish syntax; KSBA is
+ * expected to return only rfc2253 compatible strings.  Returns NULL
+ * on error.  */
+static struct dn_array_s *
+parse_dn (const unsigned char *string)
+{
+  struct dn_array_s *array;
+  size_t arrayidx, arraysize;
+  int i;
+
+  arraysize = 7; /* C,ST,L,O,OU,CN,email */
+  arrayidx = 0;
+  array = malloc ((arraysize+1) * sizeof *array);
+  if (!array)
+    return NULL;
+  while (*string)
+    {
+      while (*string == ' ')
+        string++;
+      if (!*string)
+        break; /* ready */
+      if (arrayidx >= arraysize)
+        {
+          struct dn_array_s *a2;
+
+          arraysize += 5;
+          a2 = realloc (array, (arraysize+1) * sizeof *array);
+          if (!a2)
+            goto failure;
+          array = a2;
+        }
+      array[arrayidx].key = NULL;
+      array[arrayidx].value = NULL;
+      string = parse_dn_part (array+arrayidx, string);
+      if (!string)
+        goto failure;
+      while (*string == ' ')
+        string++;
+      array[arrayidx].multivalued = (*string == '+');
+      array[arrayidx].done = 0;
+      arrayidx++;
+      if (*string && *string != ',' && *string != ';' && *string != '+')
+        goto failure; /* invalid delimiter */
+      if (*string)
+        string++;
+    }
+  array[arrayidx].key = NULL;
+  array[arrayidx].value = NULL;
+  return array;
+
+ failure:
+  for (i=0; i < arrayidx; i++)
+    {
+      free (array[i].key);
+      free (array[i].value);
+    }
+  free (array);
+  return NULL;
+}
 
 
 /* Create a new X.509 certificate chain object and store it at R_CERT.
@@ -165,7 +383,6 @@ x509_log_time (const char *text, ksba_isotime_t t)
 void
 _ntbtls_x509_log_cert (const char *text, x509_cert_t chain_arg, int full)
 {
-  gpg_error_t err;
   x509_cert_t chain;
   ksba_cert_t cert;
   ksba_sexp_t sexp;
@@ -244,8 +461,6 @@ _ntbtls_x509_get_peer_cert (ntbtls_t tls, int idx)
 {
   x509_cert_t cert;
 
-  debug_crt (1, "peer certs A", tls->session_negotiate->peer_chain);
-
   if (!tls || !tls->session_negotiate || idx < 0)
     return NULL;
   for (cert = tls->session_negotiate->peer_chain;
@@ -256,7 +471,6 @@ _ntbtls_x509_get_peer_cert (ntbtls_t tls, int idx)
     return NULL;
 
   ksba_cert_ref (cert->crt);
-  debug_crt (1, "peer certs B", tls->session_negotiate->peer_chain);
   return cert->crt;
 }
 
@@ -314,4 +528,125 @@ _ntbtls_x509_can_do (x509_privkey_t privkey, pk_algo_t pk_alg)
 
   /* FIXME: Check that PRIVKEY matches PKALGO.  */
   return 1;
+}
+
+
+/* Check that CERT_NAME matches the hostname WANT_NAME.  Returns 0 if
+ * they match, GPG_ERR_WRONG_NAME if they don't match, or an other
+ * error code for a bad CERT_NAME.  */
+static gpg_err_code_t
+check_hostname (const char *cert_name, const char *want_name)
+{
+  const char *s;
+
+  _ntbtls_debug_msg (2, "comparing hostname '%s' to '%s'\n",
+                     cert_name, want_name);
+
+  /* Check that CERT_NAME looks like a valid hostname.  We check the
+   * LDH rule, no empty label, and no leading or trailing hyphen.  We
+   * do not check digit-only names.  */
+  if (!*cert_name || *cert_name == '-')
+    return GPG_ERR_INV_NAME;
+
+  for (s = cert_name; *s; s++)
+    {
+      if (!(alnump (s) || strchr ("-.", *s)))
+        return GPG_ERR_INV_NAME;
+      else if (*s == '.' && s[1] == '.')
+        return GPG_ERR_INV_NAME;
+    }
+
+  if (s[-1] == '-')
+    return GPG_ERR_INV_NAME;
+
+  if (strstr (cert_name, ".."))
+    return GPG_ERR_INV_NAME;
+
+  /* Now do the actual strcmp.  */
+  if (_ntbtls_ascii_strcasecmp (cert_name, want_name))
+    return GPG_ERR_WRONG_NAME;
+
+  return 0; /* Match.  */
+}
+
+
+/* Check that  HOSTNAME is in CERT.  */
+gpg_error_t
+_ntbtls_x509_check_hostname (x509_cert_t cert, const char *hostname)
+{
+  gpg_err_code_t ec;
+  gpg_error_t err;
+  int idx;
+  struct dn_array_s *dnparts = NULL;
+  char *dn = NULL;
+  char *endp, *name;
+  char *p;
+  int n, cn_count;
+
+  if (!cert || !cert->crt)
+    return gpg_error (GPG_ERR_MISSING_CERT);
+
+  /* First we look at the subjectAltNames.  */
+  for (idx=1; (dn = ksba_cert_get_subject (cert->crt, idx)); idx++)
+    {
+      if (!strncmp (dn, "(8:dns-name", 11))
+        {
+          n = strtol (dn + 11, &endp, 10);
+          if (n < 1 || *endp != ':' || endp[1+n] != ')')
+            {
+              err = gpg_error (GPG_ERR_INV_SEXP);
+              goto leave;
+            }
+          name = endp+1;
+          /* Make sure that thare is no embedded nul and trun it into
+           * a string.  */
+          for (p = name; n; p++, n--)
+            if (!*p)
+              *p = '\x01'; /* Replace by invalid DNS character.  */
+          *p = 0;  /* Replace the final ')'.  */
+          ec = check_hostname (name, hostname);
+          if (ec != GPG_ERR_WRONG_NAME)
+            {
+              err = gpg_error (ec);
+              goto leave;
+            }
+        }
+      ksba_free (dn);
+    }
+
+  /* Then we look at the CN of the subject.  */
+  dn = ksba_cert_get_subject (cert->crt, 0);
+  if (!dn)
+    {
+      err = gpg_error (GPG_ERR_BAD_CERT);
+      goto leave;
+    }
+
+  dnparts = parse_dn (dn);
+  if (!dnparts)
+    {
+      err = gpg_error (GPG_ERR_BAD_CERT);  /* Or out of mem.  */
+      goto leave;
+    }
+
+  for (idx=cn_count=0; dnparts[idx].key; idx++)
+    if (!strcmp (dnparts[idx].key, "CN")
+        && ++cn_count > 1)
+      {
+        err = gpg_error (GPG_ERR_BAD_CERT);
+        goto leave;
+      }
+
+  for (idx=0; dnparts[idx].key; idx++)
+    if (!strcmp (dnparts[idx].key, "CN"))
+      break;
+  if (dnparts[idx].key)
+    err = gpg_error (check_hostname (dnparts[idx].value, hostname));
+  else
+    err = gpg_error (GPG_ERR_WRONG_NAME);
+
+ leave:
+  release_dn_array (dnparts);
+  ksba_free (dn);
+  return err;
 }

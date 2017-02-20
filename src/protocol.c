@@ -1995,46 +1995,43 @@ _ntbtls_read_certificate (ntbtls_t tls)
   if (tls->authmode != TLS_VERIFY_NONE)
     {
       /*
-       * Main check: verify certificate
+       * Verify hostname
        */
-      if (!tls->verify_cb)
+      if (tls->hostname)
         {
-          debug_msg (1, "verify callback not set");
-          return gpg_error (GPG_ERR_NOT_INITIALIZED);
+          if (!tls->session_negotiate)
+            err = gpg_error (GPG_ERR_MISSING_CERT);
+          else
+            err = _ntbtls_x509_check_hostname
+              (tls->session_negotiate->peer_chain, tls->hostname);
+          if (err)
+            {
+              debug_ret (1, "x509_check_hostname", err);
+            }
         }
-      err = tls->verify_cb (tls->verify_cb_value, tls, 0);
-      if (err)
-        {
-          debug_ret (1, "error from the verify callback", err);
-        }
+      else
+        err = 0;
 
       /*
-       * Secondary checks: always done, but change 'ret' only if it was 0
+       * Verify certificate.  We don't do this if the hostname check
+       * already failed.
        */
-      //FIXME:
-      /* { */
-      /*   pk_context *pk = &tls->session_negotiate->peer_chain->pk; */
+      if (!err)
+        {
+          if (!tls->verify_cb)
+            {
+              debug_msg (1, "verify callback not set");
+              return gpg_error (GPG_ERR_NOT_INITIALIZED);
+            }
+          err = tls->verify_cb (tls->verify_cb_value, tls, 0);
+          if (err)
+            {
+              debug_ret (1, "error from the verify callback", err);
+            }
 
-      /*   /\* If certificate uses an EC key, make sure the curve is OK *\/ */
-      /*   if (pk_can_do (pk, POLARSSL_PK_ECKEY) && */
-      /*       !ssl_curve_is_acceptable (tls, pk_ec (*pk)->grp.id)) */
-      /*     { */
-      /*       debug_msg (1, "bad certificate (EC key curve)"); */
-      /*       if (ret == 0) */
-      /*         ret = gpg_error (GPG_ERR_BAD_HS_CERT); */
-      /*     } */
-      /* } */
-      /* */
-      /* if (ssl_check_cert_usage (tls->session_negotiate->peer_chain, */
-      /*                           suite, tls->is_client)) */
-      /*   { */
-      /*     debug_msg (1, "bad certificate (usage extensions)"); */
-      /*     if (!err) */
-      /*       err = gpg_error (GPG_ERR_BAD_HS_CERT); */
-      /*   } */
-
-      if (tls->authmode != TLS_VERIFY_REQUIRED)
-        err = 0;
+          if (tls->authmode != TLS_VERIFY_REQUIRED)
+            err = 0;
+        }
     }
 
   return err;
