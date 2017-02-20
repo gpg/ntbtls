@@ -531,6 +531,31 @@ _ntbtls_x509_can_do (x509_privkey_t privkey, pk_algo_t pk_alg)
 }
 
 
+/* Return the number of labels in the DNS NAME.  NAME is invalid 0 is
+ * returned. */
+static int
+count_labels (const char *name)
+{
+  const char *s;
+  int count = 0;
+
+  if (*name == '.')
+    name++; /* Skip a leading dot.  */
+  if (*name == '.')
+    return 0; /* Zero length labels at the start - invalid.  */
+  for (s = name; *s; s++)
+    {
+      if (*s == '.' && s[1] == '.')
+        return 0; /* Zero length label - invalid.  */
+      else if (*s == '.')
+        count++;
+    }
+  if (s > name && s[-1] == '.')
+    return 0; /* Trailing dot - invalid.  */
+
+  return count + 1; /* (NB. We are counting dots).  */
+}
+
 /* Check that CERT_NAME matches the hostname WANT_NAME.  Returns 0 if
  * they match, GPG_ERR_WRONG_NAME if they don't match, or an other
  * error code for a bad CERT_NAME.  */
@@ -538,13 +563,29 @@ static gpg_err_code_t
 check_hostname (const char *cert_name, const char *want_name)
 {
   const char *s;
+  int wildcard = 0;
+  int n_cert = 0;
+  int n_want = 0;
 
-  _ntbtls_debug_msg (2, "comparing hostname '%s' to '%s'\n",
+  _ntbtls_debug_msg (1, "comparing hostname '%s' to '%s'\n",
                      cert_name, want_name);
+
+  if (*cert_name == '*' && cert_name[1] == '.')
+    {
+      wildcard = 1;
+      cert_name += 2; /* Skip over the wildcard. */
+
+      n_cert = count_labels (cert_name);
+      n_want = count_labels (want_name);
+
+      if (n_cert < 2 || n_want < 2)
+        return GPG_ERR_WRONG_NAME; /* Less than 2 labels - no wildcards. */
+    }
 
   /* Check that CERT_NAME looks like a valid hostname.  We check the
    * LDH rule, no empty label, and no leading or trailing hyphen.  We
-   * do not check digit-only names.  */
+   * do not check digit-only names.  We also check that the hostname
+   * does not end in a dot.  */
   if (!*cert_name || *cert_name == '-')
     return GPG_ERR_INV_NAME;
 
@@ -556,11 +597,28 @@ check_hostname (const char *cert_name, const char *want_name)
         return GPG_ERR_INV_NAME;
     }
 
-  if (s[-1] == '-')
+  if (s[-1] == '-' || s[-1] == '.')
     return GPG_ERR_INV_NAME;
 
   if (strstr (cert_name, ".."))
     return GPG_ERR_INV_NAME;
+
+  /* In case of wildcards prepare our name for the strcmp.  */
+  if (wildcard)
+    {
+      if (n_cert == n_want)
+        ; /* Compare direct.  */
+      else if (n_cert + 1 == n_want)
+        {
+          /* We know that n_want has at least one dot.  */
+          want_name = strchr (want_name, '.');
+          if (!want_name)
+            return GPG_ERR_BUG;
+          want_name++;
+        }
+      else
+        return GPG_ERR_WRONG_NAME;  /* max one label may be wild - no match.  */
+    }
 
   /* Now do the actual strcmp.  */
   if (_ntbtls_ascii_strcasecmp (cert_name, want_name))
