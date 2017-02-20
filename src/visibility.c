@@ -38,6 +38,13 @@ ntbtls_set_debug (int level, const char *prefix, gpgrt_stream_t stream)
 }
 
 
+void
+ntbtls_set_log_handler (ntbtls_log_handler_t cb, void *cb_value)
+{
+  _ntbtls_set_log_handler (cb, cb_value);
+}
+
+
 gpg_error_t
 ntbtls_new (ntbtls_t *r_tls, unsigned int flags)
 {

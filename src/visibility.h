@@ -43,6 +43,7 @@
 
 MARK_VISIBLE (ntbtls_check_version)
 MARK_VISIBLE (ntbtls_set_debug)
+MARK_VISIBLE (ntbtls_set_log_handler)
 MARK_VISIBLE (ntbtls_new)
 MARK_VISIBLE (ntbtls_release)
 MARK_VISIBLE (ntbtls_set_transport)
@@ -67,6 +68,7 @@ MARK_VISIBLE (ntbtls_x509_get_peer_cert)
 
 #define ntbtls_check_version         _ntbtls_USE_THE_UNDERSCORED_FUNCTION
 #define ntbtls_set_debug             _ntbtls_USE_THE_UNDERSCORED_FUNCTION
+#define ntbtls_set_log_handler       _ntbtls_USE_THE_UNDERSCORED_FUNCTION
 #define ntbtls_new                   _ntbtls_USE_THE_UNDERSCORED_FUNCTION
 #define ntbtls_released              _ntbtls_USE_THE_UNDERSCORED_FUNCTION
 #define ntbtls_set_transport         _ntbtls_USE_THE_UNDERSCORED_FUNCTION

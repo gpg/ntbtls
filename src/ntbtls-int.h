@@ -280,6 +280,8 @@ tls_own_cert (ntbtls_t tls)
 
 /*-- util.c --*/
 const char *_ntbtls_check_version (const char *req_version);
+char *_ntbtls_trim_trailing_spaces (char *string);
+int _ntbtls_ascii_strcasecmp (const char *a, const char *b);
 
 /*-- protocol.c --*/
 const char *_ntbtls_state2str (tls_state_t state);

@@ -34,7 +34,7 @@ compat_identification (void)
   static const char blurb[] =
     "\n\n"
     "This is NTBTLS " PACKAGE_VERSION " - Not Too Bad TLS\n"
-    "Copyright (C) 2014 g10 Code GmbH\n"
+    "Copyright (C) 2014-2017 g10 Code GmbH\n"
     "Copyright (C) 2006-2014 Brainspark B.V.\n"
     "\n"
     "(" BUILD_REVISION " " BUILD_TIMESTAMP ")\n"
@@ -137,4 +137,52 @@ _ntbtls_check_version (const char *req_version)
     }
 
   return NULL; /* Not sufficent.  */
+}
+
+
+/*
+ * Remove trailing white spaces from STRING.  Returns STRING.
+ */
+char *
+_ntbtls_trim_trailing_spaces (char *string)
+{
+  char *p, *mark;
+
+  for (mark = NULL, p = string; *p; p++ )
+    {
+      if (isspace (*(unsigned char*)p))
+        {
+          if (!mark)
+            mark = p;
+	}
+      else
+        mark = NULL;
+    }
+  if (mark)
+    *mark = 0;
+
+  return string;
+}
+
+
+static inline int
+ascii_toupper (int c)
+{
+  if (c >= 'a' && c <= 'z')
+    c &= ~0x20;
+  return c;
+}
+
+int
+_ntbtls_ascii_strcasecmp (const char *a, const char *b)
+{
+  if (a == b)
+    return 0;
+
+  for (; *a && *b; a++, b++)
+    {
+      if (*a != *b && ascii_toupper (*a) != ascii_toupper (*b))
+        break;
+    }
+  return *a == *b? 0 : (ascii_toupper (*a) - ascii_toupper (*b));
 }

@@ -27,14 +27,24 @@
 static int debug_level;
 static const char *debug_prefix;
 static estream_t debug_stream;
+static ntbtls_log_handler_t log_handler;
+static void *log_handler_value;
 
 
+/* Set the Debug level up to which debug messages are shown. 0
+ * disables debug messages except for those which will always be
+ * shown.  PREFIX is prefix to prefix all output; the default is
+ * "ntbtls".  STREAM is the output stream; the default is es_stderr.
+ * Changing STREAM and PREFIX is not thread-safe and their values are
+ * ignored if a log handler has been set.  */
 void
 _ntbtls_set_debug (int level, const char *prefix, gpgrt_stream_t stream)
 {
   static char *debug_prefix_buffer;
 
-  debug_prefix = "ntbtls";
+  if (!debug_prefix)
+    debug_prefix = "ntbtls";
+
   if (prefix)
     {
       free (debug_prefix_buffer);
@@ -49,9 +59,18 @@ _ntbtls_set_debug (int level, const char *prefix, gpgrt_stream_t stream)
 }
 
 
+/* Set a dedicated log handler.  See the description of
+ * ntbtls_log_handler_t for details.  This is not thread-safe.  */
+void
+_ntbtls_set_log_handler (ntbtls_log_handler_t cb, void *cb_value)
+{
+  log_handler = cb;
+  log_handler_value = cb_value;
+}
 
-/* FIXME: For now we print to stderr.  Note that a LEVEL of -1 will
- * always print even when debugging has not been enabled.  */
+
+/* Note that a LEVEL of -1 will always print even when debugging has
+ * not been enabled.  */
 void
 _ntbtls_debug_msg (int level, const char *format, ...)
 {
@@ -62,20 +81,27 @@ _ntbtls_debug_msg (int level, const char *format, ...)
   if (level != -1 && (!debug_level || level > debug_level))
     return;
 
-  if ((no_lf = (*format == '\b')))
-    format++;
-
-  saved_errno = errno;
   va_start (arg_ptr, format);
-  gpgrt_fputs ("ntbtls: ", es_stderr);
-  gpgrt_vfprintf (es_stderr, format, arg_ptr);
-  if (no_lf)
-    gpgrt_fflush (es_stderr); /* To sync with stderr.  */
-  else if (*format && format[strlen(format)-1] != '\n')
-    gpgrt_fputc ('\n', es_stderr);
+  saved_errno = errno;
+  if (log_handler)
+    {
+      log_handler (log_handler_value, level, format, arg_ptr);
+    }
+  else
+    {
+      if ((no_lf = (*format == '\b')))
+        format++;
+
+      gpgrt_fputs ("ntbtls: ", es_stderr);
+      gpgrt_vfprintf (es_stderr, format, arg_ptr);
+      if (no_lf)
+        gpgrt_fflush (es_stderr); /* To sync with stderr.  */
+      else if (*format && format[strlen(format)-1] != '\n')
+        gpgrt_fputc ('\n', es_stderr);
+    }
+
   va_end (arg_ptr);
   gpg_err_set_errno (saved_errno);
-
 }
 
 

@@ -30,9 +30,31 @@
 #define DIM(v) (sizeof(v)/sizeof((v)[0]))
 #define DIMof(type,member)   DIM(((type *)0)->member)
 
+/* Macros to replace ctype macros so o avoid locale problems.  */
+#define spacep(p)   (*(p) == ' ' || *(p) == '\t')
+#define digitp(p)   (*(p) >= '0' && *(p) <= '9')
+#define alphap(p)   ((*(p) >= 'A' && *(p) <= 'Z')       \
+                     || (*(p) >= 'a' && *(p) <= 'z'))
+#define alnump(p)   (alphap (p) || digitp (p))
+#define hexdigitp(a) (digitp (a)                     \
+                      || (*(a) >= 'A' && *(a) <= 'F')  \
+                      || (*(a) >= 'a' && *(a) <= 'f'))
+  /* Note this isn't identical to a C locale isspace() without \f and
+     \v, but works for the purposes used here. */
+#define ascii_isspace(a) ((a)==' ' || (a)=='\n' || (a)=='\r' || (a)=='\t')
+
+/* The atoi macros assume that the buffer has only valid digits. */
+#define atoi_1(p)   (*(p) - '0' )
+#define atoi_2(p)   ((atoi_1(p) * 10) + atoi_1((p)+1))
+#define atoi_4(p)   ((atoi_2(p) * 100) + atoi_2((p)+2))
+#define xtoi_1(p)   (*(p) <= '9'? (*(p)- '0'): \
+                     *(p) <= 'F'? (*(p)-'A'+10):(*(p)-'a'+10))
+#define xtoi_2(p)   ((xtoi_1(p) * 16) + xtoi_1((p)+1))
+#define xtoi_4(p)   ((xtoi_2(p) * 256) + xtoi_2((p)+2))
+
 
 /* Return the size of a OID string without the nul.  */
-//FIXME: Do we use it?
+/* FIXME: Do we use it? */
 #define OID_SIZE(x) (sizeof(x) - 1)
 
 
@@ -94,6 +116,7 @@ buf32_to_u32 (const void *buffer)
 
 /*-- debug.c --*/
 void _ntbtls_set_debug (int level, const char *prefix, gpgrt_stream_t stream);
+void _ntbtls_set_log_handler (ntbtls_log_handler_t cb, void *cb_value);
 
 void _ntbtls_debug_msg (int level, const char *format,
                         ...) GPGRT_ATTR_PRINTF(2,0);
@@ -120,6 +143,9 @@ void _ntbtls_debug_crt (int level, const char *text, x509_cert_t chain);
 #if GPG_ERROR_VERSION_NUMBER < 0x011200  /* 1.18 */
 # define GPG_ERR_REQUEST_TOO_SHORT 223
 # define GPG_ERR_REQUEST_TOO_LONG  224
+#endif
+#if GPG_ERROR_VERSION_NUMBER < 0x011b00 /* 1.27 */
+# define GPG_ERR_WRONG_NAME  313
 #endif
 
 

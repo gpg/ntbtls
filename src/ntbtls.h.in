@@ -78,6 +78,20 @@ typedef gpg_error_t (*ntbtls_verify_cb_t) (void *opaque,
                                            unsigned int verify_flags);
 
 
+/*
+ * The type of an optional log handler.
+ *
+ * OPAQUE is the value supplied to the set function.  LEVEL is the
+ * debug level for that message; it might be -1 for always log or any
+ * value less than the limit set with ntbtls_set_debug.  FMT is the
+ * format string.  Unless FMT starts with a '\b' the log function is
+ * expected to append a missing final linefeed.
+ */
+typedef void (*ntbtls_log_handler_t)(void *opaque,
+                                     int level,
+                                     const char *fmt,
+                                     va_list argv);
+
 /* Check that the library fulfills the version requirement.  */
 const char *ntbtls_check_version (const char *req_version);
 
@@ -128,10 +142,14 @@ ksba_cert_t ntbtls_x509_get_peer_cert (ntbtls_t tls, int idx);
  */
 
 /* Enable debugging at LEVEL (> 0) using an optional PREFIX (default:
-   "ntbtls") and an optional debug stream STREAM (default: es_stderr).
-   This function is not thread-safe and shall thus be called only once
-   before any extra threads have been started.  */
+ * "ntbtls") and an optional debug stream STREAM (default: es_stderr).
+ * This function is not thread-safe and shall thus be called only once
+ * before any extra threads have been started.  */
 void ntbtls_set_debug (int level, const char *prefix, gpgrt_stream_t stream);
+
+/* Set a dedicated log handler.  See the description of
+ * ntbtls_log_handler_t for details.  This is not thread-safe.  */
+void ntbtls_set_log_handler (ntbtls_log_handler_t cb, void *cb_value);
 
 
 #if 0 /* (Keep Emacsens' auto-indent happy.) */

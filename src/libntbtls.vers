@@ -23,6 +23,7 @@ NTBTLS_1.0 {
   global:
     ntbtls_check_version;
     ntbtls_set_debug;
+    ntbtls_set_log_handler;
 
     ntbtls_new;
     ntbtls_release;
