@@ -1,5 +1,5 @@
 /* ntbtls.h -  Not Too Bad TLS                                  -*- c -*-
- * Copyright (C) 2014 g10 Code GmbH
+ * Copyright (C) 2014, 2017 g10 Code GmbH
  *
  * This file is part of NTBTLS
  *
@@ -55,18 +55,6 @@ struct _ntbtls_context_s;
 typedef struct _ntbtls_context_s *ntbtls_t;
 
 /*
- * Object to hold X.509 certificates.
- */
-struct x509_cert_s;
-typedef struct x509_cert_s *x509_cert_t;
-
-/*
- * Object to hold an X.509 CRL.
- */
-struct x509_crl_s;
-typedef struct x509_crl_s *x509_crl_t;
-
-/*
  * The type of the verification callback.  This must be registered
  * prior to the handshake and will be called by ntbltls when a peer's
  * certificate needs to be verified.  OPAQUE is the vale set when the
@@ -104,16 +92,6 @@ void        ntbtls_release (ntbtls_t tls);
 /* Check that TLS is not NULL and valid.  (Use only the macro). */
 gpg_error_t _ntbtls_check_context (ntbtls_t tls, const char *file, int line);
 #define ntbtls_check_context(t) _ntbtls_check_context ((t), __FILE__, __LINE__)
-
-/* Create a new X509 certificate chain.  */
-gpg_error_t ntbtls_x509_cert_new (x509_cert_t *r_cert);
-
-/* Destroy a X509 certificate chain.  */
-void ntbtls_x509_cert_release (x509_cert_t cert);
-
-/* Parse a single DER formatted certificate and add it to the chained list.  */
-gpg_error_t ntbtls_x509_append_cert (x509_cert_t cert, const void *der,
-                                     size_t derlen);
 
 /* Setup the transport streams (usually connected to one socket).  */
 gpg_error_t ntbtls_set_transport (ntbtls_t tls,

@@ -117,27 +117,6 @@ ntbtls_set_verify_cb (ntbtls_t tls,  ntbtls_verify_cb_t cb, void *cb_value)
   return _ntbtls_set_verify_cb (tls, cb, cb_value);
 }
 
-
-gpg_error_t
-ntbtls_x509_cert_new (x509_cert_t *r_cert)
-{
-  return _ntbtls_x509_cert_new (r_cert);
-}
-
-
-void
-ntbtls_x509_cert_release (x509_cert_t cert)
-{
-  _ntbtls_x509_cert_release (cert);
-}
-
-
-gpg_error_t
-ntbtls_x509_append_cert (x509_cert_t cert, const void *der, size_t derlen)
-{
-  return _ntbtls_x509_append_cert (cert, der, derlen);
-}
-
 ksba_cert_t
 ntbtls_x509_get_peer_cert (ntbtls_t tls, int idx)
 {

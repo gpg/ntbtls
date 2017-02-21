@@ -28,18 +28,15 @@ NTBTLS_1.0 {
     ntbtls_new;
     _ntbtls_check_context;
     ntbtls_release;
+
     ntbtls_set_transport;
     ntbtls_get_stream;
     ntbtls_set_hostname;
     ntbtls_get_hostname;
+    ntbtls_set_verify_cb;
 
     ntbtls_handshake;
 
-    ntbtls_set_verify_cb;
-
-    ntbtls_x509_cert_new;
-    ntbtls_x509_cert_release;
-    ntbtls_x509_append_cert;
     ntbtls_x509_get_peer_cert;
 
   local:

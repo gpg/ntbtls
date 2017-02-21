@@ -58,6 +58,10 @@
 #define OID_SIZE(x) (sizeof(x) - 1)
 
 
+struct x509_cert_s;
+typedef struct x509_cert_s *x509_cert_t;
+
+
 /* Constant-time compare of two buffers.  Returns 0 if buffers are
    equal, and 1 if buffers differ.  At most places this function can
    be used as a memcmp replacement.  However, -1 will never be

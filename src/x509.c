@@ -1,5 +1,5 @@
 /* x509.c - X.509 functions
- * Copyright (C) 2001-2010, 2014-2015  g10 Code GmbH
+ * Copyright (C) 2001-2010, 2014-2015, 2017  g10 Code GmbH
  *
  * This file is part of NTBTLS
  *

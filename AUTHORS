@@ -1,9 +1,9 @@
 Library: NTBTLS
 Homepage: https://gnupg.org/related_software/ntbtls/
-Download: ftp://ftp.gnupg.org/gcrypt/ntbtls/
+Download: https://gnupg.org/ftp/gcrypt/ntbtls/
 Repository: git://git.gnupg.org/ntbtls.git
 Maintainer: Werner Koch <wk@gnupg.org>
-Bug reports: http://bugs.gnupg.org
+Bug reports: https://bugs.gnupg.org
 Security related bug reports: <security@gnupg.org>
 License: GPLv3+
 
@@ -17,14 +17,14 @@ List of Copyright holders
 =========================
 
   Copyright (C) 2006-2014 Brainspark B.V.
-  Copyright (C) 2014-2015 g10 Code GmbH
+  Copyright (C) 2014-2017 g10 Code GmbH
 
 
 Authors
 ==================
 
 Werner Koch <wk@gnupg.org> (g10 Code GmbH)
-2014-10-01::Initial work
+NIIBE Yutaka <gniibe@fsij.org>
 
 
 

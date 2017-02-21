@@ -1,6 +1,6 @@
 /* protocol.c - TLS 1.2 protocol implementation
  * Copyright (C) 2006-2014, Brainspark B.V.
- * Copyright (C) 2014 g10 code GmbH
+ * Copyright (C) 2014, 2017 g10 code GmbH
  *
  * This file is part of NTBTLS
  *

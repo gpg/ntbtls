@@ -23,23 +23,20 @@
 EXPORTS
     ntbtls_check_version                  @1
     ntbtls_set_debug                      @2
+    ntbtls_set_log_handler                @3
 
-    ntbtls_new                            @3
-    ntbtls_release                        @4
-    ntbtls_set_transport                  @5
-    ntbtls_get_stream                     @6
-    ntbtls_set_hostname                   @7
+    ntbtls_new                            @4
+    _ntbtls_check_context                 @5
+    ntbtls_release                        @6
 
-    ntbtls_handshake                      @8
+    ntbtls_set_transport                  @7
+    ntbtls_get_stream                     @8
+    ntbtls_set_hostname                   @9
+    ntbtls_get_hostname                   @10
+    ntbtls_set_verify_cb                  @11
 
-    ntbtls_set_verify_cb                  @9
-
-    ntbtls_x509_cert_new                  @10
-    ntbtls_x509_cert_release              @11
-    ntbtls_x509_append_cert               @12
+    ntbtls_handshake                      @12
 
     ntbtls_x509_get_peer_cert             @13
-    ntbtls_set_log_handler                @14
-    ntbtls_get_hostname                   @15
-    _ntbtls_check_context                 @16
+
 ; END

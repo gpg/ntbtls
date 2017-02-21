@@ -39,7 +39,7 @@ BEGIN
             VALUE "FileDescription", "ntbtls - Not Too Bad Transport Layer Security\0"
             VALUE "FileVersion", "@LIBNTBTLS_LT_CURRENT@.@LIBNTBTLS_LT_AGE@.@LIBNTBTLS_LT_REVISION@.@BUILD_REVISION@\0"
             VALUE "InternalName", "libntbtls\0"
-            VALUE "LegalCopyright", "Copyright © 2006-2014 Brainspark B.V., Copyright © 2014-2015 g10 Code GmbH\0"
+            VALUE "LegalCopyright", "Copyright © 2006-2014 Brainspark B.V., Copyright © 2014-2017 g10 Code GmbH\0"
             VALUE "LegalTrademarks", "\0"
             VALUE "OriginalFilename", "libntbtls.dll\0"
             VALUE "PrivateBuild", "\0"
