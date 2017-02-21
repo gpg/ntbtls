@@ -1,23 +1,23 @@
 # autogen.sh configuration for GnuPG                           -*- sh -*-
 
-#version_parts=3
+ersion_parts=3
 
-# case "$myhost:$myhostsub" in
-#   w32:)
-#     extraoptions=""
-#     ;;
-# esac
+case "$myhost:$myhostsub" in
+  w32:)
+    extraoptions=""
+    ;;
+esac
 
-# case "$myhost" in
-#   w32)
-#     configure_opts="
-#       --with-gpg-error-prefix=@SYSROOT@
-#       --with-ksba-prefix=@SYSROOT@
-#       --with-libgcrypt-prefix=@SYSROOT@
-#       --with-zlib=@SYSROOT@
-#       "
-#     ;;
-# esac
+case "$myhost" in
+  w32)
+    configure_opts="
+      --with-gpg-error-prefix=@SYSROOT@
+      --with-ksba-prefix=@SYSROOT@
+      --with-libgcrypt-prefix=@SYSROOT@
+      --with-zlib=@SYSROOT@
+      "
+    ;;
+esac
 
 
 extra_aclocal_flags=
