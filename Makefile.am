@@ -19,7 +19,6 @@
 ## Process this file with automake to produce Makefile.in
 
 ACLOCAL_AMFLAGS = -I m4
-AUTOMAKE_OPTIONS = dist-bzip2
 DISTCHECK_CONFIGURE_FLAGS =
 
 # (A suitable gitlog-to-changelog script can be found in GnuPG master.)
@@ -32,6 +31,22 @@ EXTRA_DIST = autogen.sh autogen.rc README.GIT VERSION 	               \
              build-aux/git-log-footer build-aux/git-log-fix
 
 DISTCLEANFILES =
+
+dist-hook: gen-ChangeLog
+
+distcheck-hook:
+	set -e; ( \
+	pref="#+macro: ntbtls_" ;\
+	reldate="$$(date -u +%Y-%m-%d)" ;\
+        echo "$${pref}ver  $(PACKAGE_VERSION)"  ;\
+        echo "$${pref}date $${reldate}" ;\
+        list='$(DIST_ARCHIVES)'; for i in $$list; do \
+	  case "$$i" in *.tar.bz2) \
+            echo "$${pref}size $$(wc -c <$$i|awk '{print int($$1/1024)}')k" ;\
+	    echo "$${pref}sha1 $$(sha1sum <$$i|cut -d' ' -f1)" ;\
+	    echo "$${pref}sha2 $$(sha256sum <$$i|cut -d' ' -f1)" ;;\
+	  esac;\
+	done ) | tee $(distdir).swdb
 
 
 .PHONY: gen-ChangeLog

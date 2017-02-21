@@ -1,5 +1,5 @@
 /* ntbtls.h -  Not Too Bad TLS                                  -*- c -*-
- * Copyright (C) 2014, 2017 g10 Code GmbH
+ * Copyright (C) 2014-2017 g10 Code GmbH
  *
  * This file is part of NTBTLS
  *
@@ -32,15 +32,21 @@ extern "C" {
 #endif
 #endif
 
-/* The version of this header should match the one of the library. It
-   should not be used by a program because ntbtls_check_version()
-   should return the same version.  The purpose of this macro is to
-   let autoconf (using the AM_PATH_NTBTLS macro) check that this
-   header matches the installed library.  */
+/*
+ * The version of this header file.
+ *
+ * A program should better the fucntion ntbtls_check_version() which
+ * will return the actual version of the library.  The sole purpose of
+ * this macro is to let autoconf (using the AM_PATH_NTBTLS macro)
+ * check that this header matches the installed library.
+ */
 #define NTBTLS_VERSION "@VERSION@"
 
-/* The version number of this header.  It may be used to handle minor
-   API incompatibilities.  */
+/*
+ * The version number of this header.
+ *
+ * It may be used to handle minor API incompatibilities.
+*/
 #define NTBTLS_VERSION_NUMBER @VERSION_NUMBER@
 
 
@@ -54,12 +60,14 @@ extern "C" {
 struct _ntbtls_context_s;
 typedef struct _ntbtls_context_s *ntbtls_t;
 
+
 /*
- * The type of the verification callback.  This must be registered
- * prior to the handshake and will be called by ntbltls when a peer's
- * certificate needs to be verified.  OPAQUE is the vale set when the
- * callback has been set.  TLS is the respective TLS context.
- * VERIFY_FLAGS are not yet defined flags.
+ * The type of the verification callback.
+ *
+ * This must be registered prior to the handshake and will be called
+ * by ntbltls when a peer's certificate needs to be verified.  OPAQUE
+ * is the vale set when the callback has been set.  TLS is the
+ * respective TLS context.  VERIFY_FLAGS are not yet defined flags.
  */
 typedef gpg_error_t (*ntbtls_verify_cb_t) (void *opaque,
                                            ntbtls_t tls,

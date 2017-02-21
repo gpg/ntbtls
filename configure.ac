@@ -80,7 +80,7 @@ AC_CONFIG_SRCDIR([src/ntbtls.h.in])
 AC_CONFIG_HEADER([config.h])
 # Note: For automake 1.13 add the option
 #          serial-tests
-AM_INIT_AUTOMAKE([dist-bzip2 no-dist-gzip])
+AM_INIT_AUTOMAKE([serial-tests dist-bzip2 no-dist-gzip])
 AC_CANONICAL_HOST
 AC_GNU_SOURCE
 
