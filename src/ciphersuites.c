@@ -1390,7 +1390,7 @@ _ntbtls_ciphersuite_get_sig_pk_alg (ciphersuite_t suite)
       return GCRY_PK_RSA;
 
     case KEY_EXCHANGE_ECDHE_ECDSA:
-      return GCRY_PK_ECC; /* Actuall ECDSA */
+      return GCRY_PK_ECC; /* Actually ECDSA */
 
     case KEY_EXCHANGE_ECDH_RSA:
     case KEY_EXCHANGE_ECDH_ECDSA:

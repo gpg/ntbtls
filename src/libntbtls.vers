@@ -30,6 +30,7 @@ NTBTLS_1.0 {
     ntbtls_set_transport;
     ntbtls_get_stream;
     ntbtls_set_hostname;
+    ntbtls_get_hostname;
 
     ntbtls_handshake;
 

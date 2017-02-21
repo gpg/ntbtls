@@ -129,6 +129,11 @@ gpg_error_t ntbtls_set_verify_cb (ntbtls_t tls,
    It is used for SNI, too.  */
 gpg_error_t ntbtls_set_hostname (ntbtls_t tls, const char *hostname);
 
+/* Return the hostname which has been set with ntbtls_set_hostname.
+ * The returned value is valid as long as TLS is valid and
+ * ntbtls_set_hostname has not been used again.  */
+const char *ntbtls_get_hostname (ntbtls_t tls);
+
 /* Perform the handshake with the peer.  The transport streams must be
    connected before starting this handshake.  */
 gpg_error_t ntbtls_handshake (ntbtls_t tls);

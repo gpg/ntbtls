@@ -330,6 +330,7 @@ gpg_error_t _ntbtls_set_verify_cb (ntbtls_t tls,
                                    ntbtls_verify_cb_t cb, void *cb_value);
 
 gpg_error_t _ntbtls_set_hostname (ntbtls_t tls, const char *hostname);
+const char *_ntbtls_get_hostname (ntbtls_t tls);
 
 gpg_error_t _ntbtls_handshake (ntbtls_t tls);
 

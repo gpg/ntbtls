@@ -82,6 +82,13 @@ ntbtls_set_hostname (ntbtls_t tls, const char *hostname)
 }
 
 
+const char *
+ntbtls_get_hostname (ntbtls_t tls)
+{
+  return _ntbtls_get_hostname (tls);
+}
+
+
 gpg_error_t
 ntbtls_handshake (ntbtls_t tls)
 {

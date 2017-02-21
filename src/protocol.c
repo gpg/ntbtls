@@ -3254,6 +3254,16 @@ _ntbtls_set_hostname (ntbtls_t tls, const char *hostname)
 }
 
 
+/* Return the hostname which has been set with ntbtls_set_hostname.
+ * The returned value is valid as long as TLS is valid and
+ * ntbtls_set_hostname has not been used again.  */
+const char *
+_ntbtls_get_hostname (ntbtls_t tls)
+{
+  return tls ? tls->hostname : NULL;
+}
+
+
 /* void */
 /* ssl_set_sni (ntbtls_t ssl, */
 /*              int (*f_sni) (void *, ntbtls_t, */
