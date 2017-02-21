@@ -41,4 +41,5 @@ EXPORTS
     ntbtls_x509_get_peer_cert             @13
     ntbtls_set_log_handler                @14
     ntbtls_get_hostname                   @15
+    _ntbtls_check_context                 @16
 ; END

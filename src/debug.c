@@ -110,13 +110,10 @@ _ntbtls_debug_bug (const char *file, int line)
 {
   const char *s;
 
-  if (!debug_level)
-    return;
-
   s = strrchr (file, '/');
   if (s)
     file = s + 1;
-  _ntbtls_debug_msg (0, "bug detected at %s:%d\n", file, line);
+  _ntbtls_debug_msg (-1, "bug detected at %s:%d\n", file, line);
 }
 
 

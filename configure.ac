@@ -316,6 +316,7 @@ AC_MSG_NOTICE([checking for system characteristics])
 AC_C_CONST
 AC_C_INLINE
 AC_C_VOLATILE
+AC_CHECK_SIZEOF(unsigned long)
 AC_TYPE_SIZE_T
 AC_TYPE_MODE_T
 AC_TYPE_SIGNAL

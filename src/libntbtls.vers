@@ -26,6 +26,7 @@ NTBTLS_1.0 {
     ntbtls_set_log_handler;
 
     ntbtls_new;
+    _ntbtls_check_context;
     ntbtls_release;
     ntbtls_set_transport;
     ntbtls_get_stream;

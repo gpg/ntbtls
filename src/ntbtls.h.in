@@ -101,6 +101,10 @@ gpg_error_t ntbtls_new (ntbtls_t *r_tls, unsigned int flags);
 /* Destroy a TLS context.  */
 void        ntbtls_release (ntbtls_t tls);
 
+/* Check that TLS is not NULL and valid.  (Use only the macro). */
+gpg_error_t _ntbtls_check_context (ntbtls_t tls, const char *file, int line);
+#define ntbtls_check_context(t) _ntbtls_check_context ((t), __FILE__, __LINE__)
+
 /* Create a new X509 certificate chain.  */
 gpg_error_t ntbtls_x509_cert_new (x509_cert_t *r_cert);
 

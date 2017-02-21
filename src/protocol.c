@@ -2627,6 +2627,8 @@ _ntbtls_new (ntbtls_t *r_tls, unsigned int flags)
   if (!tls)
     return gpg_error_from_syserror ();  /* Return immediately.  */
 
+  tls->magic = NTBTLS_CONTEXT_MAGIC;
+
   tls->min_major_ver = TLS_MIN_MAJOR_VERSION;
   tls->min_minor_ver = TLS_MIN_MINOR_VERSION;
   tls->max_major_ver = TLS_MAX_MAJOR_VERSION;
@@ -2719,6 +2721,8 @@ _ntbtls_release (ntbtls_t tls)
     return;
 
   debug_msg (2, "release");
+  if (tls->magic != NTBTLS_CONTEXT_MAGIC)
+    debug_bug ();
 
   if (tls->out_ctr)
     {

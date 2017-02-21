@@ -52,6 +52,21 @@ ntbtls_new (ntbtls_t *r_tls, unsigned int flags)
 }
 
 
+/* Check that TLS is valid.  FILE and LINE are printed in case of a
+ * failure.  Returns True on failure.  This should be called using the
+ * corresponding macro.  */
+gpg_error_t
+_ntbtls_check_context (ntbtls_t tls, const char *file, int line)
+{
+  if (!tls || tls->magic != NTBTLS_CONTEXT_MAGIC)
+    {
+      _ntbtls_debug_bug (file, line);
+      return gpg_error (GPG_ERR_BUG);
+    }
+  return 0;
+}
+
+
 void
 ntbtls_release (ntbtls_t tls)
 {

@@ -259,11 +259,20 @@ typedef struct _ntbtls_ticket_keys_s *ticket_keys_t;
 
 
 
+
+#if SIZEOF_UNSIGNED_LONG == 8
+# define NTBTLS_CONTEXT_MAGIC 0x6e7462746c736378 /* "ntbtlscx" */
+#else
+# define NTBTLS_CONTEXT_MAGIC 0x6e746243         /* "ntbC" */
+#endif
+
 /*
  * The TLS context object.
  */
 struct _ntbtls_context_s
 {
+  unsigned long magic;
+
   /*
    * Miscellaneous
    */
