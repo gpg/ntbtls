@@ -18,7 +18,7 @@
 
 # Process this file with autoconf to produce a configure script.
 AC_PREREQ(2.61)
-min_automake_version="1.11"
+min_automake_version="1.14"
 
 # To build a release you need to create a tag with the version number
 # (git tag -s gnupg-2.n.m) and run "./autogen.sh --force".  Please
@@ -27,7 +27,7 @@ min_automake_version="1.11"
 m4_define([mym4_package],[ntbtls])
 m4_define([mym4_major], [0])
 m4_define([mym4_minor], [1])
-m4_define([mym4_micro], [0])
+m4_define([mym4_micro], [1])
 
 # To start a new development series, i.e a new major or minor number
 # you need to mark an arbitrary commit before the first beta release
@@ -78,8 +78,6 @@ VERSION=$PACKAGE_VERSION
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_SRCDIR([src/ntbtls.h.in])
 AC_CONFIG_HEADER([config.h])
-# Note: For automake 1.13 add the option
-#          serial-tests
 AM_INIT_AUTOMAKE([serial-tests dist-bzip2 no-dist-gzip])
 AC_CANONICAL_HOST
 AC_GNU_SOURCE
