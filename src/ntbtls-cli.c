@@ -24,6 +24,7 @@
 #include <stdarg.h>
 
 #include <unistd.h>
+#include <errno.h>
 #include <sys/types.h>
 #ifdef HAVE_W32_SYSTEM
 # define WIN32_LEAN_AND_MEAN
@@ -121,6 +122,77 @@ info (const char *format, ...)
 
 
 
+/* Until we support send/recv in estream we need to use es_fopencookie
+ * under Windows.  */
+#ifdef HAVE_W32_SYSTEM
+static gpgrt_ssize_t
+w32_cookie_read (void *cookie, void *buffer, size_t size)
+{
+  int sock = (int)cookie;
+  int nread;
+
+  do
+    {
+      /* Under Windows we need to use recv for a socket.  */
+      nread = recv (sock, buffer, size, 0);
+    }
+  while (nread == -1 && errno == EINTR);
+
+  return (gpgrt_ssize_t)nread;
+}
+
+static gpg_error_t
+w32_write_server (int sock, const char *data, size_t length)
+{
+  int nleft;
+  int nwritten;
+
+  nleft = length;
+  while (nleft > 0)
+    {
+      nwritten = send (sock, data, nleft, 0);
+      if ( nwritten == SOCKET_ERROR )
+        {
+          info ("network write failed: ec=%d\n", (int)WSAGetLastError ());
+          return gpg_error (GPG_ERR_NETWORK);
+        }
+      nleft -= nwritten;
+      data += nwritten;
+    }
+
+  return 0;
+}
+
+/* Write handler for estream.  */
+static gpgrt_ssize_t
+w32_cookie_write (void *cookie, const void *buffer_arg, size_t size)
+{
+  int sock = (int)cookie;
+  const char *buffer = buffer_arg;
+  int nwritten = 0;
+
+  if (w32_write_server (sock, buffer, size))
+    {
+      gpg_err_set_errno (EIO);
+      nwritten = -1;
+    }
+  else
+    nwritten = size;
+
+  return (gpgrt_ssize_t)nwritten;
+}
+
+static es_cookie_io_functions_t w32_cookie_functions =
+  {
+    w32_cookie_read,
+    w32_cookie_write,
+    NULL,
+    NULL
+  };
+#endif /*HAVE_W32_SYSTEM*/
+
+
+
 static int
 connect_server (const char *server, unsigned short port)
 {
@@ -175,14 +247,25 @@ connect_estreams (const char *server, int port,
   sock = connect_server (server, port);
   if (sock == -1)
     return gpg_error (GPG_ERR_GENERAL);
-  *r_in = es_fdopen_nc (sock, "rb");
+
+#ifdef HAVE_W32_SYSTEM
+  *r_in = es_fopencookie ((void*)(unsigned int)sock, "rb",
+                          w32_cookie_functions);
+#else
+  *r_in = es_fdopen (sock, "rb");
+#endif
   if (!*r_in)
     {
       err = gpg_error_from_syserror ();
       close (sock);
       return err;
     }
+#ifdef HAVE_W32_SYSTEM
+  *r_out = es_fopencookie ((void*)(unsigned int)sock, "wb",
+                           w32_cookie_functions);
+#else
   *r_out = es_fdopen (sock, "wb");
+#endif
   if (!*r_out)
     {
       err = gpg_error_from_syserror ();
@@ -357,6 +440,13 @@ main (int argc, char **argv)
     opt_hostname = host;
   if (!*opt_hostname)
     opt_hostname = NULL;
+
+#ifdef HAVE_W32_SYSTEM
+  {
+    WSADATA wsadat;
+    WSAStartup (0x202, &wsadat);
+  }
+#endif
 
   if (!ntbtls_check_version (PACKAGE_VERSION))
     die ("NTBTLS library too old (need %s, have %s)\n",
