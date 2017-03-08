@@ -225,6 +225,10 @@ case "${host}" in
         have_android_system=yes
         run_tests=no
         ;;
+    *-apple-darwin*)
+        AC_DEFINE(_DARWIN_C_SOURCE, 900000L,
+                  Expose all libc features (__DARWIN_C_FULL).)
+        ;;
     *)
        ;;
 esac
