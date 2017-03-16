@@ -19,11 +19,28 @@
     --port 8443
 #+end_example
 
+   To test only a single ECDHDE cipher suite, this can be useful:
+
+#+begin_example
+   --priority SECURE128:+ECDHE-RSA:-RSA:-DHE-RSA:-PSK:-CAMELLIA-128-CBC:\
+   -CAMELLIA-256-CBC:-CAMELLIA-256-GCM:-CAMELLIA-128-GCM:-SHA1:\
+   -AES-128-GCM:-AES-256-GCM:-SHA384
+#+end_example
+
+
 ** How to start an OpenSSL test server
 
 
 * Specs
 ** RFC Notes
+
+*** 4492 - Elliptic Curve Cryptography (ECC) Cipher Suites for Transport Layer
+    Security (TLS). S. Blake-Wilson, N. Bolyard, V. Gupta, C. Hawk, B.
+    Moeller. May 2006. (Format: TXT=72231 bytes) (Updated by RFC5246,
+    RFC7027) (Status: INFORMATIONAL) (DOI: 10.17487/RFC4492)
+
+    - 5246 :: See A.7 for the changes.
+    - 7027 :: Brainpool curves
 
 *** 5246 - The Transport Layer Security (TLS) Protocol Version 1.2.
     T. Dierks, E. Rescorla. August 2008. (Format: TXT=222395 bytes)

@@ -2482,12 +2482,21 @@ handshake_params_init (handshake_params_t handshake)
       return err;
     }
 
+  err = _ntbtls_ecdh_new (&handshake->ecdh_ctx);
+  if (err)
+    {
+      _ntbtls_dhm_release (handshake->dhm_ctx);
+      handshake->dhm_ctx = NULL;
+      gcry_md_close (handshake->fin_sha256);
+      handshake->fin_sha256 = NULL;
+      gcry_md_close (handshake->fin_sha512);
+      handshake->fin_sha512 = NULL;
+      return err;
+    }
+
   handshake->update_checksum = update_checksum_start;
-  handshake->sig_alg = TLS_HASH_SHA1;
+  handshake->sig_alg = TLS_HASH_SHA256;
 
-
-  //*FIXME:
-  /* ecdh_init (&handshake->ecdh_ctx); */
   return 0;
 }
 
@@ -2500,9 +2509,8 @@ handshake_params_deinit (handshake_params_t handshake)
 
   _ntbtls_dhm_release (handshake->dhm_ctx);
   handshake->dhm_ctx = NULL;
-
-  //FIXME:
-  /* ecdh_free (&handshake->ecdh_ctx); */
+  _ntbtls_ecdh_release (handshake->ecdh_ctx);
+  handshake->ecdh_ctx = NULL;
 
   free (handshake->curves);
 
@@ -2800,7 +2808,7 @@ _ntbtls_release (ntbtls_t tls)
 
 /* Set the transport stream for the context TLS.  This needs to be
    called right after init and may not be changed later.  INBOUND and
-   OUTBOIUND are usually connected to the same socket.  The caller
+   OUTBOUND are usually connected to the same socket.  The caller
    must ensure that the streams are not closed as long as the context
    TLS is valid.  However, after destroying the context the streams
    may be closed.  This behavior allows to setup a TLS connection on
@@ -3496,7 +3504,7 @@ _ntbtls_handshake (ntbtls_t tls)
  * Write HelloRequest to request renegotiation on server
  */
 static int
-ssl_write_hello_request (ntbtls_t ssl)
+write_hello_request (ntbtls_t ssl)
 {
   int ret;
 
@@ -3568,7 +3576,7 @@ ssl_renegotiate (ntbtls_t ssl)
       if (ssl->state != TLS_HANDSHAKE_OVER)
         return gpg_error (GPG_ERR_INV_ARG);
 
-      return (ssl_write_hello_request (ssl));
+      return write_hello_request (ssl);
     }
 
   /*

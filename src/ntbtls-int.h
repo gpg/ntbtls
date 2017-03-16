@@ -402,6 +402,18 @@ gpg_error_t _ntbtls_dhm_calc_secret (dhm_context_t dhm,
                                      unsigned char *outbuf, size_t outbufsize,
                                      size_t *r_outbuflen);
 
+/*-- ecdh.c --*/
+gpg_error_t _ntbtls_ecdh_new (ecdh_context_t *r_ecdh);
+void _ntbtls_ecdh_release (ecdh_context_t ecdh);
+gpg_error_t _ntbtls_ecdh_read_params (ecdh_context_t ecdh,
+                                      const void *der, size_t derlen,
+                                      size_t *r_nparsed);
+gpg_error_t _ntbtls_ecdh_make_public (ecdh_context_t ecdh,
+                                      unsigned char *outbuf, size_t outbufsize,
+                                      size_t *r_outbuflen);
+gpg_error_t _ntbtls_ecdh_calc_secret (ecdh_context_t ecdh,
+                                      unsigned char *outbuf, size_t outbufsize,
+                                      size_t *r_outbuflen);
 
 
 

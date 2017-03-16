@@ -122,6 +122,13 @@ typedef struct dhm_context_s *dhm_context_t;
 
 
 /*
+ * Object to hold an ECDH context.
+ */
+struct ecdh_context_s;
+typedef struct ecdh_context_s *ecdh_context_t;
+
+
+/*
  * This structure is used for storing current session data.
  */
 struct _ntbtls_session_s
@@ -217,7 +224,7 @@ struct _ntbtls_handshake_params_s
   int cert_type;                /*!<  Requested cert type            */
   int verify_sig_alg;           /*!<  Signature algorithm for verify */
   dhm_context_t dhm_ctx;        /* DHM key exchange info.   */
-  /*ecdh_context*/void* ecdh_ctx;        /*!<  ECDH key exchange       */
+  ecdh_context_t ecdh_ctx;      /* ECDH key exchange info.  */
   const /*ecp_curve_info*/void **curves;/*!<  Supported elliptic curves */
   /**
    * //FIXME: Better explain this

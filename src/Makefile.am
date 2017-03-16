@@ -86,7 +86,7 @@ libntbtls_la_SOURCES = \
 	protocol.c \
 	protocol-cli.c \
 	ciphersuites.c ciphersuites.h \
-	pkglue.c x509.c dhm.c \
+	pkglue.c x509.c dhm.c ecdh.c \
 	debug.c
 
 # protocol-srv.c

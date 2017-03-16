@@ -183,67 +183,56 @@ write_signature_algorithms_ext (ntbtls_t ssl,
 }
 
 
-/* static void */
-/* write_supported_elliptic_curves_ext (ntbtls_t ssl, */
-/*                                      unsigned char *buf, size_t * olen) */
-/* { */
-  //FIXME:
-  /* unsigned char *p = buf; */
-  /* unsigned char *elliptic_curve_list = p + 6; */
-  /* size_t elliptic_curve_len = 0; */
-  /* const ecp_curve_info *info; */
-  /* const ecp_group_id *grp_id; */
+static void
+write_supported_elliptic_curves_ext (ntbtls_t tls,
+                                     unsigned char *buf, size_t * olen)
+{
+  unsigned char *p = buf;
+  unsigned char *elliptic_curve_list = p + 6;
+  size_t elliptic_curve_len = 0;
 
-  /* *olen = 0; */
+  (void)tls;
 
-  /* debug_msg (3, "client hello, adding supported_elliptic_curves extension"); */
+  debug_msg (3, "client hello, adding supported_elliptic_curves extension");
 
-  /* for (grp_id = ssl->curve_list; *grp_id != POLARSSL_ECP_DP_NONE; grp_id++) */
-  /*   { */
-  /*     info = ecp_curve_info_from_grp_id (*grp_id); */
-  /*     elliptic_curve_list[elliptic_curve_len++] = info->tls_id >> 8; */
-  /*     elliptic_curve_list[elliptic_curve_len++] = info->tls_id & 0xFF; */
-  /*   } */
+  /* We only support curve secp256r1 (23).  */
+  elliptic_curve_list[elliptic_curve_len++] = 0;
+  elliptic_curve_list[elliptic_curve_len++] = 23;
 
-  /* if (elliptic_curve_len == 0) */
-  /*   return; */
+  *p++ = (unsigned char) ((TLS_EXT_SUPPORTED_ELLIPTIC_CURVES >> 8) & 0xFF);
+  *p++ = (unsigned char) ((TLS_EXT_SUPPORTED_ELLIPTIC_CURVES) & 0xFF);
 
-  /* *p++ = (unsigned char) ((TLS_EXT_SUPPORTED_ELLIPTIC_CURVES >> 8) & 0xFF); */
-  /* *p++ = (unsigned char) ((TLS_EXT_SUPPORTED_ELLIPTIC_CURVES) & 0xFF); */
+  *p++ = (unsigned char) (((elliptic_curve_len + 2) >> 8) & 0xFF);
+  *p++ = (unsigned char) (((elliptic_curve_len + 2)) & 0xFF);
 
-  /* *p++ = (unsigned char) (((elliptic_curve_len + 2) >> 8) & 0xFF); */
-  /* *p++ = (unsigned char) (((elliptic_curve_len + 2)) & 0xFF); */
+  *p++ = (unsigned char) (((elliptic_curve_len) >> 8) & 0xFF);
+  *p++ = (unsigned char) (((elliptic_curve_len)) & 0xFF);
 
-  /* *p++ = (unsigned char) (((elliptic_curve_len) >> 8) & 0xFF); */
-  /* *p++ = (unsigned char) (((elliptic_curve_len)) & 0xFF); */
-
-  /* *olen = 6 + elliptic_curve_len; */
-/* } */
+  *olen = 6 + elliptic_curve_len;
+}
 
 
-/* static void */
-/* write_cli_supported_point_formats_ext (ntbtls_t ssl, */
-/*                                        unsigned char *buf, size_t * olen) */
-/* { */
-  //FIXME:
-  /* unsigned char *p = buf; */
-  /* ((void) ssl); */
+static void
+write_cli_supported_point_formats_ext (ntbtls_t tls,
+                                       unsigned char *buf, size_t *olen)
+{
+  unsigned char *p = buf;
 
-  /* *olen = 0; */
+  (void)tls;
 
-  /* debug_msg (3, "client hello, adding supported_point_formats extension"); */
+  debug_msg (3, "client hello, adding supported_point_formats extension");
 
-  /* *p++ = (unsigned char) ((TLS_EXT_SUPPORTED_POINT_FORMATS >> 8) & 0xFF); */
-  /* *p++ = (unsigned char) ((TLS_EXT_SUPPORTED_POINT_FORMATS) & 0xFF); */
+  *p++ = (unsigned char) ((TLS_EXT_SUPPORTED_POINT_FORMATS >> 8) & 0xFF);
+  *p++ = (unsigned char) ((TLS_EXT_SUPPORTED_POINT_FORMATS) & 0xFF);
 
-  /* *p++ = 0x00; */
-  /* *p++ = 2; */
+  *p++ = 0;
+  *p++ = 2;
 
-  /* *p++ = 1; */
-  /* *p++ = POLARSSL_ECP_PF_UNCOMPRESSED; */
+  *p++ = 1; /* One item.  */
+  *p++ = 0; /* Uncompressed.  */
 
-  /* *olen = 6; */
-/* } */
+  *olen = 6;
+}
 
 
 static void
@@ -506,7 +495,7 @@ write_client_hello (ntbtls_t tls)
                                            tls->max_minor_ver))
         continue;
 
-      debug_msg (3, "client_hello, add ciphersuite: %5d %s",
+      debug_msg (5, "client_hello, add ciphersuite: %5d %s",
                  ciphersuites[i],
                  _ntbtls_ciphersuite_get_name (ciphersuites[i]));
 
@@ -539,11 +528,11 @@ write_client_hello (ntbtls_t tls)
   write_signature_algorithms_ext (tls, p + 2 + ext_len, &olen);
   ext_len += olen;
 
-  /* ssl_write_supported_elliptic_curves_ext (tls, p + 2 + ext_len, &olen); */
-  /* ext_len += olen; */
+  write_supported_elliptic_curves_ext (tls, p + 2 + ext_len, &olen);
+  ext_len += olen;
 
-  /* write_cli_supported_point_formats_ext (tls, p + 2 + ext_len, &olen); */
-  /* ext_len += olen; */
+  write_cli_supported_point_formats_ext (tls, p + 2 + ext_len, &olen);
+  ext_len += olen;
 
   write_cli_max_fragment_length_ext (tls, p + 2 + ext_len, &olen);
   ext_len += olen;
@@ -680,33 +669,34 @@ static gpg_error_t
 parse_supported_point_formats_ext (ntbtls_t ssl,
                                    const unsigned char *buf, size_t len)
 {
-  //FIXME:
-  /* size_t list_size; */
-  /* const unsigned char *p; */
+  size_t list_size;
+  const unsigned char *p;
 
-  /* list_size = buf[0]; */
-  /* if (list_size + 1 != len) */
-  /*   { */
-  /*     debug_msg (1, "bad server hello message"); */
-  /*     return gpg_error (GPG_ERR_BAD_HS_SERVER_HELLO); */
-  /*   } */
+  list_size = buf[0];
+  if (list_size + 1 != len)
+    {
+      debug_msg (1, "bad server hello message");
+      return gpg_error (GPG_ERR_BAD_HS_SERVER_HELLO);
+    }
 
-  /* p = buf + 1; */
-  /* while (list_size > 0) */
-  /*   { */
-  /*     if (p[0] == POLARSSL_ECP_PF_UNCOMPRESSED || */
-  /*         p[0] == POLARSSL_ECP_PF_COMPRESSED) */
-  /*       { */
-  /*         ssl->handshake->ecdh_ctx.point_format = p[0]; */
-  /*         debug_msg (4, "point format selected: %d", p[0]); */
-  /*         return (0); */
-  /*       } */
+  p = buf + 1;
+  while (list_size > 0)
+    {
+      if (p[0] == 0)
+        {
+          /* Fixme: Store the format - right now not required because
+           * we support only one format.  */
+          /* ssl->handshake->ecdh_ctx.point_format = p[0]; */
+          (void)ssl;
+          debug_msg (4, "point format selected: %d", p[0]);
+          return 0;
+        }
 
-  /*     list_size--; */
-  /*     p++; */
-  /*   } */
+      list_size--;
+      p++;
+    }
 
-  /* debug_msg (1, "no point format in common"); */
+  debug_msg (1, "no point format in common");
   return gpg_error (GPG_ERR_BAD_HS_SERVER_HELLO);
 }
 
@@ -1089,58 +1079,21 @@ parse_server_dh_params (ntbtls_t tls, unsigned char **p, unsigned char *end)
 }
 
 
-/* static int */
-/* ssl_check_server_ecdh_params (const ntbtls_t ssl) */
-/* { */
-  //FIXME:
-  /* const ecp_curve_info *curve_info; */
-
-  /* curve_info = ecp_curve_info_from_grp_id (ssl->handshake->ecdh_ctx.grp.id); */
-  /* if (curve_info == NULL) */
-  /*   { */
-  /*     debug_bug (); */
-  /*     return gpg_error (GPG_ERR_INTERNAL); */
-  /*   } */
-
-  /* debug_msg (2, "ECDH curve: %s", curve_info->name); */
-
-  /* if (!ssl_curve_is_acceptable (ssl, ssl->handshake->ecdh_ctx.grp.id)) */
-  /*   return (-1); */
-
-  /* SSL_DEBUG_ECP (3, "ECDH: Qp", &ssl->handshake->ecdh_ctx.Qp); */
-
-/*   return (0); */
-/* } */
-
-
 static int
-parse_server_ecdh_params (ntbtls_t ssl, unsigned char **p, unsigned char *end)
+parse_server_ecdh_params (ntbtls_t tls, unsigned char **p, unsigned char *end)
 {
-  int ret = gpg_error (GPG_ERR_NOT_IMPLEMENTED);
+  gpg_error_t err;
+  size_t n;
 
-  /*
-   * Ephemeral ECDH parameters:
-   *
-   * struct {
-   *     ECParameters curve_params;
-   *     ECPoint      public;
-   * } ServerECDHParams;
-   */
-  //FIXME:
-  /* if ((ret = ecdh_read_params (&ssl->handshake->ecdh_ctx, */
-  /*                              (const unsigned char **) p, end)) != 0) */
-  /*   { */
-  /*     debug_ret (1, ("ecdh_read_params"), ret); */
-  /*     return (ret); */
-  /*   } */
+  if ((err = _ntbtls_ecdh_read_params (tls->handshake->ecdh_ctx,
+                                       *p, end - *p, &n)))
+    {
+      debug_ret (1, "ecdh_read_params", err);
+      return err;
+    }
+  *p += n;
 
-  /* if (ssl_check_server_ecdh_params (ssl) != 0) */
-  /*   { */
-  /*     debug_msg (1, "bad server key exchange message (ECDHE curve)"); */
-  /*     return gpg_error (GPG_ERR_BAD_HS_SERVER_KEX); */
-  /*   } */
-
-  return (ret);
+  return 0;
 }
 
 
@@ -1273,10 +1226,10 @@ parse_signature_algorithm (ntbtls_t tls, unsigned char **p, unsigned char *end,
       return gpg_error (GPG_ERR_BAD_HS_SERVER_KEX);
     }
 
-  debug_msg (2, "Server used SignatureAlgorithm %s",
-             gcry_pk_algo_name ((*p)[1]));
-  debug_msg (2, "Server used HashAlgorithm %s",
-             gcry_md_algo_name ((*p)[0]));
+  debug_msg (2, "Server used HashAlgo %s",
+             gcry_md_algo_name (*md_alg));
+  debug_msg (2, "Server used SignAlgo %s",
+             gcry_pk_algo_name (*pk_alg));
   *p += 2;
 
   return 0;
@@ -1445,13 +1398,15 @@ read_server_key_exchange (ntbtls_t tls)
           err = parse_signature_algorithm (tls, &p, end, &md_alg, &pk_alg);
           if (err)
             {
-              debug_msg (1, "bad server_key_exchange message (%d)", __LINE__);
+              debug_msg (1, "bad server_key_exchange message (%d): %s",
+                         __LINE__, gpg_strerror (err));
               return err;
             }
 
           if (pk_alg != _ntbtls_ciphersuite_get_sig_pk_alg (suite))
             {
-              debug_msg (1, "bad server_key_exchange message (%d)", __LINE__);
+              debug_msg (1, "bad server_key_exchange message (%d): %s",
+                         __LINE__, gpg_strerror (err));
               return gpg_error (GPG_ERR_BAD_HS_SERVER_KEX);
             }
           //FIXME: Check that the ECC subtype matches.  */
@@ -1754,29 +1709,24 @@ write_client_key_exchange (ntbtls_t tls)
        */
       i = 4;
 
-      /* ret = ecdh_make_public (&tls->handshake->ecdh_ctx, */
-      /*                         &n, &tls->out_msg[i], 1000); */
-      err = gpg_error (GPG_ERR_NOT_IMPLEMENTED);
+      err = _ntbtls_ecdh_make_public (tls->handshake->ecdh_ctx,
+                                      tls->out_msg + i, 1000, &n);
       if (err)
         {
           debug_ret (1, "ecdh_make_public", err);
           return err;
         }
 
-      /* SSL_DEBUG_ECP (3, "ECDH: Q", &tls->handshake->ecdh_ctx.Q); */
 
-      /* err = ecdh_calc_secret (&tls->handshake->ecdh_ctx, */
-      /*                         &tls->handshake->pmslen, */
-      /*                         tls->handshake->premaster, */
-      /*                         POLARSSL_MPI_MAX_SIZE); */
-      err = gpg_error (GPG_ERR_NOT_IMPLEMENTED);
+      err = _ntbtls_ecdh_calc_secret (tls->handshake->ecdh_ctx,
+                                      tls->handshake->premaster,
+                                      TLS_PREMASTER_SIZE,
+                                      &tls->handshake->pmslen);
       if (err)
         {
           debug_ret (1, "ecdh_calc_secret", err);
           return err;
         }
-
-      /* SSL_DEBUG_MPI (3, "ECDH: z", &tls->handshake->ecdh_ctx.z); */
     }
   else if (kex == KEY_EXCHANGE_PSK
            || kex == KEY_EXCHANGE_RSA_PSK
