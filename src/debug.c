@@ -152,6 +152,17 @@ _ntbtls_debug_mpi (int level, const char *text, gcry_mpi_t a)
 
 
 void
+_ntbtls_debug_pnt (int level, const char *text,
+                   gcry_mpi_point_t a, gcry_ctx_t ctx)
+{
+  if (!debug_level || level > debug_level)
+    return;
+
+  gcry_log_debugpnt (text, a, ctx);
+}
+
+
+void
 _ntbtls_debug_sxp (int level, const char *text, gcry_sexp_t a)
 {
   if (!debug_level || level > debug_level)
