@@ -29,7 +29,7 @@ m4datadir = $(datadir)/aclocal
 m4data_DATA = ntbtls.m4
 
 AM_CPPFLAGS =
-AM_CFLAGS = $(GPG_ERROR_CFLAGS)
+AM_CFLAGS = $(GPG_ERROR_CFLAGS) $(KSBA_CFLAGS)
 
 if HAVE_LD_VERSION_SCRIPT
   libntbtls_version_script_cmd = -Wl,--version-script=$(srcdir)/libntbtls.vers
