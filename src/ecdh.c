@@ -108,13 +108,21 @@ _ntbtls_ecdh_read_params (ecdh_context_t ecdh,
     return gpg_error (GPG_ERR_UNKNOWN_CURVE);
   der++;
   derlen--;
-  /* And only the secp256r1 curve (23).  */
-  if (buf16_to_uint (der) != 23)
-    return gpg_error (GPG_ERR_UNKNOWN_CURVE);
+
+  switch (buf16_to_uint (der))
+    {
+    case 23: ecdh->curve_name = "secp256r1"; break;
+    case 24: ecdh->curve_name = "secp384r1"; break;
+    case 25: ecdh->curve_name = "secp521r1"; break;
+    case 26: ecdh->curve_name = "brainpoolP256r1"; break;
+    case 27: ecdh->curve_name = "brainpoolP384r1"; break;
+    case 28: ecdh->curve_name = "brainpoolP512r1"; break;
+    default:
+      return gpg_error (GPG_ERR_UNKNOWN_CURVE);
+    }
   der += 2;
   derlen -= 2;
 
-  ecdh->curve_name = "secp256r1";
   err = gcry_mpi_ec_new (&ecdh->ecctx, NULL, ecdh->curve_name);
   if (err)
     return err;

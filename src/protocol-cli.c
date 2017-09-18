@@ -195,9 +195,19 @@ write_supported_elliptic_curves_ext (ntbtls_t tls,
 
   debug_msg (3, "client hello, adding supported_elliptic_curves extension");
 
-  /* We only support curve secp256r1 (23).  */
+  /* The 6 curves we support; see _ntbtls_ecdh_read_params.  */
   elliptic_curve_list[elliptic_curve_len++] = 0;
   elliptic_curve_list[elliptic_curve_len++] = 23;
+  elliptic_curve_list[elliptic_curve_len++] = 0;
+  elliptic_curve_list[elliptic_curve_len++] = 24;
+  elliptic_curve_list[elliptic_curve_len++] = 0;
+  elliptic_curve_list[elliptic_curve_len++] = 25;
+  elliptic_curve_list[elliptic_curve_len++] = 0;
+  elliptic_curve_list[elliptic_curve_len++] = 26;
+  elliptic_curve_list[elliptic_curve_len++] = 0;
+  elliptic_curve_list[elliptic_curve_len++] = 27;
+  elliptic_curve_list[elliptic_curve_len++] = 0;
+  elliptic_curve_list[elliptic_curve_len++] = 28;
 
   *p++ = (unsigned char) ((TLS_EXT_SUPPORTED_ELLIPTIC_CURVES >> 8) & 0xFF);
   *p++ = (unsigned char) ((TLS_EXT_SUPPORTED_ELLIPTIC_CURVES) & 0xFF);
