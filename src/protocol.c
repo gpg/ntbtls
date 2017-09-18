@@ -1706,6 +1706,15 @@ read_record_header:
         {
           debug_msg (1, "is a fatal alert message (msg %d)",
                      tls->in_msg[1]);
+          switch (tls->in_msg[1])
+            {
+            case TLS_ALERT_MSG_HANDSHAKE_FAILURE:
+              debug_msg (1, "(handshake failed)");
+              break;
+            default:
+              break;
+            }
+
           /**
            * Subtract from error code as tls->in_msg[1] is 7-bit positive
            * error identifier.
