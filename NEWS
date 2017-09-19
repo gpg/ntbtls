@@ -1,5 +1,7 @@
-Noteworthy changes in version 0.1.2 (unreleased) [C0/A0/R_]
+Noteworthy changes in version 0.1.2 (2017-09-19) [C0/A0/R2]
 ------------------------------------------------
+
+ * Add support for secp384r1, secp521r1, and 3 Brainpool curves.
 
 
 Noteworthy changes in version 0.1.1 (2017-03-16) [C0/A0/R1]

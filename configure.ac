@@ -54,7 +54,7 @@ AC_INIT([mym4_package],[mym4_version], [http://bugs.gnupg.org])
 #   (No interfaces changed:                   REVISION++)
 LIBNTBTLS_LT_CURRENT=0
 LIBNTBTLS_LT_AGE=0
-LIBNTBTLS_LT_REVISION=1
+LIBNTBTLS_LT_REVISION=2
 
 # If the API is changed in an incompatible way: increment the next counter.
 NTBTLS_CONFIG_API_VERSION=1
