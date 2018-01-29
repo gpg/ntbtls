@@ -33,6 +33,7 @@
      defined(__aarch64__)
 #  define _fast_wipememory2_unaligned_head(_ptr,_set,_len) /*do nothing*/
 # else
+#define FASTWIPE_T uint64_t
 #  define _fast_wipememory2_unaligned_head(_vptr,_vset,_vlen) do     \
     {                                                                \
       while((size_t)(_vptr)&(sizeof(FASTWIPE_T)-1) && _vlen)         \
