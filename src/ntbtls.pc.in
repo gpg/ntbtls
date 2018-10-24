@@ -1,0 +1,14 @@
+prefix="@prefix@"
+exec_prefix="@exec_prefix@"
+includedir="@includedir@"
+libdir="@libdir@"
+host="@NTBTLS_CONFIG_HOST@"
+api_version="@NTBTLS_CONFIG_API_VERSION@"
+
+Name: ntbtls
+Description: The Not Too Bad TLS Library
+Requires: gpg-error
+Version: @PACKAGE_VERSION@
+Cflags: @NTBTLS_CONFIG_CFLAGS@
+Libs: @NTBTLS_CONFIG_LIBS@
+URL: https://www.gnupg.org/software/ntbtls/index.html

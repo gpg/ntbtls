@@ -18,8 +18,11 @@
 
 ## Process this file with automake to produce Makefile.in
 
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = ntbtls.pc
+
 EXTRA_DIST = ntbtls.h.in ntbtls.m4 libntbtls.vers libntbtls.def \
-             versioninfo.rc.in
+             versioninfo.rc.in ntbtls.pc.in
 bin_SCRIPTS = ntbtls-config
 include_HEADERS = ntbtls.h
 lib_LTLIBRARIES = libntbtls.la

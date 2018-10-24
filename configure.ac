@@ -72,9 +72,6 @@ NEED_KSBA_VERSION=1.2.0
 
 # End of config section
 
-PACKAGE=$PACKAGE_NAME
-VERSION=$PACKAGE_VERSION
-
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_SRCDIR([src/ntbtls.h.in])
 AC_CONFIG_HEADER([config.h])
@@ -91,20 +88,12 @@ use_zip=yes
 AC_SUBST(LIBNTBTLS_LT_CURRENT)
 AC_SUBST(LIBNTBTLS_LT_AGE)
 AC_SUBST(LIBNTBTLS_LT_REVISION)
-AC_SUBST(PACKAGE)
-AC_SUBST(PACKAGE_GT)
-AC_SUBST(VERSION)
-AC_DEFINE_UNQUOTED(PACKAGE, "$PACKAGE", [Name of this package])
-AC_DEFINE_UNQUOTED(PACKAGE_GT, "$PACKAGE_GT",
-                                [Name of this package for gettext])
-AC_DEFINE_UNQUOTED(VERSION, "$VERSION", [Version of this package])
+
 VERSION_NUMBER=m4_esyscmd(printf "0x%02x%02x%02x" mym4_major \
                           mym4_minor mym4_micro)
 AC_SUBST(VERSION_NUMBER)
 
 
-AC_DEFINE_UNQUOTED(PACKAGE_BUGREPORT, "$PACKAGE_BUGREPORT",
-                                        [Bug report address])
 AC_DEFINE_UNQUOTED(NEED_LIBGCRYPT_VERSION, "$NEED_LIBGCRYPT_VERSION",
                                        [Required version of Libgcrypt])
 AC_DEFINE_UNQUOTED(NEED_KSBA_VERSION, "$NEED_KSBA_VERSION",
@@ -682,6 +671,7 @@ m4/Makefile
 src/Makefile
 src/ntbtls.h
 src/ntbtls-config
+src/ntbtls.pc
 src/versioninfo.rc
 ])
 AC_CONFIG_COMMANDS([ntbtls-conf],[[
