@@ -38,15 +38,16 @@ AC_DEFUN([AM_PATH_NTBTLS],
            fi
            ;;
          '')
+           NTBTLS_CONFIG="$GPG_ERROR_CONFIG ntbtls"
            ;;
           *)
+           NTBTLS_CONFIG="$GPG_ERROR_CONFIG ntbtls"
            AC_MSG_WARN([Ignoring \$SYSROOT as it is not an absolute path.])
            ;;
        esac
      fi
   fi
 
-  AC_PATH_PROG(NTBTLS_CONFIG, ntbtls-config, no)
   tmp=ifelse([$1], ,1:1.0.0,$1)
   if echo "$tmp" | grep ':' >/dev/null 2>/dev/null ; then
      req_ntbtls_api=`echo "$tmp"     | sed 's/\(.*\):\(.*\)/\1/'`
@@ -65,7 +66,7 @@ AC_DEFUN([AM_PATH_NTBTLS],
                sed 's/\([[0-9]]*\)\.\([[0-9]]*\)\.\([[0-9]]*\)/\2/'`
     req_micro=`echo $min_ntbtls_version | \
                sed 's/\([[0-9]]*\)\.\([[0-9]]*\)\.\([[0-9]]*\)/\3/'`
-    ntbtls_config_version=`$NTBTLS_CONFIG --version`
+    ntbtls_config_version=`CC=$CC $NTBTLS_CONFIG --version`
     major=`echo $ntbtls_config_version | \
                sed 's/\([[0-9]]*\)\.\([[0-9]]*\)\.\([[0-9]]*\).*/\1/'`
     minor=`echo $ntbtls_config_version | \
@@ -97,7 +98,7 @@ AC_DEFUN([AM_PATH_NTBTLS],
      # If we have a recent ntbtls, we should also check that the
      # API is compatible
      if test "$req_ntbtls_api" -gt 0 ; then
-        tmp=`$NTBTLS_CONFIG --api-version 2>/dev/null || echo 0`
+        tmp=`CC=$CC $NTBTLS_CONFIG --variable=api_version 2>/dev/null || echo 0`
         if test "$tmp" -gt 0 ; then
            AC_MSG_CHECKING([NTBTLS API version])
            if test "$req_ntbtls_api" -eq "$tmp" ; then
@@ -110,15 +111,15 @@ AC_DEFUN([AM_PATH_NTBTLS],
      fi
   fi
   if test $ok = yes; then
-    NTBTLS_CFLAGS=`$NTBTLS_CONFIG --cflags`
-    NTBTLS_LIBS=`$NTBTLS_CONFIG --libs`
+    NTBTLS_CFLAGS=`CC=$CC $NTBTLS_CONFIG --cflags`
+    NTBTLS_LIBS=`CC=$CC $NTBTLS_CONFIG --libs`
     ifelse([$2], , :, [$2])
-    ntbtls_config_host=`$NTBTLS_CONFIG --host 2>/dev/null || echo none`
+    ntbtls_config_host=`CC=$CC $NTBTLS_CONFIG --variable=host 2>/dev/null || echo none`
     if test x"$ntbtls_config_host" != xnone ; then
       if test x"$ntbtls_config_host" != x"$host" ; then
   AC_MSG_WARN([[
 ***
-*** The config script $NTBTLS_CONFIG was
+*** The config script "$NTBTLS_CONFIG" was
 *** built for $ntbtls_config_host and thus may not match the
 *** used host $host.
 *** You may want to use the configure option --with-ntbtls-prefix
