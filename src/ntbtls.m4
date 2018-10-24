@@ -66,7 +66,7 @@ AC_DEFUN([AM_PATH_NTBTLS],
                sed 's/\([[0-9]]*\)\.\([[0-9]]*\)\.\([[0-9]]*\)/\2/'`
     req_micro=`echo $min_ntbtls_version | \
                sed 's/\([[0-9]]*\)\.\([[0-9]]*\)\.\([[0-9]]*\)/\3/'`
-    ntbtls_config_version=`CC=$CC $NTBTLS_CONFIG --version`
+    ntbtls_config_version=`CC=$CC $NTBTLS_CONFIG --modversion`
     major=`echo $ntbtls_config_version | \
                sed 's/\([[0-9]]*\)\.\([[0-9]]*\)\.\([[0-9]]*\).*/\1/'`
     minor=`echo $ntbtls_config_version | \
