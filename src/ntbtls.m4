@@ -23,6 +23,7 @@ dnl with a changed API.
 dnl
 AC_DEFUN([AM_PATH_NTBTLS],
 [ AC_REQUIRE([AC_CANONICAL_HOST])
+  AC_REQUIRE([AM_PATH_GPG_ERROR])
   AC_ARG_WITH(ntbtls-prefix,
             AC_HELP_STRING([--with-ntbtls-prefix=PFX],
                            [prefix where NTBTLS is installed (optional)]),
