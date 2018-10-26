@@ -75,7 +75,11 @@ AC_DEFUN([AM_PATH_NTBTLS],
                sed 's/\([[0-9]]*\)\.\([[0-9]]*\)\.\([[0-9]]*\)/\2/'`
     req_micro=`echo $min_ntbtls_version | \
                sed 's/\([[0-9]]*\)\.\([[0-9]]*\)\.\([[0-9]]*\)/\3/'`
-    ntbtls_config_version=`CC=$CC $NTBTLS_CONFIG --modversion`
+    if test -z "$use_gpgrt_config"; then
+      ntbtls_config_version=`CC=$CC $NTBTLS_CONFIG --version`
+    else
+      ntbtls_config_version=`CC=$CC $NTBTLS_CONFIG --modversion`
+    fi
     major=`echo $ntbtls_config_version | \
                sed 's/\([[0-9]]*\)\.\([[0-9]]*\)\.\([[0-9]]*\).*/\1/'`
     minor=`echo $ntbtls_config_version | \
@@ -107,7 +111,11 @@ AC_DEFUN([AM_PATH_NTBTLS],
      # If we have a recent ntbtls, we should also check that the
      # API is compatible
      if test "$req_ntbtls_api" -gt 0 ; then
-        tmp=`CC=$CC $NTBTLS_CONFIG --variable=api_version 2>/dev/null || echo 0`
+        if test -z "$use_gpgrt_config"; then
+          tmp=`CC=$CC $NTBTLS_CONFIG --api-version 2>/dev/null || echo 0`
+        else
+          tmp=`CC=$CC $NTBTLS_CONFIG --variable=api_version 2>/dev/null || echo 0`
+	fi
         if test "$tmp" -gt 0 ; then
            AC_MSG_CHECKING([NTBTLS API version])
            if test "$req_ntbtls_api" -eq "$tmp" ; then
@@ -123,7 +131,11 @@ AC_DEFUN([AM_PATH_NTBTLS],
     NTBTLS_CFLAGS=`CC=$CC $NTBTLS_CONFIG --cflags`
     NTBTLS_LIBS=`CC=$CC $NTBTLS_CONFIG --libs`
     ifelse([$2], , :, [$2])
-    ntbtls_config_host=`CC=$CC $NTBTLS_CONFIG --variable=host 2>/dev/null || echo none`
+    if test -z "$use_gpgrt_config"; then
+      ntbtls_config_host=`CC=$CC $NTBTLS_CONFIG --host 2>/dev/null || echo none`
+    else
+      ntbtls_config_host=`CC=$CC $NTBTLS_CONFIG --variable=host 2>/dev/null || echo none`
+    fi
     if test x"$ntbtls_config_host" != xnone ; then
       if test x"$ntbtls_config_host" != x"$host" ; then
   AC_MSG_WARN([[
