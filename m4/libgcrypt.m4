@@ -9,7 +9,7 @@
 # WITHOUT ANY WARRANTY, to the extent permitted by law; without even the
 # implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 #
-# Last-changed: 2018-10-24
+# Last-changed: 2018-10-26
 
 
 dnl AM_PATH_LIBGCRYPT([MINIMUM-VERSION,
@@ -29,7 +29,6 @@ dnl is added to the gpg_config_script_warn variable.
 dnl
 AC_DEFUN([AM_PATH_LIBGCRYPT],
 [ AC_REQUIRE([AC_CANONICAL_HOST])
-  AC_REQUIRE([AM_PATH_GPG_ERROR])
   AC_ARG_WITH(libgcrypt-prefix,
             AC_HELP_STRING([--with-libgcrypt-prefix=PFX],
                            [prefix where LIBGCRYPT is installed (optional)]),
@@ -45,14 +44,23 @@ AC_DEFUN([AM_PATH_LIBGCRYPT],
            fi
            ;;
          '')
-           LIBGCRYPT_CONFIG="$GPG_ERROR_CONFIG libgcrypt"
            ;;
           *)
-           LIBGCRYPT_CONFIG="$GPG_ERROR_CONFIG libgcrypt"
            AC_MSG_WARN([Ignoring \$SYSROOT as it is not an absolute path.])
            ;;
        esac
      fi
+  fi
+
+  use_gpgrt_config=""
+  if test x"${LIBGCRYPT_CONFIG}" = x -a x"$GPGRT_CONFIG" != x -a "$GPGRT_CONFIG" != "no"; then
+    if CC=$CC $GPGRT_CONFIG libgcrypt >/dev/null 2>&1; then
+      LIBGCRYPT_CONFIG="$GPGRT_CONFIG libgcrypt"
+      use_gpgrt_config=yes
+    fi
+  fi
+  if test -z "$use_gpgrt_config"; then
+    AC_PATH_PROG(LIBGCRYPT_CONFIG, libgcrypt-config, no)
   fi
 
   tmp=ifelse([$1], ,1:1.2.0,$1)
@@ -105,7 +113,7 @@ AC_DEFUN([AM_PATH_LIBGCRYPT],
      # If we have a recent libgcrypt, we should also check that the
      # API is compatible
      if test "$req_libgcrypt_api" -gt 0 ; then
-        tmp=`CC=$CC $LIBGCRYPT_CONFIG --api-version 2>/dev/null || echo 0`
+        tmp=`CC=$CC $LIBGCRYPT_CONFIG --variable=api_version 2>/dev/null || echo 0`
         if test "$tmp" -gt 0 ; then
            AC_MSG_CHECKING([LIBGCRYPT API version])
            if test "$req_libgcrypt_api" -eq "$tmp" ; then
@@ -121,7 +129,7 @@ AC_DEFUN([AM_PATH_LIBGCRYPT],
     LIBGCRYPT_CFLAGS=`CC=$CC $LIBGCRYPT_CONFIG --cflags`
     LIBGCRYPT_LIBS=`CC=$CC $LIBGCRYPT_CONFIG --libs`
     ifelse([$2], , :, [$2])
-    libgcrypt_config_host=`CC=$CC $LIBGCRYPT_CONFIG --host 2>/dev/null || echo none`
+    libgcrypt_config_host=`CC=$CC $LIBGCRYPT_CONFIG --variable=host 2>/dev/null || echo none`
     if test x"$libgcrypt_config_host" != xnone ; then
       if test x"$libgcrypt_config_host" != x"$host" ; then
   AC_MSG_WARN([[

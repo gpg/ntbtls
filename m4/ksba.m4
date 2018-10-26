@@ -1,5 +1,5 @@
 # ksba.m4 - autoconf macro to detect ksba
-#       Copyright (C) 2002 g10 Code GmbH
+#       Copyright (C) 2002, 2018 g10 Code GmbH
 #
 # This file is free software; as a special exception the author gives
 # unlimited permission to copy and/or distribute it, with or without
@@ -21,18 +21,36 @@ dnl this features allows to prevent build against newer versions of libksba
 dnl with a changed API.
 dnl
 AC_DEFUN([AM_PATH_KSBA],
-[AC_REQUIRE([AC_CANONICAL_HOST])
- AC_REQUIRE([AM_PATH_GPG_ERROR])
- AC_ARG_WITH(ksba-prefix,
-            AC_HELP_STRING([--with-ksba-prefix=PFX],
-                           [prefix where KSBA is installed (optional)]),
+[ AC_REQUIRE([AC_CANONICAL_HOST])
+  dnl --with-libksba-prefix=PFX is the preferred name for this option,
+  dnl since that is consistent with how our three siblings use the directory/
+  dnl package name in --with-$dir_name-prefix=PFX.
+  AC_ARG_WITH(libksba-prefix,
+              AC_HELP_STRING([--with-libksba-prefix=PFX],
+                             [prefix where KSBA is installed (optional)]),
      ksba_config_prefix="$withval", ksba_config_prefix="")
+
+  dnl Accept --with-ksba-prefix and make it work the same as
+  dnl --with-libksba-prefix above, for backwards compatibility,
+  dnl but do not document this old, inconsistently-named option.
+  AC_ARG_WITH(ksba-prefix,,
+     ksba_config_prefix="$withval", ksba_config_prefix="")
+
   if test x$ksba_config_prefix != x ; then
     if test x${KSBA_CONFIG+set} != xset ; then
       KSBA_CONFIG=$ksba_config_prefix/bin/ksba-config
     fi
-  else
-    KSBA_CONFIG="$GPG_ERROR_CONFIG ksba"
+  fi
+
+  use_gpgrt_config=""
+  if test x"$KSBA_CONFIG" != x -a x"$GPGRT_CONFIG" != x -a "$GPGRT_CONFIG" != "no"; then
+    if CC=$CC $GPGRT_CONFIG libksba >/dev/null 2>&1; then
+      LIBKSBA_CONFIG="$GPGRT_CONFIG libksba"
+      use_gpgrt_config=yes
+    fi
+  fi
+  if test -z "$use_gpgrt_config"; then
+    AC_PATH_PROG(LIBKSBA_CONFIG, ksba-config, no)
   fi
 
   tmp=ifelse([$1], ,1:1.0.0,$1)

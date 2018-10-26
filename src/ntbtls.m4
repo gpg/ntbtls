@@ -23,7 +23,6 @@ dnl with a changed API.
 dnl
 AC_DEFUN([AM_PATH_NTBTLS],
 [ AC_REQUIRE([AC_CANONICAL_HOST])
-  AC_REQUIRE([AM_PATH_GPG_ERROR])
   AC_ARG_WITH(ntbtls-prefix,
             AC_HELP_STRING([--with-ntbtls-prefix=PFX],
                            [prefix where NTBTLS is installed (optional)]),
@@ -39,14 +38,23 @@ AC_DEFUN([AM_PATH_NTBTLS],
            fi
            ;;
          '')
-           NTBTLS_CONFIG="$GPG_ERROR_CONFIG ntbtls"
            ;;
           *)
-           NTBTLS_CONFIG="$GPG_ERROR_CONFIG ntbtls"
            AC_MSG_WARN([Ignoring \$SYSROOT as it is not an absolute path.])
            ;;
        esac
      fi
+  fi
+
+  use_gpgrt_config=""
+  if test x"${NTBTLS_CONFIG}" = x -a x"$GPGRT_CONFIG" != x -a "$GPGRT_CONFIG" != "no"; then
+    if CC=$CC $GPGRT_CONFIG ntbtls >/dev/null 2>&1; then
+      NTBTLS_CONFIG="$GPGRT_CONFIG ntbtls"
+      use_gpgrt_config=yes
+    fi
+  fi
+  if test -z "$use_gpgrt_config"; then
+    AC_PATH_PROG(NTBTLS_CONFIG, ntbtls-config, no)
   fi
 
   tmp=ifelse([$1], ,1:1.0.0,$1)
