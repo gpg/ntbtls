@@ -48,7 +48,7 @@ AC_DEFUN([AM_PATH_NTBTLS],
 
   use_gpgrt_config=""
   if test x"${NTBTLS_CONFIG}" = x -a x"$GPGRT_CONFIG" != x -a "$GPGRT_CONFIG" != "no"; then
-    if CC=$CC $GPGRT_CONFIG ntbtls >/dev/null 2>&1; then
+    if $GPGRT_CONFIG ntbtls --exists; then
       NTBTLS_CONFIG="$GPGRT_CONFIG ntbtls"
       use_gpgrt_config=yes
     fi
@@ -76,9 +76,9 @@ AC_DEFUN([AM_PATH_NTBTLS],
     req_micro=`echo $min_ntbtls_version | \
                sed 's/\([[0-9]]*\)\.\([[0-9]]*\)\.\([[0-9]]*\)/\3/'`
     if test -z "$use_gpgrt_config"; then
-      ntbtls_config_version=`CC=$CC $NTBTLS_CONFIG --version`
+      ntbtls_config_version=`$NTBTLS_CONFIG --version`
     else
-      ntbtls_config_version=`CC=$CC $NTBTLS_CONFIG --modversion`
+      ntbtls_config_version=`$NTBTLS_CONFIG --modversion`
     fi
     major=`echo $ntbtls_config_version | \
                sed 's/\([[0-9]]*\)\.\([[0-9]]*\)\.\([[0-9]]*\).*/\1/'`
@@ -112,9 +112,9 @@ AC_DEFUN([AM_PATH_NTBTLS],
      # API is compatible
      if test "$req_ntbtls_api" -gt 0 ; then
         if test -z "$use_gpgrt_config"; then
-          tmp=`CC=$CC $NTBTLS_CONFIG --api-version 2>/dev/null || echo 0`
+          tmp=`$NTBTLS_CONFIG --api-version 2>/dev/null || echo 0`
         else
-          tmp=`CC=$CC $NTBTLS_CONFIG --variable=api_version 2>/dev/null || echo 0`
+          tmp=`$NTBTLS_CONFIG --variable=api_version 2>/dev/null || echo 0`
 	fi
         if test "$tmp" -gt 0 ; then
            AC_MSG_CHECKING([NTBTLS API version])
@@ -128,13 +128,13 @@ AC_DEFUN([AM_PATH_NTBTLS],
      fi
   fi
   if test $ok = yes; then
-    NTBTLS_CFLAGS=`CC=$CC $NTBTLS_CONFIG --cflags`
-    NTBTLS_LIBS=`CC=$CC $NTBTLS_CONFIG --libs`
+    NTBTLS_CFLAGS=`$NTBTLS_CONFIG --cflags`
+    NTBTLS_LIBS=`$NTBTLS_CONFIG --libs`
     ifelse([$2], , :, [$2])
     if test -z "$use_gpgrt_config"; then
-      ntbtls_config_host=`CC=$CC $NTBTLS_CONFIG --host 2>/dev/null || echo none`
+      ntbtls_config_host=`$NTBTLS_CONFIG --host 2>/dev/null || echo none`
     else
-      ntbtls_config_host=`CC=$CC $NTBTLS_CONFIG --variable=host 2>/dev/null || echo none`
+      ntbtls_config_host=`$NTBTLS_CONFIG --variable=host 2>/dev/null || echo none`
     fi
     if test x"$ntbtls_config_host" != xnone ; then
       if test x"$ntbtls_config_host" != x"$host" ; then
