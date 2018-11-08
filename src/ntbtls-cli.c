@@ -200,6 +200,10 @@ connect_server (const char *server, unsigned short port)
   int sock = -1;
   struct sockaddr_in addr;
   struct hostent *host;
+  union {
+    char *addr;
+    struct in_addr *in_addr;
+  } addru;
 
   addr.sin_family = AF_INET;
   addr.sin_port = htons (port);
@@ -211,7 +215,8 @@ connect_server (const char *server, unsigned short port)
       return -1;
     }
 
-  addr.sin_addr = *(struct in_addr*)host->h_addr;
+  addru.addr = host->h_addr;
+  addr.sin_addr = *addru.in_addr;
 
   sock = socket (AF_INET, SOCK_STREAM, 0);
   if (sock == -1)
