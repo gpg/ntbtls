@@ -58,6 +58,9 @@
 #define OID_SIZE(x) (sizeof(x) - 1)
 
 
+/*
+ * Object to hold X.509 certificates.
+ */
 struct x509_cert_s;
 typedef struct x509_cert_s *x509_cert_t;
 

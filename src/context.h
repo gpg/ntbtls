@@ -94,13 +94,6 @@ typedef enum
 
 
 /*
- * Object to hold X.509 certificates.
- */
-struct x509_cert_s;
-typedef struct x509_cert_s *x509_cert_t;
-
-
-/*
  * Object to hold an X.509 CRL.
  */
 struct x509_crl_s;

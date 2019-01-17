@@ -192,9 +192,6 @@
 #define TLS_ECDHE_ECDSA_WITH_AES_128_CCM_8      0xC0AE  /**< TLS 1.2 */
 #define TLS_ECDHE_ECDSA_WITH_AES_256_CCM_8      0xC0AF  /**< TLS 1.2 */
 
-struct _ntbtls_ciphersuite_s;
-typedef const struct _ntbtls_ciphersuite_s *ciphersuite_t;
-
 #define CIPHERSUITE_FLAG_SHORT_TAG  0x01   /* Short authentication tag.  */
 
 const int *_ntbtls_ciphersuite_list (void);
