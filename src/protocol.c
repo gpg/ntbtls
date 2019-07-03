@@ -743,10 +743,11 @@ encrypt_buf (ntbtls_t tls)
    */
   if (is_aead_mode (mode))
     {
-      size_t enc_msglen, olen;
+      size_t enc_msglen;
       unsigned char *enc_msg;
       unsigned char add_data[13];
       unsigned char taglen;
+      unsigned char iv[12];
 
 
       taglen = (_ntbtls_ciphersuite_get_flags (tls->transform_out->ciphersuite)
@@ -764,16 +765,12 @@ encrypt_buf (ntbtls_t tls)
       /*
        * Generate IV
        */
-      gcry_create_nonce (tls->transform_out->iv_enc
-                         + tls->transform_out->fixed_ivlen,
-                         tls->transform_out->ivlen
-                         - tls->transform_out->fixed_ivlen);
+      memcpy (iv, tls->transform_out->iv_enc, tls->transform_out->fixed_ivlen);
+      memcpy (iv + tls->transform_out->fixed_ivlen, tls->out_ctr, 8);
+      memcpy (tls->out_iv, tls->out_ctr, 8);
 
-      memcpy (tls->out_iv,
-              tls->transform_out->iv_enc + tls->transform_out->fixed_ivlen,
-              tls->transform_out->ivlen - tls->transform_out->fixed_ivlen);
-
-      debug_buf (4, "IV used", tls->out_iv,
+      debug_buf (4, "IV used (internal)", iv, tls->transform_out->ivlen);
+      debug_buf (4, "IV used (transmitted)", tls->out_iv,
                  tls->transform_out->ivlen - tls->transform_out->fixed_ivlen);
 
       /*
@@ -785,35 +782,54 @@ encrypt_buf (ntbtls_t tls)
                           - tls->transform_out->fixed_ivlen);
 
       debug_msg (3, "before encrypt: msglen = %d, "
-                 "including %d bytes of padding", tls->out_msglen, 0);
+                 "including %d bytes of padding", enc_msglen, 0);
       debug_buf (4, "before encrypt: output payload",
-                 tls->out_msg, tls->out_msglen);
+                 tls->out_msg, enc_msglen);
+
+      err = gcry_cipher_reset (tls->transform_out->cipher_ctx_enc);
+      if (err)
+        {
+          debug_ret (1, "cipher_reset", err);
+          return err;
+        }
+      err = gcry_cipher_setiv (tls->transform_out->cipher_ctx_enc, iv,
+                               tls->transform_out->ivlen);
+      if (err)
+        {
+          debug_ret (1, "cipher_setiv", err);
+          return err;
+        }
 
       /*
        * Encrypt and authenticate
        */
-      /* err = cipher_auth_encrypt (&tls->transform_out->cipher_ctx_enc, */
-      /*                            tls->transform_out->iv_enc, */
-      /*                            tls->transform_out->ivlen, */
-      /*                            add_data, 13, */
-      /*                            enc_msg, enc_msglen, */
-      /*                            enc_msg, &olen, */
-      /*                            enc_msg + enc_msglen, taglen); */
-      err = gpg_error (GPG_ERR_NOT_IMPLEMENTED);
+      err = gcry_cipher_authenticate (tls->transform_out->cipher_ctx_enc,
+                                      add_data, 13);
       if (err)
         {
-          debug_ret (1, "cipher_auth_encrypt", err);
+          debug_ret (1, "cipher_authenticate", err);
           return err;
         }
 
-      if (olen != enc_msglen)
+      err = gcry_cipher_encrypt (tls->transform_out->cipher_ctx_enc,
+                                 enc_msg, enc_msglen, NULL, 0);
+      if (err)
         {
-          debug_bug ();
-          return gpg_error (GPG_ERR_BUG);
+          debug_ret (1, "cipher_encrypt", err);
+          return err;
+        }
+
+      err = gcry_cipher_gettag (tls->transform_out->cipher_ctx_enc,
+                                enc_msg + enc_msglen, taglen);
+      if (err)
+        {
+          debug_ret (1, "cipher_gettag", err);
+          return err;
         }
 
       tls->out_msglen += taglen;
 
+      debug_buf (4, "after encrypt: payload", enc_msg, enc_msglen);
       debug_buf (4, "after encrypt: tag", enc_msg + enc_msglen, taglen);
     }
   else if (mode == GCRY_CIPHER_MODE_CBC)
@@ -926,10 +942,11 @@ decrypt_buf (ntbtls_t tls)
 
   if (is_aead_mode (mode))
     {
-      size_t dec_msglen, olen;
+      size_t dec_msglen;
       unsigned char *dec_msg;
       unsigned char add_data[13];
       unsigned char taglen, explicit_iv_len;
+      unsigned char iv[12];
 
       taglen = (_ntbtls_ciphersuite_get_flags (tls->transform_in->ciphersuite)
                 & CIPHERSUITE_FLAG_SHORT_TAG)? 8 : 16;
@@ -957,39 +974,51 @@ decrypt_buf (ntbtls_t tls)
 
       debug_buf (4, "additional data used for AEAD", add_data, 13);
 
-      memcpy (tls->transform_in->iv_dec + tls->transform_in->fixed_ivlen,
-              tls->in_iv,
-              tls->transform_in->ivlen - tls->transform_in->fixed_ivlen);
+      memcpy (iv, tls->transform_in->iv_dec, tls->transform_in->fixed_ivlen);
+      memcpy (iv + tls->transform_in->fixed_ivlen, tls->in_iv, 8);
 
-      debug_buf (4, "IV used",
-                 tls->transform_in->iv_dec, tls->transform_in->ivlen);
+      debug_buf (4, "IV used", iv, 12);
       debug_buf (4, "TAG used", dec_msg + dec_msglen, taglen);
 
       /*
        * Decrypt and authenticate
        */
-      /* err = cipher_auth_decrypt (tls->transform_in->cipher_ctx_dec, */
-      /*                            tls->transform_in->iv_dec, */
-      /*                            tls->transform_in->ivlen, */
-      /*                            add_data, 13, */
-      /*                            dec_msg, dec_msglen, */
-      /*                            dec_msg_result, &olen, */
-      /*                            dec_msg + dec_msglen, taglen); */
-      err = gpg_error (GPG_ERR_NOT_IMPLEMENTED);
+      err = gcry_cipher_reset (tls->transform_in->cipher_ctx_dec);
       if (err)
         {
-          debug_ret (1, "cipher_auth_decrypt", err);
-
-          /* if (gpg_err_code (err) == POLARSSL_ERR_CIPHER_AUTH_FAILED) */
-          /*   err = gpg_error (GPG_ERR_BAD_MAC); */
-
+          debug_ret (1, "cipher_reset", err);
+          return err;
+        }
+      err = gcry_cipher_setiv (tls->transform_in->cipher_ctx_dec, iv,
+                               tls->transform_in->ivlen);
+      if (err)
+        {
+          debug_ret (1, "cipher_setiv", err);
           return err;
         }
 
-      if (olen != dec_msglen)
+      err = gcry_cipher_authenticate (tls->transform_in->cipher_ctx_dec,
+                                      add_data, 13);
+      if (err)
         {
-          debug_bug ();
-          return gpg_error (GPG_ERR_INTERNAL);
+          debug_ret (1, "cipher_authenticate", err);
+          return err;
+        }
+
+      err = gcry_cipher_decrypt (tls->transform_in->cipher_ctx_dec,
+                                 dec_msg, dec_msglen, NULL, 0);
+      if (err)
+        {
+          debug_ret (1, "cipher_decrypt", err);
+          return err;
+        }
+
+      err = gcry_cipher_checktag (tls->transform_in->cipher_ctx_dec,
+                                  dec_msg + dec_msglen, taglen);
+      if (err)
+        {
+          debug_ret (1, "cipher_checktag", err);
+          return err;
         }
     }
   else if (mode == GCRY_CIPHER_MODE_CBC)
@@ -1619,7 +1648,8 @@ read_record_header:
       if (err)
         {
           if (gpg_err_code (err) == GPG_ERR_INV_MAC
-              || gpg_err_code (err) == GPG_ERR_BAD_MAC)
+              || gpg_err_code (err) == GPG_ERR_BAD_MAC
+              || gpg_err_code (err) == GPG_ERR_CHECKSUM)
             {
               _ntbtls_send_alert_message (tls,
                                           TLS_ALERT_LEVEL_FATAL,
