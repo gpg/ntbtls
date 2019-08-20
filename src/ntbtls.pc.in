@@ -9,6 +9,6 @@ Name: ntbtls
 Description: The Not Too Bad TLS Library
 Requires: gpg-error
 Version: @PACKAGE_VERSION@
-Cflags: @NTBTLS_CONFIG_CFLAGS@
-Libs: @NTBTLS_CONFIG_LIBS@
+Cflags: -I${includedir} @NTBTLS_CONFIG_CFLAGS@
+Libs: -L${libdir} @NTBTLS_CONFIG_LIBS@
 URL: https://www.gnupg.org/software/ntbtls/index.html
