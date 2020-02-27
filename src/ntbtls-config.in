@@ -21,7 +21,7 @@ gpg_error_libs="@GPG_ERROR_LIBS@"
 gpg_error_cflags="@GPG_ERROR_CFLAGS@"
 
 # libgcrypt values.
-libs="@NTBTLS_CONFIG_LIBS@"
+libs="@NTBTLS_CONFIG_LIBS@ -lksba -lgcrypt"
 cflags="@NTBTLS_CONFIG_CFLAGS@"
 
 # API info

@@ -579,7 +579,7 @@ AC_ARG_ENABLE(optimization,
 #
 # Set variables for use by ntbtls-config.
 #
-NTBTLS_CONFIG_LIBS="-lntbtls -lksba -lgcrypt"
+NTBTLS_CONFIG_LIBS="-lntbtls"
 NTBTLS_CONFIG_CFLAGS=""
 NTBTLS_CONFIG_HOST="$host"
 
