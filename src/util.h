@@ -150,12 +150,23 @@ void _ntbtls_debug_crt (int level, const char *text, x509_cert_t chain);
 
 /* These error codes are used but not defined in the required
    libgpg-error version.  Define them here. */
-#if GPG_ERROR_VERSION_NUMBER < 0x011200  /* 1.18 */
-# define GPG_ERR_REQUEST_TOO_SHORT 223
-# define GPG_ERR_REQUEST_TOO_LONG  224
-#endif
 #if GPG_ERROR_VERSION_NUMBER < 0x011b00 /* 1.27 */
 # define GPG_ERR_WRONG_NAME  313
+#endif
+#if GPG_ERROR_VERSION_NUMBER < 0x011a00 /* 1.26 */
+# define GPG_ERR_UNKNOWN_FLAG     309
+# define GPG_ERR_INV_ORDER	  310
+# define GPG_ERR_ALREADY_FETCHED  311
+# define GPG_ERR_TRY_LATER        312
+# define GPG_ERR_SYSTEM_BUG	  666
+# define GPG_ERR_DNS_UNKNOWN	  711
+# define GPG_ERR_DNS_SECTION	  712
+# define GPG_ERR_DNS_ADDRESS	  713
+# define GPG_ERR_DNS_NO_QUERY	  714
+# define GPG_ERR_DNS_NO_ANSWER	  715
+# define GPG_ERR_DNS_CLOSED	  716
+# define GPG_ERR_DNS_VERIFY	  717
+# define GPG_ERR_DNS_TIMEOUT	  718
 #endif
 
 
