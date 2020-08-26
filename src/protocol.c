@@ -44,6 +44,43 @@ static void calc_verify_tls_sha384 (ntbtls_t, unsigned char *);
 static void calc_finished_tls_sha384 (ntbtls_t, unsigned char *, int);
 
 
+static const char *
+alert_msg_to_string (int msgno)
+{
+  switch (msgno)
+    {
+    case TLS_ALERT_MSG_CLOSE_NOTIFY:       return "close notify";
+    case TLS_ALERT_MSG_UNEXPECTED_MESSAGE: return "unexpected msg";
+    case TLS_ALERT_MSG_BAD_RECORD_MAC:     return "bad record mac ";
+    case TLS_ALERT_MSG_DECRYPTION_FAILED:  return "decryption failed";
+    case TLS_ALERT_MSG_RECORD_OVERFLOW:    return "record overflow";
+    case TLS_ALERT_MSG_DECOMPRESSION_FAILURE:return "decompression failure";
+    case TLS_ALERT_MSG_HANDSHAKE_FAILURE:  return "handshake failure";
+    case TLS_ALERT_MSG_NO_CERT:            return "no cert";
+    case TLS_ALERT_MSG_BAD_CERT:           return "bad cert";
+    case TLS_ALERT_MSG_UNSUPPORTED_CERT:   return "unsupported cert";
+    case TLS_ALERT_MSG_CERT_REVOKED:       return "cert revoked";
+    case TLS_ALERT_MSG_CERT_EXPIRED:       return "cert expired";
+    case TLS_ALERT_MSG_CERT_UNKNOWN:       return "cert unknown";
+    case TLS_ALERT_MSG_ILLEGAL_PARAMETER:  return "illegal param";
+    case TLS_ALERT_MSG_UNKNOWN_CA:         return "unknown CA";
+    case TLS_ALERT_MSG_ACCESS_DENIED:      return "access denied";
+    case TLS_ALERT_MSG_DECODE_ERROR:       return "decode error";
+    case TLS_ALERT_MSG_DECRYPT_ERROR:      return "decrypt error";
+    case TLS_ALERT_MSG_EXPORT_RESTRICTION: return "export restriction";
+    case TLS_ALERT_MSG_PROTOCOL_VERSION:   return "protocol version";
+    case TLS_ALERT_MSG_INSUFFICIENT_SECURITY:return "insufficient security";
+    case TLS_ALERT_MSG_INTERNAL_ERROR:     return "internal error";
+    case TLS_ALERT_MSG_USER_CANCELED:      return "user canceled";
+    case TLS_ALERT_MSG_NO_RENEGOTIATION:   return "no renegotiation";
+    case TLS_ALERT_MSG_UNSUPPORTED_EXT:    return "unsupported extenstion";
+    case TLS_ALERT_MSG_UNRECOGNIZED_NAME:  return "unsupported name";
+    case TLS_ALERT_MSG_UNKNOWN_PSK_IDENTITY:   return "unknown PSK identify";
+    case TLS_ALERT_MSG_NO_APPLICATION_PROTOCOL:return "no application protocol";
+    default: return "[?]";
+    }
+}
+
 
 
 /*
@@ -1726,36 +1763,28 @@ read_record_header:
 
   if (tls->in_msgtype == TLS_MSG_ALERT)
     {
-      debug_msg (2, "got an alert message, type: [%d:%d]",
-                 tls->in_msg[0], tls->in_msg[1]);
+      if (tls->in_msg[0] == TLS_ALERT_LEVEL_FATAL)
+        debug_msg (1, "got fatal alert message %s: %s (%d)",
+                   tls->in_msg[1], alert_msg_to_string (tls->in_msg[1]));
+      else if (tls->in_msg[0] == TLS_ALERT_LEVEL_WARNING)
+        debug_msg (2, "got warning alert message %d: %s",
+                   tls->in_msg[1], alert_msg_to_string (tls->in_msg[1]));
+      else
+        debug_msg (2, "got alert message of unknown level %d type %d: %s",
+                   tls->in_msg[0], tls->in_msg[1],
+                   alert_msg_to_string (tls->in_msg[1]));
 
       /*
        * Ignore non-fatal alerts, except close_notify
        */
       if (tls->in_msg[0] == TLS_ALERT_LEVEL_FATAL)
         {
-          debug_msg (1, "is a fatal alert message (msg %d)",
-                     tls->in_msg[1]);
-          switch (tls->in_msg[1])
-            {
-            case TLS_ALERT_MSG_HANDSHAKE_FAILURE:
-              debug_msg (1, "(handshake failed)");
-              break;
-            default:
-              break;
-            }
-
-          /**
-           * Subtract from error code as tls->in_msg[1] is 7-bit positive
-           * error identifier.
-           */
           return gpg_error (GPG_ERR_FATAL_ALERT);
         }
 
       if (tls->in_msg[0] == TLS_ALERT_LEVEL_WARNING &&
           tls->in_msg[1] == TLS_ALERT_MSG_CLOSE_NOTIFY)
         {
-          debug_msg (2, "is a close notify message");
           return gpg_error (GPG_ERR_CLOSE_NOTIFY);
         }
 
