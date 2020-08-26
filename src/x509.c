@@ -523,6 +523,8 @@ _ntbtls_x509_get_pk (x509_cert_t cert, int idx, gcry_sexp_t *r_pk)
 int
 _ntbtls_x509_can_do (x509_privkey_t privkey, pk_algo_t pk_alg)
 {
+  (void)pk_alg;
+
   if (!privkey)
     return 0;
 

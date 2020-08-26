@@ -1932,6 +1932,9 @@ write_certificate_verify (ntbtls_t tls)
 
   /* err = pk_sign (tls_own_key (tls), md_alg, hash_start, hashlen, */
   /*                tls->out_msg + 6 + offset, &n); */
+  (void)md_alg;
+  (void)hash_start;
+  (void)hashlen;
   err = gpg_error (GPG_ERR_NOT_IMPLEMENTED);
   if (err)
     {

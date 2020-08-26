@@ -2473,6 +2473,7 @@ transform_init (transform_t transform)
 {
   gpg_error_t err = 0;
 
+  (void)transform;
   //FIXME:
   /* cipher_init (&transform->cipher_ctx_enc); */
   /* cipher_init (&transform->cipher_ctx_dec); */
@@ -2506,6 +2507,7 @@ transform_deinit (transform_t transform)
 static gpg_error_t
 session_init (session_t session)
 {
+  (void)session;
   return 0;
 }
 
@@ -4073,7 +4075,7 @@ tls_write (ntbtls_t tls, const unsigned char *buf, size_t len, size_t *nwritten)
 
 
 /* Read handler for estream.  */
-static ssize_t
+static gpgrt_ssize_t
 cookie_read (void *cookie, void *buffer, size_t size)
 {
   ntbtls_t tls = cookie;
@@ -4104,7 +4106,7 @@ cookie_read (void *cookie, void *buffer, size_t size)
 
 
 /* Write handler for estream.  */
-static ssize_t
+static gpgrt_ssize_t
 cookie_write (void *cookie, const void *buffer_arg, size_t size)
 {
   ntbtls_t tls = cookie;
@@ -4134,7 +4136,7 @@ cookie_write (void *cookie, const void *buffer_arg, size_t size)
 }
 
 
-static es_cookie_io_functions_t cookie_functions =
+static gpgrt_cookie_io_functions_t cookie_functions =
   {
     cookie_read,
     cookie_write,
