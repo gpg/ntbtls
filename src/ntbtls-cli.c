@@ -325,6 +325,10 @@ simple_client (const char *server, int port)
   info ("starting handshake");
   while ((err = ntbtls_handshake (tls)))
     {
+      const char *s;
+
+      if ((s = ntbtls_get_last_alert (tls, NULL, NULL)))
+        info ("received alert: %s", s);
       info ("handshake error: %s <%s>", gpg_strerror (err),gpg_strsource (err));
       switch (gpg_err_code (err))
         {

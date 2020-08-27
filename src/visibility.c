@@ -111,6 +111,14 @@ ntbtls_handshake (ntbtls_t tls)
 }
 
 
+const char *
+ntbtls_get_last_alert (ntbtls_t tls,
+                       unsigned int *r_level, unsigned int *r_type)
+{
+  return _ntbtls_get_last_alert (tls, r_level, r_type);
+}
+
+
 gpg_error_t
 ntbtls_set_verify_cb (ntbtls_t tls,  ntbtls_verify_cb_t cb, void *cb_value)
 {

@@ -39,4 +39,6 @@ EXPORTS
 
     ntbtls_x509_get_peer_cert             @13
 
+    ntbtls_get_last_alert                 @14
+
 ; END

@@ -302,6 +302,11 @@ struct _ntbtls_context_s
   tls_renegotiation_state_t renegotiation; /*!< Initial or renegotiation  */
   int renego_records_seen;      /*!< Records since renego request     */
 
+  struct {
+    unsigned char any;
+    unsigned char level;
+    unsigned char type;
+  } last_alert;                 /* Info about the last received alert.  */
 
   /*
    * Callbacks (RNG, debug, I/O, verification)

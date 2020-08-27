@@ -131,6 +131,12 @@ gpg_error_t ntbtls_handshake (ntbtls_t tls);
 /* Return the peer's certificate.  */
 ksba_cert_t ntbtls_x509_get_peer_cert (ntbtls_t tls, int idx);
 
+/* Return a string with the last received alert message.  NULL is
+ * return if no alert has yet been received.  If R_LEVEL or R_TYPE are
+ * not NULL the level of the alert and its type are stored tehre.  A
+ * level of 1 is a warning alert and a level of 2 is fatal alert.  */
+const char *ntbtls_get_last_alert (ntbtls_t tls,
+                                   unsigned int *r_level, unsigned int *r_type);
 
 /*
  * Support functions

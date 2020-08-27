@@ -319,6 +319,8 @@ void _ntbtls_handshake_wrapup (ntbtls_t tls);
 gpg_error_t _ntbtls_new (ntbtls_t *r_tls, unsigned int flags);
 void _ntbtls_release (ntbtls_t tls);
 
+const char *_ntbtls_get_last_alert (ntbtls_t tls, unsigned int *r_level,
+                                    unsigned int *r_type);
 gpg_error_t _ntbtls_set_transport (ntbtls_t tls,
                                    gpgrt_stream_t inbound,
                                    gpgrt_stream_t outbound);

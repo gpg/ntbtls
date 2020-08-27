@@ -39,6 +39,8 @@ NTBTLS_1.0 {
 
     ntbtls_x509_get_peer_cert;
 
+    ntbtls_get_last_alert;
+
   local:
     *;
 };

@@ -1763,6 +1763,10 @@ _ntbtls_read_record (ntbtls_t tls)
 
   if (tls->in_msgtype == TLS_MSG_ALERT)
     {
+      tls->last_alert.any = 1;
+      tls->last_alert.level = tls->in_msg[0];
+      tls->last_alert.type = tls->in_msg[1];
+
       if (tls->in_msg[0] == TLS_ALERT_LEVEL_FATAL)
         debug_msg (1, "got fatal alert message %d: %s",
                    tls->in_msg[1], alert_msg_to_string (tls->in_msg[1]));
@@ -2874,6 +2878,28 @@ _ntbtls_release (ntbtls_t tls)
   /* Actually clear after last debug message */
   wipememory (tls, sizeof *tls);
   free (tls);
+}
+
+
+/* Return info about the last rceeived alert.  */
+const char *
+_ntbtls_get_last_alert (ntbtls_t tls,
+                        unsigned int *r_level, unsigned int *r_type)
+{
+  if (!tls || !tls->last_alert.any)
+    {
+      if (r_level)
+        *r_level = 0;
+      if (r_type)
+        *r_type = 0;
+      return NULL;
+    }
+
+  if (r_level)
+    *r_level = tls->last_alert.level;
+  if (r_type)
+    *r_type = tls->last_alert.type;
+  return alert_msg_to_string (tls->last_alert.type);
 }
 
 
