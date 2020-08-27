@@ -324,7 +324,7 @@ write_cli_session_ticket_ext (ntbtls_t ssl,
       return;
     }
 
-  debug_msg (3, "sending session_ticket of length %d", tlen);
+  debug_msg (3, "sending session_ticket of length %zu", tlen);
 
   memcpy (p, ssl->session_negotiate->ticket, tlen);
 
@@ -471,7 +471,7 @@ write_client_hello (ntbtls_t tls)
   for (i = 0; i < n; i++)
     *p++ = tls->session_negotiate->id[i];
 
-  debug_msg (3, "client_hello, session id len.: %d", n);
+  debug_msg (3, "client_hello, session id len.: %zu", n);
   debug_buf (3, "client_hello, session id", buf + 39, n);
 
   // Fixme: We do not have a way to set the ciphersuites.  Thus
@@ -518,7 +518,7 @@ write_client_hello (ntbtls_t tls)
   *q++ = (unsigned char) (n >> 7);
   *q++ = (unsigned char) (n << 1);
 
-  debug_msg (3, "client_hello, got %d ciphersuites", n);
+  debug_msg (3, "client_hello, got %zu ciphersuites", n);
 
   debug_msg (3, "client_hello, compress len.: %d", 2);
   debug_msg (3, "client_hello, compress alg.: %d %d",
@@ -556,7 +556,7 @@ write_client_hello (ntbtls_t tls)
   write_cli_alpn_ext (tls, p + 2 + ext_len, &olen);
   ext_len += olen;
 
-  debug_msg (3, "client_hello, total extension length: %d", ext_len);
+  debug_msg (3, "client_hello, total extension length: %zu", ext_len);
 
   if (ext_len > 0)
     {
@@ -825,7 +825,7 @@ read_server_hello (ntbtls_t tls)
     }
 
   t = buf32_to_u32 (buf+6);
-  debug_msg (3, "server_hello, current time: %lu", t);
+  debug_msg (3, "server_hello, current time: %lu", (unsigned long)t);
 
   memcpy (tls->handshake->randbytes + 32, buf + 6, 32);
 
@@ -873,7 +873,7 @@ read_server_hello (ntbtls_t tls)
 
   _ntbtls_optimize_checksum (tls, tls->transform_negotiate->ciphersuite);
 
-  debug_msg (3, "server_hello, session id len.: %d", n);
+  debug_msg (3, "server_hello, session id len.: %zu", n);
   debug_buf (3, "server_hello, session id", buf + 39, n);
 
   /*
@@ -938,7 +938,7 @@ read_server_hello (ntbtls_t tls)
 
   ext = buf + 44 + n;
 
-  debug_msg (2, "server_hello, total extension length: %d", ext_len);
+  debug_msg (2, "server_hello, total extension length: %zu", ext_len);
 
   while (ext_len)
     {
@@ -2012,7 +2012,7 @@ parse_new_session_ticket (ntbtls_t tls)
       return gpg_error (GPG_ERR_BAD_TICKET);
     }
 
-  debug_msg (3, "ticket length: %d", ticket_len);
+  debug_msg (3, "ticket length: %zu", ticket_len);
 
   /* We're not waiting for a NewSessionTicket message any more */
   tls->handshake->new_session_ticket = 0;

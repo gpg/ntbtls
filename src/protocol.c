@@ -470,7 +470,7 @@ _ntbtls_derive_keys (ntbtls_t tls)
                            + transform->ivlen);
     }
 
-  debug_msg (3, "keylen: %d, minlen: %d, ivlen: %d, maclen: %d",
+  debug_msg (3, "keylen: %d, minlen: %zu, ivlen: %zu, maclen: %zu",
              transform->keylen, transform->minlen, transform->ivlen,
              transform->maclen);
 
@@ -596,7 +596,7 @@ calc_verify_tls (gcry_md_hd_t md_input, md_algo_t md_alg,
   gcry_md_hd_t md;
   char *p;
 
-  debug_msg (2, "calc_verify_tls sha%d", hashlen*8);
+  debug_msg (2, "calc_verify_tls sha%zu", hashlen*8);
 
   err = gcry_md_copy (&md, md_input);
   if (err)
@@ -617,7 +617,7 @@ calc_verify_tls (gcry_md_hd_t md_input, md_algo_t md_alg,
   gcry_md_close (md);
 
   debug_buf (3, "calculated verify result", hash, hashlen);
-  debug_msg (3, "calc_verify_tls sha%d", hashlen*8);
+  debug_msg (3, "calc_verify_tls sha%zu", hashlen*8);
 }
 
 
@@ -818,7 +818,7 @@ encrypt_buf (ntbtls_t tls)
       tls->out_msglen += (tls->transform_out->ivlen
                           - tls->transform_out->fixed_ivlen);
 
-      debug_msg (3, "before encrypt: msglen = %d, "
+      debug_msg (3, "before encrypt: msglen = %zu, "
                  "including %d bytes of padding", enc_msglen, 0);
       debug_buf (4, "before encrypt: output payload",
                  tls->out_msg, enc_msglen);
@@ -903,8 +903,8 @@ encrypt_buf (ntbtls_t tls)
       enc_msglen = tls->out_msglen;
       tls->out_msglen += tls->transform_out->ivlen;
 
-      debug_msg (3, "before encrypt: msglen = %d, "
-                 "including %d bytes of IV and %d bytes of padding",
+      debug_msg (3, "before encrypt: msglen = %zu, "
+                 "including %zu bytes of IV and %zu bytes of padding",
                  tls->out_msglen, tls->transform_out->ivlen, padlen + 1);
       debug_buf (4, "before encrypt: output payload",
                  tls->out_iv, tls->out_msglen);
@@ -972,7 +972,7 @@ decrypt_buf (ntbtls_t tls)
 
   if (tls->in_msglen < tls->transform_in->minlen)
     {
-      debug_msg (1, "in_msglen (%d) < minlen (%d)",
+      debug_msg (1, "in_msglen (%zu) < minlen (%zu)",
                  tls->in_msglen, tls->transform_in->minlen);
       return gpg_error (GPG_ERR_INV_MAC);
     }
@@ -992,7 +992,7 @@ decrypt_buf (ntbtls_t tls)
 
       if (tls->in_msglen < explicit_iv_len + taglen)
         {
-          debug_msg (1, "msglen (%d) < explicit_iv_len (%d) "
+          debug_msg (1, "msglen (%zud) < explicit_iv_len (%d) "
                      "+ taglen (%d)", tls->in_msglen,
                      explicit_iv_len, taglen);
           return gpg_error (GPG_ERR_INV_MAC);
@@ -1073,7 +1073,7 @@ decrypt_buf (ntbtls_t tls)
        */
       if ((tls->in_msglen % tls->transform_in->ivlen))
         {
-          debug_msg (1, "msglen (%d) %% ivlen (%d) != 0",
+          debug_msg (1, "msglen (%zu) %% ivlen (%zu) != 0",
                      tls->in_msglen, tls->transform_in->ivlen);
           return gpg_error (GPG_ERR_INV_MAC);
         }
@@ -1083,7 +1083,7 @@ decrypt_buf (ntbtls_t tls)
       if (tls->in_msglen < minlen + tls->transform_in->ivlen
           || tls->in_msglen < minlen + tls->transform_in->maclen + 1)
         {
-          debug_msg (1, "msglen (%d) < max( ivlen(%d), maclen (%d) "
+          debug_msg (1, "msglen (%zu) < max( ivlen(%zu), maclen (%zu) "
                      "+ 1 ) ( + expl IV )",
                      tls->in_msglen,
                      tls->transform_in->ivlen,
@@ -1130,7 +1130,7 @@ decrypt_buf (ntbtls_t tls)
 
       if (tls->in_msglen < tls->transform_in->maclen + padlen)
         {
-          debug_msg (1, "msglen (%d) < maclen (%d) + padlen (%d)",
+          debug_msg (1, "msglen (%zu) < maclen (%zu) + padlen (%zu)",
                      tls->in_msglen, tls->transform_in->maclen, padlen);
           padlen = 0;
           correct = 0;
@@ -1322,7 +1322,7 @@ ssl_compress_buf (ntbtls_t ssl)
 
   memcpy (msg_pre, ssl->out_msg, len_pre);
 
-  debug_msg (3, "before compression: msglen = %d, ", ssl->out_msglen);
+  debug_msg (3, "before compression: msglen = %zu, ", ssl->out_msglen);
 
   debug_buf (4, "before compression: output payload",
              ssl->out_msg, ssl->out_msglen);
@@ -1343,7 +1343,7 @@ ssl_compress_buf (ntbtls_t ssl)
   ssl->out_msglen = (TLS_BUFFER_LEN
                      - ssl->transform_out->ctx_deflate.avail_out);
 
-  debug_msg (3, "after compression: msglen = %d, ", ssl->out_msglen);
+  debug_msg (3, "after compression: msglen = %zu, ", ssl->out_msglen);
 
   debug_buf (4, "after compression: output payload",
              ssl->out_msg, ssl->out_msglen);
@@ -1366,7 +1366,7 @@ ssl_decompress_buf (ntbtls_t ssl)
 
   memcpy (msg_pre, ssl->in_msg, len_pre);
 
-  debug_msg (3, "before decompression: msglen = %d, ", ssl->in_msglen);
+  debug_msg (3, "before decompression: msglen = %zu, ", ssl->in_msglen);
 
   debug_buf (4, "before decompression: input payload",
              ssl->in_msg, ssl->in_msglen);
@@ -1387,7 +1387,7 @@ ssl_decompress_buf (ntbtls_t ssl)
   ssl->in_msglen = (TLS_MAX_CONTENT_LEN
                     - ssl->transform_in->ctx_inflate.avail_out);
 
-  debug_msg (3, "after decompression: msglen = %d, ", ssl->in_msglen);
+  debug_msg (3, "after decompression: msglen = %zu, ", ssl->in_msglen);
 
   debug_buf (4, "after decompression: input payload",
              ssl->in_msg, ssl->in_msglen);
@@ -1425,7 +1425,7 @@ _ntbtls_fetch_input (ntbtls_t tls, size_t nb_want)
       else if (!nread) /*ie. EOF*/
         err = gpg_error (GPG_ERR_EOF);
 
-      debug_msg (3, "in_left: %d, nb_want: %d", tls->in_left, nb_want);
+      debug_msg (3, "in_left: %zu, nb_want: %zu", tls->in_left, nb_want);
       debug_ret (3, "es_read", err);
 
       if (err)
@@ -1456,7 +1456,7 @@ _ntbtls_flush_output (ntbtls_t tls)
   err = 0;
   while (tls->out_left > 0)
     {
-      debug_msg (3, "message length: %d, out_left: %d",
+      debug_msg (3, "message length: %zu, out_left: %zu",
                  5 + tls->out_msglen, tls->out_left);
 
       buf = tls->out_hdr + 5 + tls->out_msglen - tls->out_left;
@@ -1572,7 +1572,7 @@ _ntbtls_read_record (ntbtls_t tls)
       tls->in_hslen += buf16_to_size_t (tls->in_msg + 2);
 
       debug_msg (3, "handshake message: msglen ="
-                 " %d, type = %d, hslen = %d",
+                 " %zu, type = %u, hslen = %zu",
                  tls->in_msglen, tls->in_msg[0], tls->in_hslen);
 
       if (tls->in_msglen < 4 || tls->in_msg[1] != 0)
@@ -1595,7 +1595,7 @@ _ntbtls_read_record (ntbtls_t tls)
 
   tls->in_hslen = 0;
 
-read_record_header:
+ read_record_header:
   /*
    * Read the record header and validate it
    */
@@ -1739,7 +1739,7 @@ read_record_header:
       tls->in_hslen += buf16_to_size_t (tls->in_msg + 2);
 
       debug_msg (3, "handshake message: msglen ="
-                 " %d, type = %d, hslen = %d",
+                 " %zu, type = %u, hslen = %zu",
                  tls->in_msglen, tls->in_msg[0], tls->in_hslen);
 
       /*
@@ -1764,8 +1764,9 @@ read_record_header:
   if (tls->in_msgtype == TLS_MSG_ALERT)
     {
       if (tls->in_msg[0] == TLS_ALERT_LEVEL_FATAL)
-        debug_msg (1, "got fatal alert message %s: %s (%d)",
+        debug_msg (1, "got fatal alert message %d: %s",
                    tls->in_msg[1], alert_msg_to_string (tls->in_msg[1]));
+
       else if (tls->in_msg[0] == TLS_ALERT_LEVEL_WARNING)
         debug_msg (2, "got warning alert message %d: %s",
                    tls->in_msg[1], alert_msg_to_string (tls->in_msg[1]));
@@ -1882,7 +1883,7 @@ _ntbtls_write_certificate (ntbtls_t tls)
     {
       if (derlen > TLS_MAX_CONTENT_LEN - 3 - i)
         {
-          debug_msg (1, "certificate too large, %d > %d",
+          debug_msg (1, "certificate too large, %zu > %d",
                      i + 3 + derlen, TLS_MAX_CONTENT_LEN);
           return gpg_error (GPG_ERR_CERT_TOO_LARGE);
         }

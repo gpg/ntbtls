@@ -126,7 +126,7 @@ void _ntbtls_set_debug (int level, const char *prefix, gpgrt_stream_t stream);
 void _ntbtls_set_log_handler (ntbtls_log_handler_t cb, void *cb_value);
 
 void _ntbtls_debug_msg (int level, const char *format,
-                        ...) GPGRT_ATTR_PRINTF(2,0);
+                        ...) GPGRT_ATTR_PRINTF(2,3);
 void _ntbtls_debug_buf (int level, const char *text,
                         const void *buf, size_t len);
 void _ntbtls_debug_bug (const char *file, int line);
