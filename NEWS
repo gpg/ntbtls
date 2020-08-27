@@ -1,6 +1,11 @@
-Noteworthy changes in version 0.2.0 (unreleased) [C0/A0/R3]
+Noteworthy changes in version 0.2.0 (2020-08-27) [C1/A1/R0]
 ------------------------------------------------
 
+ * Add support for ciphersuites using GCM.
+
+ * New function to return alert messages.
+
+ * Improvements to the build system.
 
  * Interface changes relative to version 0.1.2
    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

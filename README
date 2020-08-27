@@ -1,11 +1,8 @@
                                 NTBTLS
                  Not Too Bad Transport Layer Security
-                            Version 0.1
-
-  WARNING: Although this library is based on PolarSSL code it is
-  pretty young and NOT WELL TESTED.  There are lot of things missing
-  and we release it only to get pratical experience with its use.
-  More releases can be expected in the near future.
+                            Version 0.2
 
 See the file AUTHORS for copying conditions.  See HACKING for
-internals.
+internals.  This library is based on PolarSSL code with all support
+for legacy protocol versions removed.  TLS 1.3 and the server part are
+not yet implemented.  NTBTL depends on Libgcrypt and LibKSBA.

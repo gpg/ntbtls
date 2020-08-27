@@ -26,8 +26,8 @@ min_automake_version="1.14"
 # another commit and push so that the git magic is able to work.
 m4_define([mym4_package],[ntbtls])
 m4_define([mym4_major], [0])
-m4_define([mym4_minor], [1])
-m4_define([mym4_micro], [3])
+m4_define([mym4_minor], [2])
+m4_define([mym4_micro], [0])
 
 # To start a new development series, i.e a new major or minor number
 # you need to mark an arbitrary commit before the first beta release
@@ -52,9 +52,9 @@ AC_INIT([mym4_package],[mym4_version], [http://bugs.gnupg.org])
 #   (Interfaces removed:    CURRENT++, AGE=0, REVISION=0)
 #   (Interfaces added:      CURRENT++, AGE++, REVISION=0)
 #   (No interfaces changed:                   REVISION++)
-LIBNTBTLS_LT_CURRENT=0
-LIBNTBTLS_LT_AGE=0
-LIBNTBTLS_LT_REVISION=2
+LIBNTBTLS_LT_CURRENT=1
+LIBNTBTLS_LT_AGE=1
+LIBNTBTLS_LT_REVISION=0
 
 # If the API is changed in an incompatible way: increment the next counter.
 NTBTLS_CONFIG_API_VERSION=1
