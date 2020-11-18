@@ -17,7 +17,7 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 # Process this file with autoconf to produce a configure script.
-AC_PREREQ(2.61)
+AC_PREREQ([2.61])
 min_automake_version="1.14"
 
 # To build a release you need to create a tag with the version number
@@ -46,7 +46,7 @@ m4_define([mym4_version],      m4_argn(4, mym4_verslist))
 m4_define([mym4_revision],     m4_argn(7, mym4_verslist))
 m4_define([mym4_revision_dec], m4_argn(8, mym4_verslist))
 m4_esyscmd([echo ]mym4_version[>VERSION])
-AC_INIT([mym4_package],[mym4_version], [http://bugs.gnupg.org])
+AC_INIT([mym4_package],[mym4_version],[https://bugs.gnupg.org])
 
 # LT Version numbers, remember to change them just *before* a release.
 #   (Interfaces removed:    CURRENT++, AGE=0, REVISION=0)
@@ -77,7 +77,7 @@ AC_CONFIG_SRCDIR([src/ntbtls.h.in])
 AC_CONFIG_HEADER([config.h])
 AM_INIT_AUTOMAKE([serial-tests dist-bzip2 no-dist-gzip])
 AC_CANONICAL_HOST
-AC_GNU_SOURCE
+AC_USE_SYSTEM_EXTENSIONS
 
 # Some status variables.
 have_gpg_error=no
@@ -176,7 +176,7 @@ AC_PROG_RANLIB
 AC_CHECK_TOOL(AR, ar, :)
 AC_PATH_PROG(PERL,"perl")
 AC_CHECK_TOOL(WINDRES, windres, :)
-AC_ISC_POSIX
+AC_SEARCH_LIBS([strerror],[cposix])
 
 # We need to compile and run a program on the build machine.  A
 # comment in libgpg-error says that the AC_PROG_CC_FOR_BUILD macro in
@@ -310,8 +310,6 @@ AC_C_VOLATILE
 AC_CHECK_SIZEOF(unsigned long)
 AC_TYPE_SIZE_T
 AC_TYPE_MODE_T
-AC_TYPE_SIGNAL
-AC_DECL_SYS_SIGLIST
 
 gl_HEADER_SYS_SOCKET
 
@@ -328,7 +326,7 @@ case "${host}" in
 esac
 
 AC_ARG_ENABLE([ld-version-script],
-              AC_HELP_STRING([--enable-ld-version-script],
+              AS_HELP_STRING([--enable-ld-version-script],
                              [enable/disable use of linker version script.
                               (default is system dependent)]),
               [have_ld_version_script=$enableval],
@@ -336,8 +334,8 @@ AC_ARG_ENABLE([ld-version-script],
 AM_CONDITIONAL(HAVE_LD_VERSION_SCRIPT, test "$have_ld_version_script" = "yes")
 
 AC_ARG_ENABLE(endian-check,
-              AC_HELP_STRING([--disable-endian-check],
-	      [disable the endian check and trust the OS provided macros]),
+              AS_HELP_STRING([--disable-endian-check],
+              [disable the endian check and trust the OS provided macros]),
 	      endiancheck=$enableval,endiancheck=yes)
 if test x"$endiancheck" = xyes ; then
   AC_C_BIGENDIAN
@@ -564,7 +562,7 @@ fi
 # things and eliminate variables.
 #
 AC_ARG_ENABLE(optimization,
-   AC_HELP_STRING([--disable-optimization],
+   AS_HELP_STRING([--disable-optimization],
                   [disable compiler optimization]),
                   [if test $enableval = no ; then
                       CFLAGS=`echo $CFLAGS | sed s/-O[[1-9]]\ /-O0\ /g`
@@ -603,7 +601,7 @@ changequote([,])dnl
 BUILD_FILEVERSION="${BUILD_FILEVERSION}mym4_revision_dec"
 AC_SUBST(BUILD_FILEVERSION)
 AC_ARG_ENABLE([build-timestamp],
-  AC_HELP_STRING([--enable-build-timestamp],
+  AS_HELP_STRING([--enable-build-timestamp],
                  [set an explicit build timestamp for reproducibility.
                   (default is the current time in ISO-8601 format)]),
      [if test "$enableval" = "yes"; then
