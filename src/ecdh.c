@@ -117,6 +117,8 @@ _ntbtls_ecdh_read_params (ecdh_context_t ecdh,
     case 26: ecdh->curve_name = "brainpoolP256r1"; break;
     case 27: ecdh->curve_name = "brainpoolP384r1"; break;
     case 28: ecdh->curve_name = "brainpoolP512r1"; break;
+    case 29: ecdh->curve_name = "X25519"; break;
+    case 30: ecdh->curve_name = "X448"; break;
     default:
       return gpg_error (GPG_ERR_UNKNOWN_CURVE);
     }
@@ -156,7 +158,9 @@ _ntbtls_ecdh_read_params (ecdh_context_t ecdh,
     *r_nparsed = (der - derstart);
 
   debug_msg (3, "ECDH curve: %s", ecdh->curve_name);
-  debug_pnt (3, "ECDH Qpeer", ecdh->Qpeer, ecdh->ecctx);
+  if (ecdh->curve_name[0] != 'X')
+    debug_pnt (3, "ECDH Qpeer", ecdh->Qpeer, ecdh->ecctx);
+  /* FIXME: debug print the point for Montgomery curve.  */
 
   return 0;
 }
@@ -168,6 +172,25 @@ gen_d (ecdh_context_t ecdh)
 {
   unsigned int nbits;
   gcry_mpi_t n, d;
+
+  if (ecdh->curve_name[0] == 'X')
+    {
+      gcry_mpi_t p;
+      unsigned int pbits;
+      void *rnd;
+      int len;
+
+      p = gcry_mpi_ec_get_mpi ("p", ecdh->ecctx, 0);
+      if (!p)
+        return NULL;
+      pbits  = gcry_mpi_get_nbits (p);
+      len = (pbits+7)/8;
+      gcry_mpi_release (p);
+
+      rnd = gcry_random_bytes_secure (len, GCRY_STRONG_RANDOM);
+      d = gcry_mpi_set_opaque (NULL, rnd, pbits);
+      return d;
+    }
 
   n = gcry_mpi_ec_get_mpi ("n", ecdh->ecctx, 0);
   if (!n)
@@ -233,28 +256,85 @@ _ntbtls_ecdh_make_public (ecdh_context_t ecdh,
     gcry_mpi_release (d);
   }
 
-  {
-    gcry_mpi_t Q;
+  if (ecdh->curve_name[0] == 'X')
+    {
+      gcry_mpi_t p;
+      unsigned int pbits;
+      gcry_mpi_point_t Q;
+      gcry_mpi_t x;
+      int i;
+      int len;
 
-    /* Note that "q" is computed by the get function and returned in
-     * uncompressed form.  */
-    Q = gcry_mpi_ec_get_mpi ("q", ecdh->ecctx, 0);
-    if (!Q)
-      {
+      p = gcry_mpi_ec_get_mpi ("p", ecdh->ecctx, 0);
+      if (!p)
         return gpg_error (GPG_ERR_INTERNAL);
-      }
-    debug_mpi (3, "ECDH Qour ", Q);
+      pbits  = gcry_mpi_get_nbits (p);
+      len = (pbits+7)/8;
+      gcry_mpi_release (p);
+      if (len > 255)
+        return gpg_error (GPG_ERR_INV_DATA);
 
-    /* Write as an ECPoint, that is prefix it with a one octet length.  */
-    err = gcry_mpi_print (GCRYMPI_FMT_USG, outbuf+1, outbufsize-1, &n, Q);
-    gcry_mpi_release (Q);
-    if (err)
-      return err;
-    if (n > 255)
-      return gpg_error (GPG_ERR_INV_DATA);
-    outbuf[0] = n;
-    n++;
-  }
+      x = gcry_mpi_new (0);
+      Q = gcry_mpi_ec_get_point ("q", ecdh->ecctx, 0);
+      if (!Q)
+        {
+          gcry_mpi_release (x);
+          return gpg_error (GPG_ERR_INTERNAL);
+        }
+      if (gcry_mpi_ec_get_affine (x, NULL, Q, ecdh->ecctx))
+        {
+          gcry_mpi_point_release (Q);
+          return gpg_error (GPG_ERR_INV_DATA);
+        }
+
+      gcry_mpi_point_release (Q);
+      debug_mpi (3, "ECDH Qour (in big-endian)", x);
+
+      err = gcry_mpi_print (GCRYMPI_FMT_USG, outbuf+1, outbufsize-1, &n, x);
+      gcry_mpi_release (x);
+      if (err)
+        return err;
+      /* Fill zero, if shorter.  */
+      if (n < len)
+        {
+          memmove (outbuf+1+len-n, outbuf+1, n);
+          memset (outbuf+1, 0, len - n);
+        }
+      /* Reverse the buffer */
+      for (i = 0; i < len/2; i++)
+        {
+          unsigned int tmp;
+
+          tmp = outbuf[i+1];
+          outbuf[i+1] = outbuf[len-i];
+          outbuf[len-i] = tmp;
+        }
+      outbuf[0] = len;
+      n = len + 1;
+    }
+  else
+    {
+      gcry_mpi_t Q;
+
+      /* Note that "q" is computed by the get function and returned in
+       * uncompressed form.  */
+      Q = gcry_mpi_ec_get_mpi ("q", ecdh->ecctx, 0);
+      if (!Q)
+        {
+          return gpg_error (GPG_ERR_INTERNAL);
+        }
+      debug_mpi (3, "ECDH Qour ", Q);
+
+      /* Write as an ECPoint, that is prefix it with a one octet length.  */
+      err = gcry_mpi_print (GCRYMPI_FMT_USG, outbuf+1, outbufsize-1, &n, Q);
+      gcry_mpi_release (Q);
+      if (err)
+        return err;
+      if (n > 255)
+        return gpg_error (GPG_ERR_INV_DATA);
+      outbuf[0] = n;
+      n++;
+    }
 
   *r_outbuflen = n;
 
@@ -313,6 +393,46 @@ _ntbtls_ecdh_calc_secret (ecdh_context_t ecdh,
   err = gcry_mpi_print (GCRYMPI_FMT_USG, outbuf, outbufsize, &n, x);
   if (err)
     goto leave;
+
+  if (ecdh->curve_name[0] == 'X')
+    {
+      gcry_mpi_t p;
+      unsigned int pbits;
+      int i;
+      int len;
+
+      p = gcry_mpi_ec_get_mpi ("p", ecdh->ecctx, 0);
+      if (!p)
+        {
+          err = gpg_error (GPG_ERR_INTERNAL);
+          goto leave;
+        }
+      pbits  = gcry_mpi_get_nbits (p);
+      len = (pbits+7)/8;
+      gcry_mpi_release (p);
+      if (len > 255)
+        {
+          err = gpg_error (GPG_ERR_INV_DATA);
+          goto leave;
+        }
+
+      /* Fill zero, if shorter.  */
+      if (n < len)
+        {
+          memmove (outbuf+len-n, outbuf, n);
+          memset (outbuf, 0, len - n);
+        }
+      /* Reverse the buffer */
+      for (i = 0; i < len/2; i++)
+        {
+          unsigned int tmp;
+
+          tmp = outbuf[i];
+          outbuf[i] = outbuf[len-i-1];
+          outbuf[len-i-1] = tmp;
+        }
+      n = len;
+    }
 
   *r_outbuflen = n;
 
