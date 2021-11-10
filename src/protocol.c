@@ -622,13 +622,13 @@ calc_verify_tls (gcry_md_hd_t md_input, md_algo_t md_alg,
 
 
 static void
-calc_verify_tls_sha256 (ntbtls_t tls, unsigned char hash[32])
+calc_verify_tls_sha256 (ntbtls_t tls, unsigned char *hash)
 {
   calc_verify_tls (tls->handshake->fin_sha256, GCRY_MD_SHA256, hash, 32);
 }
 
 static void
-calc_verify_tls_sha384 (ntbtls_t tls, unsigned char hash[48])
+calc_verify_tls_sha384 (ntbtls_t tls, unsigned char *hash)
 {
   calc_verify_tls (tls->handshake->fin_sha512, GCRY_MD_SHA384, hash, 48);
 }
