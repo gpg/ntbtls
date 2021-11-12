@@ -103,4 +103,4 @@ uninstall-local: uninstall-def-file
 
 ntbtls_cli_CFLAGS = @LIBGCRYPT_CFLAGS@ @KSBA_CFLAGS@ @GPG_ERROR_CFLAGS@
 ntbtls_cli_LDFLAGS = -no-install
-ntbtls_cli_LDADD = libntbtls.la @LIBGCRYPT_LIBS@ @KSBA_LIBS@ @GPG_ERROR_LIBS@ @NETLIBS@
+ntbtls_cli_LDADD = libntbtls.la @GPG_ERROR_LIBS@ @NETLIBS@
