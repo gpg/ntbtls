@@ -7,8 +7,10 @@ api_version=@NTBTLS_CONFIG_API_VERSION@
 
 Name: ntbtls
 Description: The Not Too Bad TLS Library
-Requires: ksba, libgcrypt, gpg-error
+Requires: gpg-error
+Requires.private: ksba, libgcrypt
 Version: @PACKAGE_VERSION@
 Cflags: -I${includedir} @NTBTLS_CONFIG_CFLAGS@
 Libs: -L${libdir} @NTBTLS_CONFIG_LIBS@
+Libs.private: @NETLIBS@
 URL: https://www.gnupg.org/software/ntbtls/index.html
