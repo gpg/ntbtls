@@ -233,6 +233,7 @@ AM_CONDITIONAL(HAVE_DOSISH_SYSTEM, test "$have_dosish_system" = yes)
 
 if test "$have_w32_system" = yes; then
    AC_DEFINE(HAVE_W32_SYSTEM,1, [Defined if we run on a W32 API based system])
+   AC_CHECK_HEADERS([winsock2.h])
 fi
 AM_CONDITIONAL(HAVE_W32_SYSTEM, test "$have_w32_system" = yes)
 
@@ -310,8 +311,6 @@ AC_C_VOLATILE
 AC_CHECK_SIZEOF(unsigned long)
 AC_TYPE_SIZE_T
 AC_TYPE_MODE_T
-
-gl_HEADER_SYS_SOCKET
 
 # For some systems we know that we have ld_version scripts.
 # Use it then as default.
