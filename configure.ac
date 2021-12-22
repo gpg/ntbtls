@@ -17,7 +17,7 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 # Process this file with autoconf to produce a configure script.
-AC_PREREQ([2.61])
+AC_PREREQ([2.69])
 min_automake_version="1.14"
 
 # To build a release you need to create a tag with the version number
@@ -296,7 +296,6 @@ AC_CHECK_FUNC(setsockopt, , AC_CHECK_LIB(socket, setsockopt,
 # Checks for header files.
 #
 AC_MSG_NOTICE([checking for header files])
-AC_HEADER_STDC
 AC_CHECK_HEADERS([string.h unistd.h stdint.h])
 AC_HEADER_TIME
 
