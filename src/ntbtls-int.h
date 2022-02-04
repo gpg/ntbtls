@@ -29,6 +29,14 @@
 #include "ntbtls.h"
 #include "util.h"
 
+/*
+ * Macros to help building with different crypto library versions.
+ */
+#undef SUPPORT_X448
+#if GCRYPT_VERSION_NUMBER >= 0x010900  /* >= 1.9 */
+#define SUPPORT_X448 1
+#endif
+
 
 /*
  * Various constants

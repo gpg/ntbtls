@@ -118,7 +118,9 @@ _ntbtls_ecdh_read_params (ecdh_context_t ecdh,
     case 27: ecdh->curve_name = "brainpoolP384r1"; break;
     case 28: ecdh->curve_name = "brainpoolP512r1"; break;
     case 29: ecdh->curve_name = "X25519"; break;
+#ifdef SUPPORT_X448
     case 30: ecdh->curve_name = "X448"; break;
+#endif
     default:
       return gpg_error (GPG_ERR_UNKNOWN_CURVE);
     }

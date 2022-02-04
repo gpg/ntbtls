@@ -210,8 +210,10 @@ write_supported_elliptic_curves_ext (ntbtls_t tls,
   elliptic_curve_list[elliptic_curve_len++] = 28;
   elliptic_curve_list[elliptic_curve_len++] = 0;
   elliptic_curve_list[elliptic_curve_len++] = 29;
+#ifdef SUPPORT_X448
   elliptic_curve_list[elliptic_curve_len++] = 0;
   elliptic_curve_list[elliptic_curve_len++] = 30;
+#endif
 
   *p++ = (unsigned char) ((TLS_EXT_SUPPORTED_ELLIPTIC_CURVES >> 8) & 0xFF);
   *p++ = (unsigned char) ((TLS_EXT_SUPPORTED_ELLIPTIC_CURVES) & 0xFF);
