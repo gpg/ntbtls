@@ -32,7 +32,7 @@ m4datadir = $(datadir)/aclocal
 m4data_DATA = ntbtls.m4
 
 AM_CPPFLAGS =
-AM_CFLAGS = $(GPG_ERROR_CFLAGS) $(KSBA_CFLAGS)
+AM_CFLAGS = $(GPG_ERROR_CFLAGS) $(KSBA_CFLAGS) $(LIBGCRYPT_CFLAGS)
 
 if HAVE_LD_VERSION_SCRIPT
   libntbtls_version_script_cmd = -Wl,--version-script=$(srcdir)/libntbtls.vers
@@ -78,7 +78,8 @@ libntbtls_la_LDFLAGS = $(no_undefined) $(export_symbols) \
       @LIBNTBTLS_LT_CURRENT@:@LIBNTBTLS_LT_REVISION@:@LIBNTBTLS_LT_AGE@
 libntbtls_la_INCLUDES = -I$(top_srcdir)/lib
 libntbtls_la_DEPENDENCIES = $(srcdir)/libntbtls.vers $(ntbtls_deps)
-libntbtls_la_LIBADD = $(ntbtls_res) @LTLIBOBJS@ @LIBGCRYPT_LIBS@ @KSBA_LIBS@ @GPG_ERROR_LIBS@
+libntbtls_la_LIBADD = $(ntbtls_res) $(LTLIBOBJS) $(LIBGCRYPT_LIBS) \
+                      $(KSBA_LIBS) $(GPG_ERROR_LIBS)
 
 
 libntbtls_la_SOURCES = \
@@ -101,6 +102,7 @@ uninstall-local: uninstall-def-file
 
 # Sample programs
 
-ntbtls_cli_CFLAGS = @LIBGCRYPT_CFLAGS@ @KSBA_CFLAGS@ @GPG_ERROR_CFLAGS@
+ntbtls_cli_CFLAGS = $(LIBGCRYPT_CFLAGS) $(KSBA_CFLAGS) $(GPG_ERROR_CFLAGS)
 ntbtls_cli_LDFLAGS = -no-install
-ntbtls_cli_LDADD = libntbtls.la @GPG_ERROR_LIBS@ @NETLIBS@
+ntbtls_cli_LDADD = libntbtls.la $(LIBGCRYPT_LIBS) $(KSBA_LIBS) \
+                   $(GPG_ERROR_LIBS) $(NETLIBS)
