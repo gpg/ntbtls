@@ -208,8 +208,10 @@ write_supported_elliptic_curves_ext (ntbtls_t tls,
   elliptic_curve_list[elliptic_curve_len++] = 27;
   elliptic_curve_list[elliptic_curve_len++] = 0;
   elliptic_curve_list[elliptic_curve_len++] = 28;
+#ifdef SUPPORT_X25519
   elliptic_curve_list[elliptic_curve_len++] = 0;
   elliptic_curve_list[elliptic_curve_len++] = 29;
+#endif
 #ifdef SUPPORT_X448
   elliptic_curve_list[elliptic_curve_len++] = 0;
   elliptic_curve_list[elliptic_curve_len++] = 30;
