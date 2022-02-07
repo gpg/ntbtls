@@ -1,5 +1,5 @@
 /* ntbtls.h -  Not Too Bad TLS                                  -*- c -*-
- * Copyright (C) 2014-2017 g10 Code GmbH
+ * Copyright (C) 2014-2022 g10 Code GmbH
  *
  * This file is part of NTBTLS
  *
@@ -15,6 +15,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
+ * SPDX-License-Identifier: GPL-3.0-or-later
  *
  * File: @configure_input@
  */

@@ -34,7 +34,7 @@ compat_identification (void)
   static const char blurb[] =
     "\n\n"
     "This is NTBTLS " PACKAGE_VERSION " - Not Too Bad TLS\n"
-    "Copyright (C) 2014-2017 g10 Code GmbH\n"
+    "Copyright (C) 2014-2022 g10 Code GmbH\n"
     "Copyright (C) 2006-2014 Brainspark B.V.\n"
     "\n"
     "(" BUILD_REVISION " " BUILD_TIMESTAMP ")\n"

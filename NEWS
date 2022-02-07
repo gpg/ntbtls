@@ -1,5 +1,11 @@
-Noteworthy changes in version 0.2.1 (unreleased) [C1/A1/R_]
+Noteworthy changes in version 0.3.0 (2022-02-07) [C1/A1/R1]
 ------------------------------------------------
+
+ * Support for X448 and X25519 when build with Libgcrypt 1.9 or later.
+
+ * Updates to the build system.
+
+ * Build fixes for macOS.  [T5440,T5601]
 
 
 Noteworthy changes in version 0.2.0 (2020-08-27) [C1/A1/R0]
