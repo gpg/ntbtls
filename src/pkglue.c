@@ -114,29 +114,105 @@ _ntbtls_pk_verify (x509_cert_t chain, pk_algo_t pk_alg, md_algo_t md_alg,
       goto leave;
   }
 
-  /* Put the hash into an s-expression.  */
-  err = gcry_sexp_build (&s_hash, NULL, "(data(flags pkcs1)(hash %s %b))",
-                         md_alg_str, (int)hashlen, hash);
-  if (err)
-    goto leave;
-
-  /* Put the signature into an s-expression. */
+  /* Put the hash and the signature into s-expressions. */
   switch (pk_alg)
     {
     case GCRY_PK_RSA:
-      err = gcry_sexp_build (&s_sig, NULL, "(sig-val(rsa(s%b)))",
-                             (int)siglen, sig);
+      err = gcry_sexp_build (&s_hash, NULL, "(data(flags pkcs1)(hash %s %b))",
+                             md_alg_str, (int)hashlen, hash);
+      if (!err)
+        err = gcry_sexp_build (&s_sig, NULL, "(sig-val(rsa(s%b)))",
+                               (int)siglen, sig);
       break;
 
-    /* case GCRY_PK_DSA: */
-    /*   err = gcry_sexp_build (&s_sig, NULL, "(sig-val(dsa(r%m)(s%m)))", */
-    /*                          data[0], data[1]); */
-    /*   break; */
+    case GCRY_PK_ECC:
+      {
+        unsigned int qbits0, qbits;
+        const unsigned char *r, *s;
+        int rlen, slen;
 
-    /* case PUBKEY_PK_ECC: */
-    /*   err = gcry_sexp_build (&s_sig, NULL, "(sig-val(ecdsa(r%m)(s%m)))", */
-    /*                          data[0], data[1]); */
-    /*   break; */
+        qbits0 = gcry_pk_get_nbits (s_pk);
+        qbits = qbits0 == 521? 512 : qbits0;
+
+        if ((qbits%8))
+          {
+            debug_msg (1, "qbits are not a multiple of 8 bits");
+            err = gpg_error (GPG_ERR_INTERNAL);
+            goto leave;
+          }
+
+        if (qbits < 224)
+          {
+            debug_msg (1, "key uses an unsafe (%u bit) hash\n", qbits0);
+            err = gpg_error (GPG_ERR_UNUSABLE_PUBKEY);
+            goto leave;
+          }
+
+        if (hashlen < qbits/8)
+          {
+            debug_msg (1, "a %u bit hash is not valid for a %u bit ECC key",
+                       (unsigned int)hashlen*8, qbits);
+            err = gpg_error (GPG_ERR_DIGEST_ALGO);
+            goto leave;
+          }
+
+        if (hashlen > qbits/8)
+          hashlen = qbits/8; /* Truncate.  */
+
+        err = gcry_sexp_build (&s_hash, NULL, "(data (flags raw)(value %b))",
+                               (int)hashlen, hash);
+        if (err)
+          goto leave;
+        /* 3045    -- SEQUENCE with length 0x45
+         *   0220  -- INTEGER with length 0x20
+         *     3045bcceccda9464c1d340a225e55e3d045e17ce004c0508a2cd61dd
+         *     23a63ba6
+         *   0221  -- INTEGER with length 0x21 (due to 0x00 prefix)
+         *     00e39b404793be76e87089ff3b5c306246a9f8cb52d94c77c624c3bf
+         *     118e2418e8
+         */
+        if (siglen < 6 || sig[0] != 0x30 || sig[1] != siglen - 2
+            || sig[2] != 0x02)
+          {
+            err = gpg_error (GPG_ERR_INV_BER);
+            goto leave;
+          }
+        siglen -= 2;
+        sig += 2;
+        rlen = sig[1];
+        if ((rlen != 32 && rlen != 33
+             && rlen != 48 && rlen != 49
+             && rlen != 64 && rlen != 65)
+            || (rlen + 2 > siglen))
+          {
+            /* The signature length is not 256, 384 or 512 bit. The
+             * odd values are to handle an extra zero prefix.  Or
+             * the length is larger than the entire frame.  */
+            err = gpg_error (GPG_ERR_INV_LENGTH);
+            goto leave;
+          }
+        r = sig + 2;
+        sig = r + rlen;
+        siglen -= rlen + 2;
+        if (siglen < 3 || sig[0] != 0x02)
+          {
+            err = gpg_error (GPG_ERR_INV_BER);
+            goto leave;
+          }
+        siglen -= 2;
+        slen = sig[1];
+        if ((slen > siglen) || ((rlen & ~1) != (slen & ~1)))
+          {
+            /* The length of S does not match the length of R.  Or
+             * the length is larger than the entire frame.  */
+            err = gpg_error (GPG_ERR_INV_LENGTH);
+            goto leave;
+          }
+        s = sig + 2;
+        err = gcry_sexp_build (&s_sig, NULL, "(sig-val(ecdsa(r%b)(s%b)))",
+                               rlen, r, slen, s);
+      }
+      break;
 
     default:
       err = gpg_error (GPG_ERR_NOT_IMPLEMENTED);
@@ -148,9 +224,8 @@ _ntbtls_pk_verify (x509_cert_t chain, pk_algo_t pk_alg, md_algo_t md_alg,
   debug_sxp (4, "sig ", s_sig);
   debug_sxp (4, "hash", s_hash);
   debug_sxp (4, "pk  ", s_pk);
-
   err = gcry_pk_verify (s_sig, s_hash, s_pk);
-
+  debug_msg (4, "res=%d", err);
 
  leave:
   gcry_sexp_release (s_pk);
@@ -158,6 +233,7 @@ _ntbtls_pk_verify (x509_cert_t chain, pk_algo_t pk_alg, md_algo_t md_alg,
   gcry_sexp_release (s_sig);
   return err;
 }
+
 
 gpg_error_t
 _ntbtls_pk_encrypt (x509_cert_t chain,
