@@ -23,7 +23,11 @@ pkgconfig_DATA = ntbtls.pc
 
 EXTRA_DIST = ntbtls.h.in ntbtls.m4 libntbtls.vers libntbtls.def \
              versioninfo.rc.in ntbtls.pc.in
+if USE_GPGRT_CONFIG
+noinst_SCRIPTS = ntbtls-config
+else
 bin_SCRIPTS = ntbtls-config
+endif
 include_HEADERS = ntbtls.h
 lib_LTLIBRARIES = libntbtls.la
 noinst_PROGRAMS = ntbtls-cli
