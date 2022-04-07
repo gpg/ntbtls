@@ -1,5 +1,9 @@
-Noteworthy changes in version 0.3.1 (unreleased) [C1/A1/R_]
+Noteworthy changes in version 0.3.1 (2022-04-07) [C1/A1/R2]
 ------------------------------------------------
+
+ * Support ephemeral ECDSA cipher suites. [rT08c1622944]
+
+ * Do not install ntbtls-config if the new gpgrt-config is available.
 
 
 Noteworthy changes in version 0.3.0 (2022-02-07) [C1/A1/R1]
