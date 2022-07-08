@@ -148,7 +148,11 @@ _ntbtls_pk_verify (x509_cert_t chain, pk_algo_t pk_alg, md_algo_t md_alg,
             goto leave;
           }
 
-        if (hashlen < qbits/8)
+        /*
+         * For TLS 1.2, it is possible for a server to use SHA256 with
+         * secpr384 key.  See RFC8422 section 5.10.
+         */
+        if (0 && hashlen < qbits/8)
           {
             debug_msg (1, "a %u bit hash is not valid for a %u bit ECC key",
                        (unsigned int)hashlen*8, qbits);
