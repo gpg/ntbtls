@@ -74,7 +74,7 @@ NEED_KSBA_VERSION=1.2.0
 
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_SRCDIR([src/ntbtls.h.in])
-AC_CONFIG_HEADER([config.h])
+AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([serial-tests dist-bzip2 no-dist-gzip])
 AC_CANONICAL_HOST
 AC_USE_SYSTEM_EXTENSIONS
@@ -299,8 +299,6 @@ AC_CHECK_FUNC(setsockopt, , AC_CHECK_LIB(socket, setsockopt,
 #
 AC_MSG_NOTICE([checking for header files])
 AC_CHECK_HEADERS([string.h unistd.h stdint.h])
-AC_HEADER_TIME
-
 
 #
 # Checks for typedefs, structures, and compiler characteristics.
