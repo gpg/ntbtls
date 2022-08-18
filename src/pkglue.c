@@ -152,8 +152,10 @@ _ntbtls_pk_verify (x509_cert_t chain, pk_algo_t pk_alg, md_algo_t md_alg,
           {
             debug_msg (1, "a %u bit hash is not valid for a %u bit ECC key",
                        (unsigned int)hashlen*8, qbits);
+#if 0
             err = gpg_error (GPG_ERR_DIGEST_ALGO);
             goto leave;
+#endif
           }
 
         if (hashlen > qbits/8)

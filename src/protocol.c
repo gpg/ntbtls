@@ -486,7 +486,7 @@ _ntbtls_derive_keys (ntbtls_t tls)
       mac_dec = keyblk + transform->maclen;
 
       /*
-       * This is not used in TLS v1.1.  FIXME: Check and remove.
+       * This is used in TLS v1.2 for AEAD cipher.
        */
       iv_copy_len = (transform->fixed_ivlen ?
                      transform->fixed_ivlen : transform->ivlen);
@@ -503,7 +503,7 @@ _ntbtls_derive_keys (ntbtls_t tls)
       mac_dec = keyblk;
 
       /*
-       * This is not used in TLS v1.1.  FIXME: Check and remove
+       * This is used in TLS v1.2 for AEAD cipher.
        */
       iv_copy_len = (transform->fixed_ivlen ?
                      transform->fixed_ivlen : transform->ivlen);
@@ -551,6 +551,20 @@ _ntbtls_derive_keys (ntbtls_t tls)
     {
       debug_ret (1, "cipher_setkey", err);
       return err;
+    }
+
+  if (is_aead_mode (ciphermode))
+    {
+      err = gcry_cipher_setup_geniv (transform->cipher_ctx_enc,
+                                     GCRY_CIPHER_GENIV_METHOD_CONCAT,
+                                     transform->iv_enc, transform->fixed_ivlen,
+                                     tls->out_ctr,
+                                     transform->ivlen - transform->fixed_ivlen);
+      if (err)
+        {
+          debug_ret (1, "cipher_setup_geniv", err);
+          return err;
+        }
     }
 
   wipememory (keyblk, sizeof (keyblk));
@@ -799,15 +813,28 @@ encrypt_buf (ntbtls_t tls)
 
       debug_buf (4, "additional data used for AEAD", add_data, 13);
 
+      err = gcry_cipher_reset (tls->transform_out->cipher_ctx_enc);
+      if (err)
+        {
+          debug_ret (1, "cipher_reset", err);
+          return err;
+        }
+
       /*
        * Generate IV
        */
-      memcpy (iv, tls->transform_out->iv_enc, tls->transform_out->fixed_ivlen);
-      memcpy (iv + tls->transform_out->fixed_ivlen, tls->out_ctr, 8);
-      memcpy (tls->out_iv, tls->out_ctr, 8);
+      err = gcry_cipher_geniv (tls->transform_out->cipher_ctx_enc, iv,
+                               tls->transform_out->ivlen);
+      if (err)
+        {
+          debug_ret (1, "cipher_geniv", err);
+          return err;
+        }
+      memcpy (tls->out_iv, iv + tls->transform_out->fixed_ivlen, 8);
 
       debug_buf (4, "IV used (internal)", iv, tls->transform_out->ivlen);
-      debug_buf (4, "IV used (transmitted)", tls->out_iv,
+      debug_buf (4, "IV used (transmitted)",
+                 iv + tls->transform_out->fixed_ivlen,
                  tls->transform_out->ivlen - tls->transform_out->fixed_ivlen);
 
       /*
@@ -822,20 +849,6 @@ encrypt_buf (ntbtls_t tls)
                  "including %d bytes of padding", enc_msglen, 0);
       debug_buf (4, "before encrypt: output payload",
                  tls->out_msg, enc_msglen);
-
-      err = gcry_cipher_reset (tls->transform_out->cipher_ctx_enc);
-      if (err)
-        {
-          debug_ret (1, "cipher_reset", err);
-          return err;
-        }
-      err = gcry_cipher_setiv (tls->transform_out->cipher_ctx_enc, iv,
-                               tls->transform_out->ivlen);
-      if (err)
-        {
-          debug_ret (1, "cipher_setiv", err);
-          return err;
-        }
 
       /*
        * Encrypt and authenticate
