@@ -687,7 +687,7 @@ _ntbtls_psk_derive_premaster (ntbtls_t tls, key_exchange_type_t kex)
     }
   else if (kex == KEY_EXCHANGE_ECDHE_PSK)
     {
-      size_t zlen;
+      size_t zlen = 0;
 
       /* err = ecdh_calc_secret (&tls->handshake->ecdh_ctx, &zlen, */
       /*                         p + 2, end - (p + 2)); */
