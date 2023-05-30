@@ -107,6 +107,10 @@ uninstall-local: uninstall-def-file
 # Sample programs
 
 ntbtls_cli_CFLAGS = $(LIBGCRYPT_CFLAGS) $(KSBA_CFLAGS) $(GPG_ERROR_CFLAGS)
+if HAVE_W32_SYSTEM
+ntbtls_cli_LDFLAGS = -no-fast-install
+else
 ntbtls_cli_LDFLAGS = -no-install
+#endif
 ntbtls_cli_LDADD = libntbtls.la $(LIBGCRYPT_LIBS) $(KSBA_LIBS) \
                    $(GPG_ERROR_LIBS) $(NETLIBS)
