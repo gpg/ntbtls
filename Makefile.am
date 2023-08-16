@@ -27,8 +27,9 @@ GITLOG_TO_CHANGELOG=gitlog-to-changelog
 DIST_SUBDIRS = m4 src
 SUBDIRS =         src
 
-EXTRA_DIST = autogen.sh autogen.rc README.GIT VERSION 	               \
-             build-aux/git-log-footer build-aux/git-log-fix
+EXTRA_DIST = autogen.sh autogen.rc README.GIT VERSION		\
+	     build-aux/git-log-footer build-aux/git-log-fix	\
+	     build-aux/libtool-patch.sed
 
 DISTCLEANFILES =
 
