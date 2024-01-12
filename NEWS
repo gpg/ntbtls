@@ -1,5 +1,11 @@
-Noteworthy changes in version 0.3.2 (unreleased) [C1/A1/R_]
+Noteworthy changes in version 0.3.2 (2024-01-12) [C1/A1/R3]
 ------------------------------------------------
+
+ * Allow server's use of SHA256 hash with secpr384 key.  [T6059]
+
+ * Modernize the build scripts.
+
+ Release-info: https://dev.gnupg.org/T6925
 
 
 Noteworthy changes in version 0.3.1 (2022-04-07) [C1/A1/R2]
