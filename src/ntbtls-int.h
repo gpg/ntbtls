@@ -432,6 +432,7 @@ gpg_error_t _ntbtls_ecdh_calc_secret (ecdh_context_t ecdh,
 gpg_error_t _ntbtls_ecdh_peer_ec_point (ecdh_context_t ecdh,
                                         const unsigned char *ecpoint,
                                         size_t ecpointlen);
+gpg_error_t _ntbtls_ecdh_curvename (ecdh_context_t ecdh, unsigned int curve_id);
 
 
 

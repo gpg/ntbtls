@@ -93,6 +93,32 @@ _ntbtls_ecdh_peer_ec_point (ecdh_context_t ecdh,
   return err;
 }
 
+
+gpg_error_t
+_ntbtls_ecdh_curvename (ecdh_context_t ecdh, unsigned int curve_id)
+{
+  switch (curve_id)
+    {
+    case 23: ecdh->curve_name = "secp256r1"; break;
+    case 24: ecdh->curve_name = "secp384r1"; break;
+    case 25: ecdh->curve_name = "secp521r1"; break;
+    case 26: ecdh->curve_name = "brainpoolP256r1"; break;
+    case 27: ecdh->curve_name = "brainpoolP384r1"; break;
+    case 28: ecdh->curve_name = "brainpoolP512r1"; break;
+#ifdef SUPPORT_X25519
+    case 29: ecdh->curve_name = "X25519"; break;
+#endif
+#ifdef SUPPORT_X448
+    case 30: ecdh->curve_name = "X448"; break;
+#endif
+    default:
+      return gpg_error (GPG_ERR_UNKNOWN_CURVE);
+    }
+
+  return gcry_mpi_ec_new (&ecdh->ecctx, NULL, ecdh->curve_name);
+}
+
+
 /* Parse the TLS ECDHE parameters and store them in ECDH.  DER is the
  * buffer with the params of length DERLEN.  The number of actual
  * parsed bytes is stored at R_NPARSED.  */
@@ -105,6 +131,7 @@ _ntbtls_ecdh_read_params (ecdh_context_t ecdh,
   const unsigned char *derstart = _der;
   const unsigned char *der = _der;
   size_t n;
+  unsigned int curve_id;
 
   if (r_nparsed)
     *r_nparsed = 0;
@@ -131,27 +158,10 @@ _ntbtls_ecdh_read_params (ecdh_context_t ecdh,
   der++;
   derlen--;
 
-  switch (buf16_to_uint (der))
-    {
-    case 23: ecdh->curve_name = "secp256r1"; break;
-    case 24: ecdh->curve_name = "secp384r1"; break;
-    case 25: ecdh->curve_name = "secp521r1"; break;
-    case 26: ecdh->curve_name = "brainpoolP256r1"; break;
-    case 27: ecdh->curve_name = "brainpoolP384r1"; break;
-    case 28: ecdh->curve_name = "brainpoolP512r1"; break;
-#ifdef SUPPORT_X25519
-    case 29: ecdh->curve_name = "X25519"; break;
-#endif
-#ifdef SUPPORT_X448
-    case 30: ecdh->curve_name = "X448"; break;
-#endif
-    default:
-      return gpg_error (GPG_ERR_UNKNOWN_CURVE);
-    }
+  curve_id = buf16_to_uint (der);
   der += 2;
   derlen -= 2;
-
-  err = gcry_mpi_ec_new (&ecdh->ecctx, NULL, ecdh->curve_name);
+  err = _ntbtls_ecdh_curvename (ecdh, curve_id);
   if (err)
     return err;
 
