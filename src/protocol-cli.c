@@ -184,6 +184,41 @@ write_signature_algorithms_ext (ntbtls_t ssl,
 
 
 static void
+write_key_share_ext (ntbtls_t tls, unsigned char *buf, size_t * olen)
+{
+  /* FIMXE: For now, it's hard-coded for X25519 */
+  unsigned char public[33];
+  size_t len;
+  unsigned char *p = buf;
+  size_t key_share_len = 2 + 2 + 32;
+
+  _ntbtls_ecdh_make_public (tls->handshake->ecdh_ctx, public, 33, &len);
+
+  debug_msg (3, "client_hello, adding key share extension");
+
+  *p++ = (unsigned char) ((TLS_EXT_KEY_SHARE >> 8) & 0xFF);
+  *p++ = (unsigned char) ((TLS_EXT_KEY_SHARE) & 0xFF);
+
+  *p++ = (unsigned char) (((key_share_len + 2) >> 8) & 0xFF);
+  *p++ = (unsigned char) (((key_share_len + 2)) & 0xFF);
+
+  *p++ = (unsigned char) ((key_share_len >> 8) & 0xFF);
+  *p++ = (unsigned char) (key_share_len & 0xFF);
+
+  *p++ = 0;
+  *p++ = 29;                    /* X25519 */
+
+  *p++ = 0;
+  *p++ = 32;                    /* length for X25519 */
+
+  memcpy (p, public+1, 32);
+  p += 32;
+
+  *olen = p - buf;
+}
+
+
+static void
 write_supported_versions_ext (ntbtls_t tls, unsigned char *buf, size_t * olen)
 {
   unsigned char *p = buf;
@@ -578,6 +613,9 @@ write_client_hello (ntbtls_t tls)
   ext_len += olen;
 
   write_signature_algorithms_ext (tls, p + 2 + ext_len, &olen);
+  ext_len += olen;
+
+  write_key_share_ext (tls, p + 2 + ext_len, &olen);
   ext_len += olen;
 
   write_supported_versions_ext (tls, p + 2 + ext_len, &olen);

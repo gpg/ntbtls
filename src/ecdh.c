@@ -267,7 +267,7 @@ _ntbtls_ecdh_make_public (ecdh_context_t ecdh,
 
   *r_outbuflen = 0;
 
-  if (!ecdh->curve_name || !ecdh->ecctx || !ecdh->Qpeer)
+  if (!ecdh->curve_name || !ecdh->ecctx)
     return gpg_error (GPG_ERR_NOT_INITIALIZED);
 
   /* Create a secret and store it in the context.  */
