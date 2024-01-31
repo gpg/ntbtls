@@ -558,12 +558,10 @@ write_client_hello (ntbtls_t tls)
 
   debug_msg (3, "client_hello, got %zu ciphersuites", n);
 
-  debug_msg (3, "client_hello, compress len.: %d", 2);
-  debug_msg (3, "client_hello, compress alg.: %d %d",
-             TLS_COMPRESS_DEFLATE, TLS_COMPRESS_NULL);
+  debug_msg (3, "client_hello, compress len.: %d", 1);
+  debug_msg (3, "client_hello, compress alg.: %d", TLS_COMPRESS_NULL);
 
-  *p++ = 2;
-  *p++ = TLS_COMPRESS_DEFLATE;
+  *p++ = 1;
   *p++ = TLS_COMPRESS_NULL;
 
   /* First write extensions, then the total length.  */

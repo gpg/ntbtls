@@ -83,7 +83,6 @@ AC_USE_SYSTEM_EXTENSIONS
 have_gpg_error=no
 have_libgcrypt=no
 have_ksba=no
-use_zip=yes
 
 AC_SUBST(LIBNTBTLS_LT_CURRENT)
 AC_SUBST(LIBNTBTLS_LT_AGE)
@@ -469,34 +468,6 @@ if test "$ntbtls_cv_visibility_attribute" = "yes" \
                [Define to use the GNU C visibility attribute.])
    CFLAGS="$CFLAGS -fvisibility=hidden"
 fi
-
-
-#
-# Do we have zlib? Must do it here because Solaris failed
-# when compiling a conftest (due to the "-lz" from LIBS).
-# Note that we combine zlib and bzlib2 in ZLIBS.
-#
-if test "$use_zip" = yes ; then
-  _cppflags="${CPPFLAGS}"
-  _ldflags="${LDFLAGS}"
-  AC_ARG_WITH(zlib,
-    [  --with-zlib=DIR         use libz in DIR],[
-      if test -d "$withval"; then
-        CPPFLAGS="${CPPFLAGS} -I$withval/include"
-        LDFLAGS="${LDFLAGS} -L$withval/lib"
-      fi
-    ])
-
-  AC_CHECK_HEADER(zlib.h,
-     AC_CHECK_LIB(z, deflateInit2_,
-       [
-       ZLIBS="-lz"
-       AC_DEFINE(HAVE_ZIP,1, [Defined if ZIP and ZLIB are supported])
-       ],
-       CPPFLAGS=${_cppflags} LDFLAGS=${_ldflags}),
-       CPPFLAGS=${_cppflags} LDFLAGS=${_ldflags})
-fi
-
 
 
 AM_CONDITIONAL(CROSS_COMPILING, test x$cross_compiling = xyes)

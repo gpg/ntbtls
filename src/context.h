@@ -21,9 +21,6 @@
 #ifndef NTBTLS_CONTEXT_H
 #define NTBTLS_CONTEXT_H
 
-#include <zlib.h>
-
-
 typedef enum gcry_md_algos md_algo_t;
 typedef enum gcry_mac_algos mac_algo_t;
 typedef enum gcry_cipher_algos cipher_algo_t;
@@ -181,12 +178,6 @@ struct _ntbtls_transform_s
   cipher_mode_t    cipher_mode_enc;/* Mode for encryption.    */
   gcry_cipher_hd_t cipher_ctx_dec; /* Decryption context.     */
   cipher_mode_t    cipher_mode_dec;/* Mode for encryption.    */
-
-  /*
-   * Session specific compression layer
-   */
-  z_stream ctx_deflate;         /*!<  compression context     */
-  z_stream ctx_inflate;         /*!<  decompression context   */
 };
 
 typedef struct _ntbtls_transform_s *transform_t;

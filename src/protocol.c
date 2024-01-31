@@ -1304,98 +1304,6 @@ decrypt_buf (ntbtls_t tls)
 }
 
 
-/*
- * Compression/decompression functions
- */
-static int
-ssl_compress_buf (ntbtls_t ssl)
-{
-  int ret;
-  unsigned char *msg_post = ssl->out_msg;
-  size_t len_pre = ssl->out_msglen;
-  unsigned char *msg_pre = ssl->compress_buf;
-
-  debug_msg (2, "compress buf");
-
-  if (len_pre == 0)
-    return (0);
-
-  memcpy (msg_pre, ssl->out_msg, len_pre);
-
-  debug_msg (3, "before compression: msglen = %zu, ", ssl->out_msglen);
-
-  debug_buf (4, "before compression: output payload",
-             ssl->out_msg, ssl->out_msglen);
-
-  ssl->transform_out->ctx_deflate.next_in = msg_pre;
-  ssl->transform_out->ctx_deflate.avail_in = len_pre;
-  ssl->transform_out->ctx_deflate.next_out = msg_post;
-  ssl->transform_out->ctx_deflate.avail_out = TLS_BUFFER_LEN;
-
-  /* ret = deflate (&ssl->transform_out->ctx_deflate, Z_SYNC_FLUSH); */
-  ret = gpg_error (GPG_ERR_NOT_IMPLEMENTED);
-  if (ret != Z_OK)
-    {
-      debug_msg (1, "failed to perform compression (%d)", ret);
-      return gpg_error (GPG_ERR_COMPR_FAILED);
-    }
-
-  ssl->out_msglen = (TLS_BUFFER_LEN
-                     - ssl->transform_out->ctx_deflate.avail_out);
-
-  debug_msg (3, "after compression: msglen = %zu, ", ssl->out_msglen);
-
-  debug_buf (4, "after compression: output payload",
-             ssl->out_msg, ssl->out_msglen);
-
-  return (0);
-}
-
-static int
-ssl_decompress_buf (ntbtls_t ssl)
-{
-  int ret;
-  unsigned char *msg_post = ssl->in_msg;
-  size_t len_pre = ssl->in_msglen;
-  unsigned char *msg_pre = ssl->compress_buf;
-
-  debug_msg (2, "decompress buf");
-
-  if (len_pre == 0)
-    return (0);
-
-  memcpy (msg_pre, ssl->in_msg, len_pre);
-
-  debug_msg (3, "before decompression: msglen = %zu, ", ssl->in_msglen);
-
-  debug_buf (4, "before decompression: input payload",
-             ssl->in_msg, ssl->in_msglen);
-
-  ssl->transform_in->ctx_inflate.next_in = msg_pre;
-  ssl->transform_in->ctx_inflate.avail_in = len_pre;
-  ssl->transform_in->ctx_inflate.next_out = msg_post;
-  ssl->transform_in->ctx_inflate.avail_out = TLS_MAX_CONTENT_LEN;
-
-  /* ret = inflate (&ssl->transform_in->ctx_inflate, Z_SYNC_FLUSH); */
-  ret = gpg_error (GPG_ERR_NOT_IMPLEMENTED);
-  if (ret != Z_OK)
-    {
-      debug_msg (1, "failed to perform decompression (%d)", ret);
-      return gpg_error (GPG_ERR_COMPR_FAILED);
-    }
-
-  ssl->in_msglen = (TLS_MAX_CONTENT_LEN
-                    - ssl->transform_in->ctx_inflate.avail_out);
-
-  debug_msg (3, "after decompression: msglen = %zu, ", ssl->in_msglen);
-
-  debug_buf (4, "after decompression: input payload",
-             ssl->in_msg, ssl->in_msglen);
-
-  return (0);
-}
-
-
 /* Fill the input message buffer with NB_WANT bytes.  The function
  * returns an error if the numer of requested bytes do not fit into
  * the record buffer, there is a read problem, or on EOF.  */
@@ -1495,19 +1403,6 @@ _ntbtls_write_record (ntbtls_t tls)
 
       if (tls->out_msg[0] != TLS_HS_HELLO_REQUEST)
         tls->handshake->update_checksum (tls, tls->out_msg, len);
-    }
-
-  if (tls->transform_out
-      && tls->session_out->compression == TLS_COMPRESS_DEFLATE)
-    {
-      err = ssl_compress_buf (tls);
-      if (err)
-        {
-          debug_ret (1, "ssl_compress_buf", err);
-          return err;
-        }
-
-      len = tls->out_msglen;
     }
 
   if (!done)
@@ -1703,19 +1598,6 @@ _ntbtls_read_record (ntbtls_t tls)
           debug_msg (1, "bad message length");
           return gpg_error (GPG_ERR_INV_RECORD);
         }
-    }
-
-  if (tls->transform_in && tls->session_in->compression == TLS_COMPRESS_DEFLATE)
-    {
-      err = ssl_decompress_buf (tls);
-      if (err)
-        {
-          debug_ret (1, "decompress_buf", err);
-          return err;
-        }
-
-      tls->in_hdr[3] = (unsigned char) (tls->in_msglen >> 8);
-      tls->in_hdr[4] = (unsigned char) (tls->in_msglen);
     }
 
   if (   tls->in_msgtype != TLS_MSG_HANDSHAKE
