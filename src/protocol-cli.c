@@ -184,6 +184,36 @@ write_signature_algorithms_ext (ntbtls_t ssl,
 
 
 static void
+write_supported_versions_ext (ntbtls_t tls, unsigned char *buf, size_t * olen)
+{
+  unsigned char *p = buf;
+  size_t version_len;
+
+  (void)tls;
+
+  version_len = 2 * 2;
+
+  debug_msg (3, "client hello, adding supported_versions extension");
+
+  *p++ = (unsigned char) ((TLS_EXT_SUPPORTED_VERSIONS >> 8) & 0xFF);
+  *p++ = (unsigned char) ((TLS_EXT_SUPPORTED_VERSIONS) & 0xFF);
+
+  *p++ = (unsigned char) (((version_len + 1) >> 8) & 0xFF);
+  *p++ = (unsigned char) (((version_len + 1)) & 0xFF);
+
+  *p++ = (unsigned char) version_len;
+
+  *p++ = (unsigned char) TLS_MAJOR_VERSION_3;
+  *p++ = (unsigned char) TLS_MINOR_VERSION_3;
+
+  *p++ = (unsigned char) TLS_MAJOR_VERSION_3;
+  *p++ = (unsigned char) TLS_MINOR_VERSION_4;
+
+  *olen = (p - buf);
+}
+
+
+static void
 write_supported_elliptic_curves_ext (ntbtls_t tls,
                                      unsigned char *buf, size_t * olen)
 {
@@ -543,13 +573,16 @@ write_client_hello (ntbtls_t tls)
   write_cli_renegotiation_ext (tls, p + 2 + ext_len, &olen);
   ext_len += olen;
 
-  write_signature_algorithms_ext (tls, p + 2 + ext_len, &olen);
-  ext_len += olen;
-
   write_supported_elliptic_curves_ext (tls, p + 2 + ext_len, &olen);
   ext_len += olen;
 
   write_cli_supported_point_formats_ext (tls, p + 2 + ext_len, &olen);
+  ext_len += olen;
+
+  write_signature_algorithms_ext (tls, p + 2 + ext_len, &olen);
+  ext_len += olen;
+
+  write_supported_versions_ext (tls, p + 2 + ext_len, &olen);
   ext_len += olen;
 
   write_cli_max_fragment_length_ext (tls, p + 2 + ext_len, &olen);
