@@ -429,6 +429,9 @@ gpg_error_t _ntbtls_ecdh_make_public (ecdh_context_t ecdh,
 gpg_error_t _ntbtls_ecdh_calc_secret (ecdh_context_t ecdh,
                                       unsigned char *outbuf, size_t outbufsize,
                                       size_t *r_outbuflen);
+gpg_error_t _ntbtls_ecdh_peer_ec_point (ecdh_context_t ecdh,
+                                        const unsigned char *ecpoint,
+                                        size_t ecpointlen);
 
 
 

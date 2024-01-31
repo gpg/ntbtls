@@ -70,6 +70,29 @@ _ntbtls_ecdh_release (ecdh_context_t ecdh)
 }
 
 
+gpg_error_t
+_ntbtls_ecdh_peer_ec_point (ecdh_context_t ecdh,
+                            const unsigned char *ecpoint, size_t ecpointlen)
+{
+  gcry_mpi_t mpi;
+  gpg_error_t err;
+
+  mpi = gcry_mpi_set_opaque_copy (NULL, ecpoint, 8*ecpointlen);
+  if (!mpi)
+    return gpg_error_from_syserror ();
+
+  ecdh->Qpeer = gcry_mpi_point_new (0);
+  err = gcry_mpi_ec_decode_point (ecdh->Qpeer, mpi, ecdh->ecctx);
+  if (err)
+    {
+      gcry_mpi_point_release (ecdh->Qpeer);
+      ecdh->Qpeer = NULL;
+    }
+
+  gcry_mpi_release (mpi);
+  return err;
+}
+
 /* Parse the TLS ECDHE parameters and store them in ECDH.  DER is the
  * buffer with the params of length DERLEN.  The number of actual
  * parsed bytes is stored at R_NPARSED.  */
@@ -82,7 +105,6 @@ _ntbtls_ecdh_read_params (ecdh_context_t ecdh,
   const unsigned char *derstart = _der;
   const unsigned char *der = _der;
   size_t n;
-  gcry_mpi_t tmpmpi;
 
   if (r_nparsed)
     *r_nparsed = 0;
@@ -142,21 +164,12 @@ _ntbtls_ecdh_read_params (ecdh_context_t ecdh,
   if (n > derlen)
     return gpg_error (GPG_ERR_TOO_LARGE);
 
-  tmpmpi = gcry_mpi_set_opaque_copy (NULL, der, 8*n);
-  if (!tmpmpi)
-    return gpg_error_from_syserror ();
+  err = _ntbtls_ecdh_peer_ec_point (ecdh, der, n);
+  if (err)
+    return err;
+
   der += n;
   derlen -= n;
-
-  ecdh->Qpeer = gcry_mpi_point_new (0);
-  err = gcry_mpi_ec_decode_point (ecdh->Qpeer, tmpmpi, ecdh->ecctx);
-  gcry_mpi_release (tmpmpi);
-  if (err)
-    {
-      gcry_mpi_point_release (ecdh->Qpeer);
-      ecdh->Qpeer = NULL;
-      return err;
-    }
 
   if (r_nparsed)
     *r_nparsed = (der - derstart);
