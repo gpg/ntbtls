@@ -1006,7 +1006,7 @@ read_server_hello (ntbtls_t tls)
     }
 
 
-  if (comp != TLS_COMPRESS_NULL && comp != TLS_COMPRESS_DEFLATE)
+  if (comp != TLS_COMPRESS_NULL)
     {
       debug_msg (1, "bad server_hello message");
       return gpg_error (GPG_ERR_BAD_HS_SERVER_HELLO);
