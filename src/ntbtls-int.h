@@ -48,6 +48,7 @@
 #define TLS_MINOR_VERSION_1             1       /* TLS v1.0 */
 #define TLS_MINOR_VERSION_2             2       /* TLS v1.1 */
 #define TLS_MINOR_VERSION_3             3       /* TLS v1.2 */
+#define TLS_MINOR_VERSION_4             4       /* TLS v1.3 */
 
 /* Define minimum and maximum supported versions.  This is currently
    TLS v1.2 only but we may support newer versions of TLS as soon as
@@ -55,7 +56,7 @@
 #define TLS_MIN_MAJOR_VERSION           TLS_MAJOR_VERSION_3
 #define TLS_MIN_MINOR_VERSION           TLS_MINOR_VERSION_3
 #define TLS_MAX_MAJOR_VERSION           TLS_MAJOR_VERSION_3
-#define TLS_MAX_MINOR_VERSION           TLS_MINOR_VERSION_3
+#define TLS_MAX_MINOR_VERSION           TLS_MINOR_VERSION_4
 
 
 #define TLS_RENEGO_MAX_RECORDS_DEFAULT  16
@@ -238,6 +239,8 @@ union premaster_secret_u
 #define TLS_EXT_SIG_ALG                     13
 #define TLS_EXT_ALPN                        16
 #define TLS_EXT_SESSION_TICKET              35
+#define TLS_EXT_SUPPORTED_VERSIONS          43
+#define TLS_EXT_KEY_SHARE                   51
 #define TLS_EXT_RENEGOTIATION_INFO      0xFF01
 
 /* TLS extension flags (for extensions with outgoing ServerHello

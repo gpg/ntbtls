@@ -64,6 +64,10 @@ struct _ntbtls_ciphersuite_s
  */
 static const int ciphersuite_preference[] = {
 
+  /* TLS 1.3 suites */
+  TLS_AES_128_GCM_SHA256,
+  TLS_AES_256_GCM_SHA384,
+
   /* All AES-256 ephemeral suites */
   TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
   TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
@@ -232,6 +236,22 @@ static const int ciphersuite_preference[] = {
 
 
 static const struct _ntbtls_ciphersuite_s ciphersuite_definitions[] = {
+
+  {TLS_AES_128_GCM_SHA256,
+   "TLS-AES-128-GCM-SHA256",
+   GCRY_CIPHER_AES, GCRY_CIPHER_MODE_GCM, GCRY_MAC_HMAC_SHA256,
+   KEY_EXCHANGE_ECDHE_ECDSA,
+   0,
+   TLS_MAJOR_VERSION_3, TLS_MINOR_VERSION_4,
+   TLS_MAJOR_VERSION_3, TLS_MINOR_VERSION_4},
+
+  {TLS_AES_256_GCM_SHA384,
+   "TLS-AES-256-GCM-SHA384",
+   GCRY_CIPHER_AES256, GCRY_CIPHER_MODE_GCM, GCRY_MAC_HMAC_SHA384,
+   KEY_EXCHANGE_ECDHE_ECDSA,
+   0,
+   TLS_MAJOR_VERSION_3, TLS_MINOR_VERSION_4,
+   TLS_MAJOR_VERSION_3, TLS_MINOR_VERSION_4},
 
   {TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
    "TLS-ECDHE-ECDSA-WITH-AES-128-CBC-SHA",

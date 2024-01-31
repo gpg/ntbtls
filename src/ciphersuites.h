@@ -30,6 +30,9 @@
 /*
  * Supported ciphersuites (Official IANA names)
  */
+#define TLS_AES_128_GCM_SHA256                   0x1301 /**< TLS 1.3 */
+#define TLS_AES_256_GCM_SHA384                   0x1302 /**< TLS 1.3 */
+
 #define TLS_RSA_WITH_3DES_EDE_CBC_SHA            0x0A
 
 #define TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA        0x16
