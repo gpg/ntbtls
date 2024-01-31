@@ -418,7 +418,7 @@ struct _ntbtls_context_s
   int disable_renegotiation;    /*!<  enable/disable renegotiation   */
   int allow_legacy_renegotiation;       /*!<  allow legacy renegotiation     */
   int renego_max_records;       /*!<  grace period for renegotiation */
-  const int *ciphersuite_list[4];       /*!<  allowed ciphersuites / version */
+  const int *ciphersuite_list[5];       /*!<  allowed ciphersuites / version */
   const /*ecp_group_id*/ void *curve_list;   /*!<  allowed curves        */
   int use_trunc_hmac;           /* Use truncated HMAC flag.   */
   int use_session_tickets;      /* Use session tickets flag.  */

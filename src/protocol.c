@@ -2699,6 +2699,9 @@ _ntbtls_new (ntbtls_t *r_tls, unsigned int flags)
   gpg_error_t err;
   ntbtls_t tls;
   int buffer_len = TLS_BUFFER_LEN;
+  const int ciphersuite_list_13[3] = {
+    TLS_AES_128_GCM_SHA256,  TLS_AES_256_GCM_SHA384,  0
+  };
 
   *r_tls = NULL;
 
@@ -2724,13 +2727,13 @@ _ntbtls_new (ntbtls_t *r_tls, unsigned int flags)
       tls->use_session_tickets = 1;
     }
 
-  /* We only support TLS 1.2 and thus we set the list for the other
-     TLS versions to NULL.  */
+  /* We only support TLS 1.2/1.3 and thus we set the list for the
+     other TLS versions to NULL.  */
   tls->ciphersuite_list[TLS_MINOR_VERSION_0] = NULL;
   tls->ciphersuite_list[TLS_MINOR_VERSION_1] = NULL;
   tls->ciphersuite_list[TLS_MINOR_VERSION_2] = NULL;
   tls->ciphersuite_list[TLS_MINOR_VERSION_3] = _ntbtls_ciphersuite_list ();
-
+  tls->ciphersuite_list[TLS_MINOR_VERSION_4] = ciphersuite_list_13;
 
   tls->renego_max_records = TLS_RENEGO_MAX_RECORDS_DEFAULT;
 
