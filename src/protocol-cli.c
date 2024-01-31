@@ -186,13 +186,16 @@ write_signature_algorithms_ext (ntbtls_t ssl,
 static void
 write_key_share_ext (ntbtls_t tls, unsigned char *buf, size_t * olen)
 {
-  /* FIMXE: For now, it's hard-coded for X25519 */
-  unsigned char public[33];
+  unsigned char public[256];
   size_t len;
   unsigned char *p = buf;
-  size_t key_share_len = 2 + 2 + 32;
+  size_t key_share_len;
+  ecdh_context_t ecdh;
 
-  _ntbtls_ecdh_make_public (tls->handshake->ecdh_ctx, public, 33, &len);
+  ecdh = tls->handshake->ecdh_ctx;
+  _ntbtls_ecdh_curvename (ecdh, 0);
+  _ntbtls_ecdh_make_public (ecdh, public, sizeof public, &len);
+  key_share_len = 2 + 2 + len - 1;
 
   debug_msg (3, "client_hello, adding key share extension");
 
@@ -206,13 +209,13 @@ write_key_share_ext (ntbtls_t tls, unsigned char *buf, size_t * olen)
   *p++ = (unsigned char) (key_share_len & 0xFF);
 
   *p++ = 0;
-  *p++ = 29;                    /* X25519 */
+  *p++ = _ntbtls_ecdh_curve_id (ecdh);
 
   *p++ = 0;
-  *p++ = 32;                    /* length for X25519 */
+  *p++ = len - 1;
 
-  memcpy (p, public+1, 32);
-  p += 32;
+  memcpy (p, public+1, len - 1);
+  p += len - 1;
 
   *olen = p - buf;
 }
@@ -532,8 +535,9 @@ write_client_hello (ntbtls_t tls)
    * generate and include a Session ID in the TLS ClientHello."
    */
   if (tls->renegotiation == TLS_INITIAL_HANDSHAKE &&
-      tls->session_negotiate->ticket != NULL &&
-      tls->session_negotiate->ticket_len != 0)
+      (1 /* Always include the session ID */
+       ||(tls->session_negotiate->ticket != NULL &&
+          tls->session_negotiate->ticket_len != 0)))
     {
       gcry_create_nonce (tls->session_negotiate->id, 32);
       tls->session_negotiate->length = n = 32;
@@ -835,6 +839,67 @@ parse_alpn_ext (ntbtls_t tls, const unsigned char *buf, size_t len)
 
 
 static gpg_error_t
+parse_key_share_ext (ntbtls_t tls, const unsigned char *buf, size_t len)
+{
+  gpg_error_t err = 0;
+  size_t key_share_len = len;
+
+  if (len < 2)
+    return gpg_error (GPG_ERR_BAD_HS_SERVER_HELLO);
+
+  while (key_share_len >= 2)
+    {
+      unsigned int group_id;
+      unsigned int key_ext_length;
+      ecdh_context_t ecdh;
+
+      group_id = buf16_to_uint (buf);
+      buf += 2;
+      key_share_len -= 2;
+
+      /* FIXME: Only support ECDH now, so, group_id is curve_id here.  */
+
+      ecdh = tls->handshake->ecdh_ctx;
+
+      if (key_share_len == 0)
+        {
+          /* It's Hello Retry Request to change key share param.  */
+          err = _ntbtls_ecdh_curvename (ecdh, group_id);
+          break;
+        }
+
+      key_ext_length = buf16_to_uint (buf);
+      buf += 2;
+      key_share_len -= 2;
+
+      if (!err)
+        {
+          err = _ntbtls_ecdh_peer_ec_point (ecdh, buf, key_ext_length);
+          if (!err)
+            {
+              debug_msg (3, "parsing key share extension, calc secret");
+              err = _ntbtls_ecdh_calc_secret (ecdh,
+                                              tls->handshake->premaster,
+                                              TLS_PREMASTER_SIZE,
+                                              &tls->handshake->pmslen);
+              if (err)
+                {
+                  debug_ret (1, "ecdh_calc_secret", err);
+                  return err;
+                }
+            }
+        }
+
+      key_share_len -= key_ext_length;
+      if (!err)
+        break;
+    }
+
+  return err;
+}
+
+
+static gpg_error_t
 read_server_hello (ntbtls_t tls)
 {
   gpg_error_t err;
@@ -846,6 +911,12 @@ read_server_hello (ntbtls_t tls)
   int handshake_failure = 0;
   const int *ciphersuites;
   uint32_t t;
+  const unsigned char helloretryrequest[32] = {
+    0xCF, 0x21, 0xAD, 0x74, 0xE5, 0x9A, 0x61, 0x11,
+    0xBE, 0x1D, 0x8C, 0x02, 0x1E, 0x65, 0xB8, 0x91,
+    0xC2, 0xA2, 0x11, 0x16, 0x7A, 0xBB, 0x8C, 0x5E,
+    0x07, 0x9E, 0x09, 0xE2, 0xC8, 0xA8, 0x33, 0x9C
+  };
 
   debug_msg (2, "read server_hello");
 
@@ -864,6 +935,10 @@ read_server_hello (ntbtls_t tls)
       debug_ret (1, "read_record", err);
       return err;
     }
+
+  if (tls->in_msgtype == TLS_MSG_CHANGE_CIPHER_SPEC)
+    /* Ignore.  */
+    return 0;
 
   if (tls->in_msgtype != TLS_MSG_HANDSHAKE)
     {
@@ -984,6 +1059,12 @@ read_server_hello (ntbtls_t tls)
         }
     }
 
+  if (memcmp (helloretryrequest, tls->handshake->randbytes + 32, 32) == 0)
+    {
+      /* It's Hello Retry Request, we need to go back to client hello */
+      tls->state = TLS_CLIENT_HELLO;
+    }
+
   debug_msg (3, "%s session has been resumed",
              tls->handshake->resume ? "a" : "no");
 
@@ -1069,6 +1150,18 @@ read_server_hello (ntbtls_t tls)
         case TLS_EXT_ALPN:
           debug_msg (2, "found alpn extension");
           err = parse_alpn_ext (tls, ext + 4, ext_size);
+          if (err)
+            return err;
+          break;
+
+        case TLS_EXT_SUPPORTED_VERSIONS:
+          debug_msg (2, "found supported versions extension");
+          /* FIXME */
+          break;
+
+        case TLS_EXT_KEY_SHARE:
+          debug_msg (2, "found key share extension");
+          err = parse_key_share_ext (tls, ext + 4, ext_size);
           if (err)
             return err;
           break;

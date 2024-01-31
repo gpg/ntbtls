@@ -32,6 +32,7 @@
 struct ecdh_context_s
 {
   const char *curve_name;  /* Only for display purposes.  */
+  unsigned int curve_id;
   gcry_ctx_t ecctx;        /* The initialized context for the curve.
                             * This also holds the secre D and our
                             * public key Q.  */
@@ -94,9 +95,30 @@ _ntbtls_ecdh_peer_ec_point (ecdh_context_t ecdh,
 }
 
 
+unsigned int
+_ntbtls_ecdh_curve_id (ecdh_context_t ecdh)
+{
+  return ecdh->curve_id;
+}
+
 gpg_error_t
 _ntbtls_ecdh_curvename (ecdh_context_t ecdh, unsigned int curve_id)
 {
+  if (curve_id == 0)       /* Use default when not set.  */
+    {
+      if (ecdh->curve_name)
+        /* Already initialized, do nothing.  */
+        return 0;
+
+      curve_id = 29;
+    }
+  else
+    {
+      ecdh->curve_name = NULL;
+      gcry_ctx_release (ecdh->ecctx); ecdh->ecctx = NULL;
+      gcry_mpi_point_release (ecdh->Qpeer); ecdh->Qpeer = NULL;
+    }
+
   switch (curve_id)
     {
     case 23: ecdh->curve_name = "secp256r1"; break;
@@ -115,6 +137,7 @@ _ntbtls_ecdh_curvename (ecdh_context_t ecdh, unsigned int curve_id)
       return gpg_error (GPG_ERR_UNKNOWN_CURVE);
     }
 
+  ecdh->curve_id = curve_id;
   return gcry_mpi_ec_new (&ecdh->ecctx, NULL, ecdh->curve_name);
 }
 
@@ -138,10 +161,6 @@ _ntbtls_ecdh_read_params (ecdh_context_t ecdh,
 
   if (!ecdh || !der)
     return gpg_error (GPG_ERR_INV_ARG);
-
-  ecdh->curve_name = NULL;
-  gcry_ctx_release (ecdh->ecctx); ecdh->ecctx = NULL;
-  gcry_mpi_point_release (ecdh->Qpeer); ecdh->Qpeer = NULL;
 
   /* struct {
    *     ECParameters curve_params;
