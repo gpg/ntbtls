@@ -322,7 +322,7 @@ _ntbtls_derive_keys (ntbtls_t tls)
 
   debug_msg (2, "derive keys");
 
-  if (tls->minor_ver != TLS_MINOR_VERSION_3)
+  if (tls->minor_ver < TLS_MINOR_VERSION_3)
     {
       debug_bug ();
       return gpg_error (GPG_ERR_INTERNAL);

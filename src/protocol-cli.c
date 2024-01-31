@@ -123,7 +123,7 @@ write_signature_algorithms_ext (ntbtls_t ssl,
 
   *olen = 0;
 
-  if (ssl->max_minor_ver != TLS_MINOR_VERSION_3)
+  if (ssl->max_minor_ver != TLS_MINOR_VERSION_4)
     return;
 
   debug_msg (3, "client_hello, adding signature_algorithms extension");
@@ -1215,8 +1215,8 @@ parse_signature_algorithm (ntbtls_t tls, unsigned char **p, unsigned char *end,
   *md_alg = 0;
   *pk_alg = 0;
 
-  /* Only in TLS 1.2 */
-  if (tls->minor_ver != TLS_MINOR_VERSION_3)
+  /* Only in TLS 1.2/1.3 */
+  if (tls->minor_ver < TLS_MINOR_VERSION_3)
     {
       return 0;
     }
@@ -1411,7 +1411,7 @@ read_server_key_exchange (ntbtls_t tls)
       /*
        * Handle the digitally-signed structure
        */
-      if (tls->minor_ver == TLS_MINOR_VERSION_3)
+      if (tls->minor_ver >= TLS_MINOR_VERSION_3)
         {
           err = parse_signature_algorithm (tls, &p, end, &md_alg, &pk_alg);
           if (err)
@@ -1611,7 +1611,7 @@ read_certificate_request (ntbtls_t tls)
       p++;
     }
 
-  if (tls->minor_ver == TLS_MINOR_VERSION_3)
+  if (tls->minor_ver >= TLS_MINOR_VERSION_3)
     {
       /* Ignored, see comments about hash in write_certificate_verify */
       // TODO: should check the signature part against our pk_key though
@@ -1898,7 +1898,7 @@ write_certificate_verify (ntbtls_t tls)
    */
   tls->handshake->calc_verify (tls, hash);
 
-  if (tls->minor_ver == TLS_MINOR_VERSION_3)
+  if (tls->minor_ver >= TLS_MINOR_VERSION_3)
     {
       /*
        * digitally-signed struct {
