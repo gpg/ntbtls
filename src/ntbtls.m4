@@ -36,7 +36,7 @@ AC_DEFUN([AM_PATH_NTBTLS],
   fi
 
   use_gpgrt_config=""
-  if test x"$GPGRT_CONFIG" != x -a "$GPGRT_CONFIG" != "no"; then
+  if test x"$GPGRT_CONFIG" != x && test "$GPGRT_CONFIG" != "no"; then
     if $GPGRT_CONFIG ntbtls --exists; then
       NTBTLS_CONFIG="$GPGRT_CONFIG ntbtls"
       AC_MSG_NOTICE([Use gpgrt-config as ntbtls-config])
